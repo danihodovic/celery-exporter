@@ -1,0 +1,9 @@
+[run]
+source = .
+
+omit =
+    .venv/*
+    .virtualenv/*
+
+[report]
+fail_under = 90
