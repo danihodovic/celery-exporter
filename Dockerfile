@@ -1,7 +1,7 @@
 FROM python:3.9.1
 
 
-RUN apt-get update && apt install -y locales \
+RUN apt-get update && apt install -y locales libcurl4-openssl-dev libssl-dev \
         && apt-get clean \
         && rm -rf /var/lib/apt/lists/*
 
