@@ -19,13 +19,6 @@ click.core._verify_python3_env = lambda: None  # pylint: disable=protected-acces
     show_default=True,
     help="The port the exporter will listen on",
 )
-@click.option(
-    "--frequency",
-    default=15,
-    show_default=True,
-    type=float,
-    help="The frequency at which the exporter will pull metrics from Celery",
-)
-def cli(broker_url, port, frequency):  # pylint: disable=unused-argument
+def cli(broker_url, port):  # pylint: disable=unused-argument
     ctx = click.get_current_context()
-    Exporter(ctx.params).run()
+    Exporter.run(ctx.params)

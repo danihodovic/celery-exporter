@@ -58,8 +58,6 @@ Usage: cli.py [OPTIONS]
 Options:
   --broker-url TEXT  The url to the broker, e.g redis://1.2.3.4  [required]
   --port INTEGER     The port the exporter will listen on  [default: 9900]
-  --frequency FLOAT  The frequency at which the exporter will pull metrics
-                     from Celery  [default: 15]
 
   --help             Show this message and exit.
 ```

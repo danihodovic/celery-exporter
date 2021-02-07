@@ -17,7 +17,6 @@ def exporter(celery_config):
     return Exporter(
         {
             "broker_url": celery_config["broker_url"],
-            "frequency": 0.5,
             "port": 17000,
         }
     )
