@@ -1,24 +1,15 @@
-from celery import Celery, states
-from celery.events.snapshot import Polaroid
+from celery import Celery
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, start_http_server
 
 
-class Exporter(Polaroid):
-    clear_after = True  # clear after flush (incl, state.event_count).
+class Exporter:
+    state = None
 
-    def __init__(self, click_params):
-        self.click_params = click_params
+    def __init__(self):
         self.registry = CollectorRegistry(auto_describe=True)
-        app = Celery(
-            broker=click_params["broker_url"],
-            backend="memory",
-        )
-        state = app.events.State()
-        super().__init__(state, freq=click_params["frequency"])
-
         self.state_counters = {
-            states.PENDING: Counter(
+            "task-sent": Counter(
                 "task_sent",
                 "Sent when a task message is published.",
                 [
@@ -27,13 +18,13 @@ class Exporter(Polaroid):
                 ],
                 registry=self.registry,
             ),
-            states.RECEIVED: Counter(
+            "task-received": Counter(
                 "task_received",
                 "Sent when the worker receives a task.",
                 ["name", "hostname"],
                 registry=self.registry,
             ),
-            states.STARTED: Counter(
+            "task-started": Counter(
                 "task_started",
                 "Sent just before the worker executes the task.",
                 [
@@ -42,42 +33,46 @@ class Exporter(Polaroid):
                 ],
                 registry=self.registry,
             ),
-            states.FAILURE: Counter(
-                "task_failed",
-                "Sent if the execution of the task failed.",
-                ["name", "hostname"],
-                registry=self.registry,
-            ),
-            states.RETRY: Counter(
-                "task_retried",
-                "Sent if the task failed, but will be retried in the future.",
-                ["name", "hostname"],
-                registry=self.registry,
-            ),
-            states.SUCCESS: Counter(
+            "task-succeeded": Counter(
                 "task_succeeded",
                 "Sent if the task executed successfully.",
                 ["name", "hostname"],
                 registry=self.registry,
             ),
-            states.REVOKED: Counter(
-                "task_revoked",
-                "Sent if the task has been revoked.",
-                ["name", "hostname"],
+            "task-failed": Counter(
+                "task_failed",
+                "Sent if the execution of the task failed.",
+                ["name", "hostname", "exception"],
                 registry=self.registry,
             ),
-            states.REJECTED: Counter(
+            "task-rejected": Counter(
                 "task_rejected",
                 # pylint: disable=line-too-long
                 "The task was rejected by the worker, possibly to be re-queued or moved to a dead letter queue.",
                 ["name", "hostname"],
                 registry=self.registry,
             ),
+            "task-revoked": Counter(
+                "task_revoked",
+                "Sent if the task has been revoked.",
+                ["name", "hostname"],
+                registry=self.registry,
+            ),
+            "task-retried": Counter(
+                "task_retried",
+                "Sent if the task failed, but will be retried in the future.",
+                ["name", "hostname"],
+                registry=self.registry,
+            ),
         }
 
-    def _measure(self, task):
-        logger.debug("Received task with state='{}'", task.state)
-        counter = self.state_counters.get(task.state)
+    def track_event(self, event):
+        self.state.event(event)
+        logger.debug("event={}", event)
+        task = self.state.tasks.get(event["uuid"])
+        logger.debug("Received event='{}' for task='{}'", event["type"], task.name)
+
+        counter = self.state_counters.get(event["type"])
         if not counter:
             logger.warning("No counter matches task state='{}'", task.state)
             return
@@ -89,20 +84,18 @@ class Exporter(Polaroid):
         counter.labels(**labels).inc()
         logger.debug("Incremented metric='{}' labels='{}'", counter._name, labels)
 
-    def on_shutter(self, state):
-        if not state.event_count:
-            logger.debug("No new events since last snapshot")
-            return
+    @classmethod
+    def run(cls, click_params):
+        app = Celery(broker=click_params["broker_url"])
+        logger.debug("Starting celery-exporter")
+        exporter = cls()
+        exporter.state = app.events.State()
+        start_http_server(click_params["port"], registry=exporter.registry)
 
-        for task in state.tasks.values():
-            self._measure(task)
+        handlers = {}
+        for key in exporter.state_counters:
+            handlers[key] = exporter.track_event
 
-    def run(self):
-        start_http_server(self.click_params["port"], registry=self.registry)
-
-        with self.app.connection() as connection:
-            recv = self.app.events.Receiver(
-                connection, handlers={"*": self.state.event}
-            )
-            with self:
-                recv.capture(limit=None, timeout=None)
+        with app.connection() as connection:
+            recv = app.events.Receiver(connection, handlers=handlers)
+            recv.capture(limit=None, timeout=None, wakeup=True)

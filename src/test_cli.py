@@ -11,9 +11,7 @@ from .cli import cli
 @pytest.mark.celery()
 def test_integration(celery_app, celery_worker):
     def run():
-        CliRunner().invoke(
-            cli, ["--broker-url=memory://localhost", "--port=23000", "--frequency=0.5"]
-        )
+        CliRunner().invoke(cli, ["--broker-url=memory://localhost", "--port=23000"])
 
     threading.Thread(target=run, daemon=True).start()
 
@@ -30,16 +28,32 @@ def test_integration(celery_app, celery_worker):
     succeed.apply_async()
     fail.apply_async()
 
-    time.sleep(3)
+    time.sleep(2)
     res = requests.get("http://localhost:23000/metrics")
     assert res.status_code == 200
 
     # pylint: disable=line-too-long
     assert (
+        f'task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        in res.text
+    )
+    assert (
+        f'task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        in res.text
+    )
+    assert (
+        f'task_started_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        in res.text
+    )
+    assert (
+        f'task_started_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        in res.text
+    )
+    assert (
         f'task_succeeded_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
         in res.text
     )
     assert (
-        f'task_failed_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        f'task_failed_total{{exception="ValueError()",hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
         in res.text
     )

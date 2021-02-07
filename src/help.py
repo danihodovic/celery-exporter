@@ -37,7 +37,7 @@ Metrics exposed:
 """
 )
 
-temp_exporter = Exporter({"broker_url": "redis://1.1.1.1", "frequency": 15, "port": 10})
+temp_exporter = Exporter()
 
 for metric in temp_exporter.state_counters.values():
     cmd_help += f"""
