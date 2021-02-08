@@ -68,7 +68,6 @@ class Exporter:
 
     def track_event(self, event):
         self.state.event(event)
-        logger.debug("event={}", event)
         task = self.state.tasks.get(event["uuid"])
         logger.debug("Received event='{}' for task='{}'", event["type"], task.name)
 
@@ -87,7 +86,7 @@ class Exporter:
     @classmethod
     def run(cls, click_params):
         app = Celery(broker=click_params["broker_url"])
-        logger.debug("Starting celery-exporter")
+        logger.info("Starting celery-exporter at port='{}'", click_params["port"])
         exporter = cls()
         exporter.state = app.events.State()
         start_http_server(click_params["port"], registry=exporter.registry)
