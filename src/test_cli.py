@@ -4,6 +4,7 @@ import time
 import pytest
 import requests
 from click.testing import CliRunner
+from requests.exceptions import HTTPError
 
 from .cli import cli
 
@@ -21,7 +22,7 @@ def test_integration(celery_app, celery_worker):
 
     @celery_app.task
     def fail():
-        raise ValueError()
+        raise HTTPError("Big, big error")
 
     celery_worker.reload()
     succeed.apply_async()
@@ -54,6 +55,6 @@ def test_integration(celery_app, celery_worker):
         in res.text
     )
     assert (
-        f'task_failed_total{{exception="ValueError()",hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        f'task_failed_total{{exception="HTTPError",hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
         in res.text
     )
