@@ -438,6 +438,24 @@ python-versions = ">=3.6.1"
 wcwidth = "*"
 
 [[package]]
+name = "ptpython"
+version = "3.0.13"
+description = "Python REPL build on top of prompt_toolkit"
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+appdirs = "*"
+black = "*"
+jedi = ">=0.16.0"
+prompt-toolkit = ">=3.0.11,<3.1.0"
+pygments = "*"
+
+[package.extras]
+ptipython = ["ipython"]
+
+[[package]]
 name = "pudb"
 version = "2020.1"
 description = "A full-screen, console-based Python debugger"
@@ -711,7 +729,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "6a4e02c68080ce8ce2e836e739757c998c03f3b2e6889e929165ce807eebec0c"
+content-hash = "a1dc721dc2a5ac86a66ed3cc89a8fc58b5569c1d6845170aff4d998b5233bb69"
 
 [metadata.files]
 amqp = [
@@ -917,6 +935,10 @@ prometheus-client = [
 prompt-toolkit = [
     {file = "prompt_toolkit-3.0.14-py3-none-any.whl", hash = "sha256:c96b30925025a7635471dc083ffb6af0cc67482a00611bd81aeaeeeb7e5a5e12"},
     {file = "prompt_toolkit-3.0.14.tar.gz", hash = "sha256:7e966747c18ececaec785699626b771c1ba8344c8d31759a1915d6b12fad6525"},
+]
+ptpython = [
+    {file = "ptpython-3.0.13-py2.py3-none-any.whl", hash = "sha256:b0a6747b1ab628a5807b9c1ec9022a79cc8f7ad12306460716cc737a4d9a839e"},
+    {file = "ptpython-3.0.13.tar.gz", hash = "sha256:78a8b9bc9c07f2e1c3724d19fb0cf2c98ed0cd4ea11e087108d9056d75e650f3"},
 ]
 pudb = [
     {file = "pudb-2020.1.tar.gz", hash = "sha256:2ef23d3371439f13fffbe7f8b9fc180a19d4183dc9cab204d878d7c7766464bf"},

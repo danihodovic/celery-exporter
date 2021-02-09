@@ -31,6 +31,7 @@ pudb = "^2020.1"
 requests = "^2.25.1"
 pylint = {git = "https://github.com/PyCQA/pylint.git"}
 pytest-cov = "^2.11.1"
+ptpython = "^3.0.13"
 
 [build-system]
 requires = ["poetry-core>=1.0.0a5"]
