@@ -1,3 +1,5 @@
+import re
+
 from celery import Celery
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, start_http_server
@@ -79,7 +81,11 @@ class Exporter:
         labels = {}
         # pylint: disable=protected-access
         for labelname in counter._labelnames:
-            labels[labelname] = getattr(task, labelname)
+            value = getattr(task, labelname)
+            if labelname == "exception":
+                logger.debug(value)
+                value = get_exception_class(value)
+            labels[labelname] = value
         counter.labels(**labels).inc()
         logger.debug("Incremented metric='{}' labels='{}'", counter._name, labels)
 
@@ -98,3 +104,11 @@ class Exporter:
         with app.connection() as connection:
             recv = app.events.Receiver(connection, handlers=handlers)
             recv.capture(limit=None, timeout=None, wakeup=True)
+
+
+exception_pattern = re.compile(r"^(\w+)\(")
+
+
+def get_exception_class(exception_name: str):
+    m = exception_pattern.match(exception_name)
+    return m.group(1)
