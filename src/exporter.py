@@ -12,7 +12,7 @@ class Exporter:
         self.registry = CollectorRegistry(auto_describe=True)
         self.state_counters = {
             "task-sent": Counter(
-                "task_sent",
+                "celery_task_sent",
                 "Sent when a task message is published.",
                 [
                     "name",
@@ -21,13 +21,13 @@ class Exporter:
                 registry=self.registry,
             ),
             "task-received": Counter(
-                "task_received",
+                "celery_task_received",
                 "Sent when the worker receives a task.",
                 ["name", "hostname"],
                 registry=self.registry,
             ),
             "task-started": Counter(
-                "task_started",
+                "celery_task_started",
                 "Sent just before the worker executes the task.",
                 [
                     "name",
@@ -36,32 +36,32 @@ class Exporter:
                 registry=self.registry,
             ),
             "task-succeeded": Counter(
-                "task_succeeded",
+                "celery_task_succeeded",
                 "Sent if the task executed successfully.",
                 ["name", "hostname"],
                 registry=self.registry,
             ),
             "task-failed": Counter(
-                "task_failed",
+                "celery_task_failed",
                 "Sent if the execution of the task failed.",
                 ["name", "hostname", "exception"],
                 registry=self.registry,
             ),
             "task-rejected": Counter(
-                "task_rejected",
+                "celery_task_rejected",
                 # pylint: disable=line-too-long
                 "The task was rejected by the worker, possibly to be re-queued or moved to a dead letter queue.",
                 ["name", "hostname"],
                 registry=self.registry,
             ),
             "task-revoked": Counter(
-                "task_revoked",
+                "celery_task_revoked",
                 "Sent if the task has been revoked.",
                 ["name", "hostname"],
                 registry=self.registry,
             ),
             "task-retried": Counter(
-                "task_retried",
+                "celery_task_retried",
                 "Sent if the task failed, but will be retried in the future.",
                 ["name", "hostname"],
                 registry=self.registry,
