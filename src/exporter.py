@@ -1,8 +1,9 @@
+# pylint: disable=protected-access,,attribute-defined-outside-init
 import re
 
 from celery import Celery
 from loguru import logger
-from prometheus_client import CollectorRegistry, Counter, start_http_server
+from prometheus_client import CollectorRegistry, Counter, Gauge, start_http_server
 
 
 class Exporter:
@@ -67,8 +68,20 @@ class Exporter:
                 registry=self.registry,
             ),
         }
+        self.celery_worker_up = Gauge(
+            "celery_worker_up",
+            "Indicates if a worker has recently sent a heartbeat.",
+            ["hostname"],
+            registry=self.registry,
+        )
+        self.worker_tasks_active = Gauge(
+            "celery_worker_tasks_active",
+            "The number of tasks the worker is currently processing",
+            ["hostname"],
+            registry=self.registry,
+        )
 
-    def track_event(self, event):
+    def track_task_event(self, event):
         self.state.event(event)
         task = self.state.tasks.get(event["uuid"])
         logger.debug("Received event='{}' for task='{}'", event["type"], task.name)
@@ -89,20 +102,44 @@ class Exporter:
         counter.labels(**labels).inc()
         logger.debug("Incremented metric='{}' labels='{}'", counter._name, labels)
 
-    @classmethod
-    def run(cls, click_params):
-        app = Celery(broker=click_params["broker_url"])
-        logger.info("Starting celery-exporter at port='{}'", click_params["port"])
-        exporter = cls()
-        exporter.state = app.events.State()
-        start_http_server(click_params["port"], registry=exporter.registry)
+    def track_worker_status(self, event, is_online):
+        value = 1 if is_online else 0
+        event_name = "worker-online" if is_online else "worker-offline"
+        hostname = event["hostname"]
+        logger.debug("Received event='{}' for hostname='{}'", event_name, hostname)
+        self.celery_worker_up.labels(hostname=hostname).set(value)
 
-        handlers = {}
-        for key in exporter.state_counters:
-            handlers[key] = exporter.track_event
+    def track_worker_heartbeat(self, event):
+        logger.debug(
+            "Received event='{}' for worker='{}'", event["type"], event["hostname"]
+        )
+        worker_state = self.state.event(event)[0][0]
+        if not worker_state.active:
+            logger.warning("worker.active is None")
+            return
+        active = worker_state.active
+        self.worker_tasks_active.labels(hostname=event["hostname"]).set(active)
+        logger.debug(
+            "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, active
+        )
 
-        with app.connection() as connection:
-            recv = app.events.Receiver(connection, handlers=handlers)
+    def run(self, click_params):
+        self.app = Celery(broker=click_params["broker_url"])
+        self.state = self.app.events.State()
+
+        start_http_server(click_params["port"], registry=self.registry)
+        logger.info("Started celery-exporter at port='{}'", click_params["port"])
+
+        handlers = {
+            "worker-heartbeat": self.track_worker_heartbeat,
+            "worker-online": lambda event: self.track_worker_status(event, True),
+            "worker-offline": lambda event: self.track_worker_status(event, False),
+        }
+        for key in self.state_counters:
+            handlers[key] = self.track_task_event
+
+        with self.app.connection() as connection:
+            recv = self.app.events.Receiver(connection, handlers=handlers)
             recv.capture(limit=None, timeout=None, wakeup=True)
 
 

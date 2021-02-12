@@ -21,4 +21,4 @@ click.core._verify_python3_env = lambda: None  # pylint: disable=protected-acces
 )
 def cli(broker_url, port):  # pylint: disable=unused-argument
     ctx = click.get_current_context()
-    Exporter.run(ctx.params)
+    Exporter().run(ctx.params)
