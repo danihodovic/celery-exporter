@@ -113,15 +113,16 @@ class Exporter:
         logger.debug(
             "Received event='{}' for worker='{}'", event["type"], event["hostname"]
         )
+
         worker_state = self.state.event(event)[0][0]
-        if not worker_state.active:
-            logger.warning("worker.active is None")
-            return
-        active = worker_state.active
+        active = worker_state.active or 0
+        up = 1 if worker_state.alive else 0
+        self.celery_worker_up.labels(hostname=event["hostname"]).set(up)
         self.worker_tasks_active.labels(hostname=event["hostname"]).set(active)
         logger.debug(
             "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, active
         )
+        logger.debug("Updated gauge='{}' value='{}'", self.celery_worker_up._name, up)
 
     def run(self, click_params):
         self.app = Celery(broker=click_params["broker_url"])
