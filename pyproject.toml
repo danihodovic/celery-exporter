@@ -21,6 +21,8 @@ click = "^7.1.2"
 pretty-errors = "^1.2.19"
 loguru = "^0.5.3"
 redis = "^3.5.3"
+Flask = "^1.1.2"
+waitress = "^1.4.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
