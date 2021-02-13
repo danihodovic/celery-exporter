@@ -1,0 +1,44 @@
+---
+# yamllint disable rule:line-length
+version: '3'
+
+tasks:
+  build-image:
+    desc: Builds a docker image
+    cmds:
+      - docker build . -t danihodovic/celery-exporter
+
+  build-binary:
+    desc: Creates a cross platform binary
+    cmds:
+      - pyinstaller cli.py -y
+        --onefile
+        --name celery-exporter
+      - staticx ./dist/celery-exporter ./dist/celery-exporter
+
+  release:
+    desc: Creates a Github release
+    deps: [build]
+    cmds:
+      - git tag --delete latest
+      - git tag -a latest -m 'Latest build'
+      - >
+        github-release delete
+        --user danihodovic
+        --repo celery-exporter
+        --tag latest
+      - >
+        github-release release
+        --user danihodovic
+        --repo celery-exporter
+        --tag latest
+        --name celery-exporter
+        --description "Celery exporter for Prometheus"
+      - >
+        github-release upload
+        --user danihodovic
+        --repo celery-exporter
+        --tag latest
+        --name celery-exporter
+        --file ./dist/celery-exporter
+      - docker push danihodovic/celery-exporter
