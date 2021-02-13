@@ -3,7 +3,9 @@ import re
 
 from celery import Celery
 from loguru import logger
-from prometheus_client import CollectorRegistry, Counter, Gauge, start_http_server
+from prometheus_client import CollectorRegistry, Counter, Gauge
+
+from .http_server import start_http_server
 
 
 class Exporter:
@@ -128,9 +130,6 @@ class Exporter:
         self.app = Celery(broker=click_params["broker_url"])
         self.state = self.app.events.State()
 
-        start_http_server(click_params["port"], registry=self.registry)
-        logger.info("Started celery-exporter at port='{}'", click_params["port"])
-
         handlers = {
             "worker-heartbeat": self.track_worker_heartbeat,
             "worker-online": lambda event: self.track_worker_status(event, True),
@@ -140,6 +139,7 @@ class Exporter:
             handlers[key] = self.track_task_event
 
         with self.app.connection() as connection:
+            start_http_server(self.registry, connection, click_params["port"])
             recv = self.app.events.Receiver(connection, handlers=handlers)
             recv.capture(limit=None, timeout=None, wakeup=True)
 

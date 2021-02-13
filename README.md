@@ -5,6 +5,7 @@
 * [Why another exporter?](#why-another-exporter)
   * [Features](#features)
 * [Usage](#usage)
+  * [Enable events using the CLI](#enable-events-using-the-cli)
   * [Running the exporter](#running-the-exporter)
 * [Metrics](#metrics)
 
@@ -24,6 +25,7 @@ Prometheus in real-time.
 - Follows the Prometheus exporter [best practises](https://prometheus.io/docs/instrumenting/writing_exporters/)
 - Works with both Redis and RabbitMQ
 - Deployed as a Docker image or Python single-file binary (via PyInstaller)
+- Exposes a health check endpoint at /health
 
 ## Usage
 
@@ -31,7 +33,7 @@ Celery needs to be configured to send events to the broker which the exporter
 will collect. You can either enable this via Celery configuration or via the
 Celery CLI.
 
-**Enable events using the CLI:**
+##### Enable events using the CLI
 
 To enable events in the CLI run the below command. Note that by default it
 doesn't send the `task-sent` event which needs to be [configured](https://docs.celeryproject.org/en/latest/userguide/configuration.html#std-setting-task_send_sent_event) in the
