@@ -34,6 +34,8 @@ pylint = {git = "https://github.com/PyCQA/pylint.git"}
 pytest-cov = "^2.11.1"
 ptpython = "^3.0.13"
 pytest-mock = "^3.5.1"
+pyinstaller = "v4.0"
+staticx = "^0.12.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0a5"]
