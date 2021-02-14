@@ -63,7 +63,7 @@ CELERY_TASK_SEND_SENT_EVENT = True
 Using Docker:
 
 ```sh
-docker run danihodovic/celery-exporter --broker-url=redis://redis.service.consul/1
+docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.service.consul/1
 ```
 
 Using the Python binary (for-non Docker environments):
