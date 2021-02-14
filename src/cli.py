@@ -15,7 +15,7 @@ click.core._verify_python3_env = lambda: None  # pylint: disable=protected-acces
 @click.option(
     "--port",
     type=int,
-    default=9900,
+    default=9808,
     show_default=True,
     help="The port the exporter will listen on",
 )

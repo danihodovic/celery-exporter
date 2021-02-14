@@ -1,5 +1,6 @@
 FROM python:3.9.1
 
+EXPOSE 9808
 
 RUN apt-get update && apt install -y locales libcurl4-openssl-dev libssl-dev \
         && apt-get clean \
