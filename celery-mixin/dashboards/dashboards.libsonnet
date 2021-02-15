@@ -68,7 +68,7 @@ local prometheus = grafana.prometheus;
         title='Individual Tasks'
       ),
 
-    'celery.json':
+    'celery-tasks.json':
       grafana.dashboard.new(
         'Celery / Tasks',
         description='A dashboard that monitors Celery. It is created using the Celery-mixin for the the (Celery-exporter)[https://github.com/danihodovic/celery-exporter]',
