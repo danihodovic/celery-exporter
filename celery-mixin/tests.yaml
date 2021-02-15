@@ -1,0 +1,24 @@
+---
+rule_files:
+  - prometheus-alerts.yaml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'celery_task_failed_total{job="celery", name="failed_task"}'
+        values: '0 1'
+      - series: 'celery_task_failed_total{job="celery", name="successful_task"}'
+        values: '0 0'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: CeleryTaskFailed
+        exp_alerts:
+          - exp_labels:
+              job: celery
+              severity: warning
+              name: failed_task
+            exp_annotations:
+              summary: 'A Celery task has failed to complete.'
+              description: 'The task failed_task failed to complete.'
