@@ -144,36 +144,43 @@ local prometheus = grafana.prometheus;
               unit: 'percentunit',
             },
             {
-              alias: 'Succeeded',
+              alias: 'Received',
               pattern: 'Value #B',
               type: 'number',
               unit: 'short',
               decimals: '0',
             },
             {
-              alias: 'Failed',
+              alias: 'Succeeded',
               pattern: 'Value #C',
               type: 'number',
               unit: 'short',
               decimals: '0',
             },
             {
-              alias: 'Rejected',
+              alias: 'Failed',
               pattern: 'Value #D',
               type: 'number',
               unit: 'short',
               decimals: '0',
             },
             {
-              alias: 'Retried',
+              alias: 'Rejected',
               pattern: 'Value #E',
               type: 'number',
               unit: 'short',
               decimals: '0',
             },
             {
-              alias: 'Revoked',
+              alias: 'Retried',
               pattern: 'Value #F',
+              type: 'number',
+              unit: 'short',
+              decimals: '0',
+            },
+            {
+              alias: 'Revoked',
+              pattern: 'Value #G',
               type: 'number',
               unit: 'short',
               decimals: '0',
@@ -181,6 +188,7 @@ local prometheus = grafana.prometheus;
           ]
         )
         .addTarget(prometheus.target(taskSuccessRate, format='table', instant=true))
+        .addTarget(prometheus.target(taskReceived, format='table', instant=true))
         .addTarget(prometheus.target(taskSucceeded, format='table', instant=true))
         .addTarget(prometheus.target(taskFailed, format='table', instant=true))
         .addTarget(prometheus.target(taskRejected, format='table', instant=true))
