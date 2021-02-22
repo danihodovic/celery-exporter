@@ -22,3 +22,20 @@ tests:
             exp_annotations:
               summary: 'A Celery task has failed to complete.'
               description: 'The task failed_task failed to complete.'
+  - interval: 1m
+    input_series:
+      - series: 'celery_worker_up{job="celery", hostname="down"}'
+        values: '1 0'
+      - series: 'celery_worker_up{job="celery", hostname="up"}'
+        values: '1 1'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: CeleryWorkerDown
+        exp_alerts:
+          - exp_labels:
+              job: celery
+              severity: warning
+              hostname: down
+            exp_annotations:
+              summary: 'A Celery worker is offline.'
+              description: 'The Celery worker down is offline.'
