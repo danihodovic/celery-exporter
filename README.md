@@ -1,5 +1,7 @@
 # celery-exporter [![Build Status](https://ci.depode.com/api/badges/danihodovic/celery-exporter/status.svg)](https://ci.depode.com/danihodovic/celery-exporter)
 
+![dashboard](./images/grafana_dashboard.png)
+
 ##### Table of Contents
 
 * [Why another exporter?](#why-another-exporter)
