@@ -84,7 +84,7 @@ local prometheus = grafana.prometheus;
           datasource='$datasource',
           reducerFunction='last'
         )
-        .addTarget(prometheus.target('count(celery_worker_up)')),
+        .addTarget(prometheus.target('count(celery_worker_up == 1)')),
         gridPos={ h: 4, w: 6, x: 0, y: 1 }
       )
       .addPanel(
