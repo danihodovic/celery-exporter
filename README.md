@@ -28,6 +28,8 @@ Prometheus in real-time.
 - Works with both Redis and RabbitMQ
 - Deployed as a Docker image or Python single-file binary (via PyInstaller)
 - Exposes a health check endpoint at /health
+- Grafana dashboards provided by the Celery-mixin
+- Prometheus alerts provided by the Celery-mixin
 
 ## Usage
 
@@ -75,6 +77,9 @@ chmod+x ./celery-exporter
 ./celery-exporter --broker-url=redis://redis.service.consul/1
 ```
 
+##### Grafana Dashboards & Prometheus Alerts
+
+Head over to the [Celery-mixin in this subdirectory](https://github.com/danihodovic/celery-exporter/tree/master/celery-mixin) to generate rules and dashboards suited to your Prometheus setup.
 
 ### Metrics
 Name     | Description | Type
