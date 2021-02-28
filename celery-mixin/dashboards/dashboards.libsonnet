@@ -82,18 +82,18 @@ local prometheus = grafana.prometheus;
         statPanel.new(
           'Celery Workers',
           datasource='$datasource',
-          reducerFunction='last'
+          reducerFunction='last',
         )
-        .addTarget(prometheus.target('count(celery_worker_up)')),
+        .addTarget(prometheus.target('count(celery_worker_up)', intervalFactor=1)),
         gridPos={ h: 4, w: 6, x: 0, y: 1 }
       )
       .addPanel(
         statPanel.new(
           'Tasks Active',
           datasource='$datasource',
-          reducerFunction='last'
+          reducerFunction='last',
         )
-        .addTarget(prometheus.target('sum(celery_worker_tasks_active)')),
+        .addTarget(prometheus.target('sum(celery_worker_tasks_active)', intervalFactor=1)),
         gridPos={ h: 4, w: 6, x: 6, y: 1 }
       )
       .addPanel(
