@@ -12,7 +12,7 @@ workspace:
   path: /drone/dht/
 
 steps:
-  - name: restore-cache-with-filesystem
+  - name: restore-cache
     image: meltwater/drone-cache:dev
     pull: true
     settings:
@@ -27,6 +27,7 @@ steps:
         path: /tmp/cache
 
   - name: install-dependencies
+    depends_on: [restore-cache]
     image: python:3.9.1
     commands:
       # If the venv dir is not cached create it
@@ -36,6 +37,7 @@ steps:
       - poetry install
 
   - name: test
+    depends_on: [install-dependencies]
     image: python:3.9.1
     commands:
       - . .virtualenv/bin/activate
@@ -44,7 +46,8 @@ steps:
       - pylint src
       - pytest --cov
 
-  - name: rebuild-cache-with-filesystem
+  - name: rebuild-cache
+    depends_on: [install-dependencies]
     image: meltwater/drone-cache:dev
     pull: true
     settings:
