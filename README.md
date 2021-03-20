@@ -102,6 +102,9 @@ Follow the instructions below to set up the project on your local machine.
 
 ### Set up project
 
+On a linux machine you need to install a few packages.
+`apt-get update && apt install -y locales libcurl4-openssl-dev libssl-dev`
+
 We are using `poetry` as a Python package manager, install it now.
 
 `pip install poetry`
