@@ -82,6 +82,12 @@ class Exporter:
             ["hostname"],
             registry=self.registry,
         )
+        self.worker_task_queuing_time = Gauge(
+            "celery_worker_task_queuing_time",
+            "How long the task spent waiting in the queue before it started executing.",
+            ["name", "hostname"],
+            registry=self.registry,
+        )
 
     def track_task_event(self, event):
         self.state.event(event)
@@ -102,6 +108,11 @@ class Exporter:
                 value = get_exception_class(value)
             labels[labelname] = value
         counter.labels(**labels).inc()
+
+        if event["type"] in ["task-started", "task-failed"]:
+            queue_time = task.started - task.received
+            self.worker_task_queuing_time.labels(**labels).set(queue_time)
+
         logger.debug("Incremented metric='{}' labels='{}'", counter._name, labels)
 
     def track_worker_status(self, event, is_online):
