@@ -94,3 +94,22 @@ celery_task_revoked_total | Sent if the task has been revoked. | Counter
 celery_task_retried_total | Sent if the task failed, but will be retried in the future. | Counter
 celery_worker_up | Indicates if a worker has recently sent a heartbeat. | Gauge
 celery_worker_tasks_active | The number of tasks the worker is currently processing | Gauge
+
+
+## Contributing
+
+Follow the instructions below to set up the project on your local machine.
+
+#### Install poetry
+
+We are using `poetry` as a Python package manager, install it now.
+
+`pip install poetry`
+
+Install the project's requirements and create a virtual environment.
+
+`poetry install`
+
+Activate the environment.
+
+`poetry shell`
