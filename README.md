@@ -100,7 +100,7 @@ celery_worker_tasks_active | The number of tasks the worker is currently process
 
 Follow the instructions below to set up the project on your local machine.
 
-#### Install poetry
+### Set up project
 
 We are using `poetry` as a Python package manager, install it now.
 
@@ -113,3 +113,7 @@ Install the project's requirements and create a virtual environment.
 Activate the environment.
 
 `poetry shell`
+
+### Run tests
+
+Simply run `pytest --cov`
