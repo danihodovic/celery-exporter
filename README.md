@@ -120,3 +120,12 @@ Activate the environment.
 ### Run tests
 
 Simply run `pytest --cov`
+
+### Start the exporter locally for debugging/testing
+
+Start your broker (we will use Redis here)
+
+`redis-server`
+
+Run celery exporter with Redis as a broker on localhost.
+`python cli.py --broker-url=redis://localhost/0`
