@@ -6,7 +6,7 @@ import requests
 from click.testing import CliRunner
 from requests.exceptions import HTTPError
 
-from .cli import cli
+from src.cli import cli
 
 
 @pytest.mark.celery()
@@ -35,26 +35,26 @@ def test_integration(celery_app, celery_worker):
 
     # pylint: disable=line-too-long
     assert (
-        f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.tests.test_cli.succeed"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.tests.test_cli.fail"}} 1.0'
         in res.text
     )
     assert (
-        f'celery_task_started_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_started_total{{hostname="{celery_worker.hostname}",name="src.tests.test_cli.succeed"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_started_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_started_total{{hostname="{celery_worker.hostname}",name="src.tests.test_cli.fail"}} 1.0'
         in res.text
     )
     assert (
-        f'celery_task_succeeded_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_succeeded_total{{hostname="{celery_worker.hostname}",name="src.tests.test_cli.succeed"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_failed_total{{exception="HTTPError",hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_failed_total{{exception="HTTPError",hostname="{celery_worker.hostname}",name="src.tests.test_cli.fail"}} 1.0'
         in res.text
     )
