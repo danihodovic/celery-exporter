@@ -7,7 +7,7 @@ from .constants import (
     TASK_EVENT_LABELS,
     WORKER_EVENT_LABELS,
     LabelName,
-    EventName,
+    EventType,
 )
 from .event_handlers import (
     TaskEventHandler,
@@ -26,50 +26,50 @@ class Exporter:
         self.app = None
         self.registry = CollectorRegistry(auto_describe=True)
         self.state_counters = {
-            EventName.TASK_SENT: EventCounter(
+            EventType.TASK_SENT: EventCounter(
                 "celery_task_sent",
                 "Sent when a task message is published.",
                 TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            EventName.TASK_RECEIVED: EventCounter(
+            EventType.TASK_RECEIVED: EventCounter(
                 "celery_task_received",
                 "Sent when the worker receives a task.",
                 TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            EventName.TASK_STARTED: EventCounter(
+            EventType.TASK_STARTED: EventCounter(
                 "celery_task_started",
                 "Sent just before the worker executes the task.",
                 TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            EventName.TASK_SUCCEEDED: EventCounter(
+            EventType.TASK_SUCCEEDED: EventCounter(
                 "celery_task_succeeded",
                 "Sent if the task executed successfully.",
                 TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            EventName.TASK_FAILED: EventCounter(
+            EventType.TASK_FAILED: EventCounter(
                 "celery_task_failed",
                 "Sent if the execution of the task failed.",
                 [*TASK_EVENT_LABELS, LabelName.EXCEPTION],
                 registry=self.registry,
             ),
-            EventName.TASK_REJECTED: EventCounter(
+            EventType.TASK_REJECTED: EventCounter(
                 "celery_task_rejected",
                 # pylint: disable=line-too-long
                 "The task was rejected by the worker, possibly to be re-queued or moved to a dead letter queue.",
                 TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            EventName.TASK_REVOKED: EventCounter(
+            EventType.TASK_REVOKED: EventCounter(
                 "celery_task_revoked",
                 "Sent if the task has been revoked.",
                 TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            EventName.TASK_RETRIED: EventCounter(
+            EventType.TASK_RETRIED: EventCounter(
                 "celery_task_retried",
                 "Sent if the task failed, but will be retried in the future.",
                 TASK_EVENT_LABELS,
@@ -97,23 +97,23 @@ class Exporter:
 
     def get_handlers(self) -> Dict[str, Callable]:
         handlers = {
-            EventName.WORKER_HEARTBEAT: WorkerHeartbeatHandler(
+            EventType.WORKER_HEARTBEAT: WorkerHeartbeatHandler(
                 state=self.state,
                 worker_up_gauge=self.celery_worker_up,
                 worker_tasks_active_gauge=self.worker_tasks_active,
             ),
-            EventName.WORKER_ONLINE: WorkerStatusHandler(
+            EventType.WORKER_ONLINE: WorkerStatusHandler(
                 state=self.state, is_online=True, worker_up_gauge=self.celery_worker_up
             ),
-            EventName.WORKER_OFFLINE: WorkerStatusHandler(
+            EventType.WORKER_OFFLINE: WorkerStatusHandler(
                 state=self.state, is_online=False, worker_up_gauge=self.celery_worker_up
             ),
         }
-        for event_name, counter in self.state_counters.items():
-            handlers[event_name] = TaskEventHandler(state=self.state, counter=counter)
-        handlers[EventName.TASK_STARTED] = TaskStartedEventHandler(
+        for event_type, counter in self.state_counters.items():
+            handlers[event_type] = TaskEventHandler(state=self.state, counter=counter)
+        handlers[EventType.TASK_STARTED] = TaskStartedEventHandler(
             state=self.state,
-            counter=self.state_counters[EventName.TASK_STARTED],
+            counter=self.state_counters[EventType.TASK_STARTED],
             queuing_time_gauge=self.queuing_time_gauge,
         )
 

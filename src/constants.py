@@ -11,7 +11,7 @@ TASK_EVENT_LABELS = [LabelName.NAME, LabelName.HOSTNAME]
 WORKER_EVENT_LABELS = [LabelName.HOSTNAME]
 
 
-class EventName:
+class EventType:
     TASK_SENT = "task-sent"
     TASK_RECEIVED = "task-received"
     TASK_STARTED = "task-started"
