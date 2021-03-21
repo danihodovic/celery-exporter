@@ -18,16 +18,6 @@ def celery_worker_parameters():
     return {"without_heartbeat": False}
 
 
-@pytest.fixture()
-def exporter(celery_config):
-    return Exporter(
-        {
-            "broker_url": celery_config["broker_url"],
-            "port": 17000,
-        }
-    )
-
-
 @pytest.fixture(scope="session")
 def find_free_port():
     """
