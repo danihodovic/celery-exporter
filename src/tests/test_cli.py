@@ -58,3 +58,11 @@ def test_integration(celery_app, celery_worker):
         f'celery_task_failed_total{{exception="HTTPError",hostname="{celery_worker.hostname}",name="src.tests.test_cli.fail"}} 1.0'
         in res.text
     )
+    assert (
+        f'celery_task_queuing_time_seconds{{hostname="{celery_worker.hostname}",name="src.tests.test_cli.succeed"}}'
+        in res.text
+    )
+    assert (
+        f'celery_task_queuing_time_seconds{{hostname="{celery_worker.hostname}",name="src.tests.test_cli.fail"}}'
+        in res.text
+    )
