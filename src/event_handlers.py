@@ -6,9 +6,13 @@ from typing import Any, Dict, Union
 from celery import Task
 from loguru import logger
 
-from src.constants import EventEnum, LabelName, EventName
+from src.constants import EventEnum, LabelName, EventType
 from src.helpers import get_exception_class
 from src.instrumentation import EventCounter, EventGauge
+
+
+class InvalidTaskEventLabelName(Exception):
+    pass
 
 
 class IEventHandler(ABC):
@@ -28,7 +32,13 @@ class IEventHandler(ABC):
     ) -> Dict[str, Any]:
         labels = {}
         for labelname in instrument.labelnames:
-            value = getattr(task, labelname)
+            try:
+                value = getattr(task, labelname)
+            except AttributeError as e:
+                raise InvalidTaskEventLabelName(
+                    f"Label names given to counters for task events must represent valid attribute names of a celery task."
+                    f' You have used labelname: {labelname}. Available task attributes: {[attr for attr in dir(task) if not attr.startswith("_")]}'
+                ) from e
             if labelname == LabelName.EXCEPTION:
                 logger.debug(value)
                 value = get_exception_class(value)
@@ -45,13 +55,11 @@ class TaskEventHandler(IEventHandler):
     def handle_event(self, event: Dict[str, Any]):
         self._state.event(event)
         task = self._state.tasks.get(event[EventEnum.UUID])
-        logger.debug(
-            "Received event='{}' for task='{}'", event[EventEnum.TYPE], task.name
-        )
+        logger.debug(f"Received event={event[EventEnum.TYPE]} for task={task.name}")
 
         labels = self._get_label_values_from_task(instrument=self._counter, task=task)
         self._counter.labels(**labels).inc()
-        logger.debug("Incremented metric='{}' labels='{}'", self._counter.name, labels)
+        logger.debug(f"Incremented metric={self._counter.name}, labels={labels}")
 
 
 class TaskStartedEventHandler(TaskEventHandler):
@@ -86,7 +94,7 @@ class WorkerStatusHandler(IEventHandler):
     def handle_event(self, event: Dict[str, Any]):
         value = 1 if self._is_online else 0
         event_name = (
-            EventName.WORKER_ONLINE if self._is_online else EventName.WORKER_OFFLINE
+            EventType.WORKER_ONLINE if self._is_online else EventType.WORKER_OFFLINE
         )
         hostname = event[EventEnum.HOSTNAME]
 
@@ -121,9 +129,9 @@ class WorkerHeartbeatHandler(IEventHandler):
         hostname = event[EventEnum.HOSTNAME]
         self._worker_up_gauge.labels(hostname=hostname).set(up)
         self._worker_tasks_active_gauge.labels(hostname=hostname).set(active)
+        logger.debug("Updated gauge='{}' value='{}'", self._worker_up_gauge.name, up)
         logger.debug(
-            "Updated gauge='{}' value='{}'", self._worker_up_gauge.name, up
-        )
-        logger.debug(
-            "Updated gauge='{}' value='{}'", self._worker_tasks_active_gauge.name, active
+            "Updated gauge='{}' value='{}'",
+            self._worker_tasks_active_gauge.name,
+            active,
         )
