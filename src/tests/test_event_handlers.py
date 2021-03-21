@@ -1,13 +1,14 @@
+# pylint: disable=too-many-arguments, no-self-use
+
 import logging
-from unittest.mock import create_autospec
+from unittest.mock import Mock, create_autospec
 
 import pytest
 from celery import Task
-from celery.events.state import State
 from prometheus_client import CollectorRegistry
 
-from src.constants import EventEnum, EventType, TASK_EVENT_LABELS, LabelName
-from src.event_handlers import TaskEventHandler, InvalidTaskEventLabelName
+from src.constants import TASK_EVENT_LABELS, EventEnum, EventType, LabelName
+from src.event_handlers import InvalidTaskEventLabelName, TaskEventHandler
 from src.instrumentation import EventCounter
 
 
@@ -53,7 +54,7 @@ def mock_counter(counter_name):
 
 @pytest.fixture
 def mock_state(mock_task, uuid):
-    mock_state = create_autospec(State, tasks={uuid: mock_task})
+    mock_state = Mock(tasks={uuid: mock_task})
     return mock_state
 
 
@@ -71,10 +72,8 @@ class TestTaskEventHandler:
     def test_increments_counter_for_correct_labels(
         self,
         caplog,
-        uuid,
         hostname,
         task_name,
-        mock_task,
         mock_counter,
         counter_name,
         mock_state,
@@ -111,7 +110,7 @@ class TestTaskEventHandler:
             task_event_handler(event=mock_event)
 
         assert (
-            "Label names given to counters for task events must represent valid attribute names of a celery task."
-            in err.value.args[0]
+            "Label names given to counters for task events must "
+            "represent valid attribute names of a celery task." in err.value.args[0]
         )
         assert f"You have used labelname: {invalid_labelname}." in err.value.args[0]

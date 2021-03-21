@@ -6,7 +6,7 @@ from typing import Any, Dict, Union
 from celery import Task
 from loguru import logger
 
-from src.constants import EventEnum, LabelName, EventType
+from src.constants import EventEnum, EventType, LabelName
 from src.helpers import get_exception_class
 from src.instrumentation import EventCounter, EventGauge
 
@@ -36,8 +36,11 @@ class IEventHandler(ABC):
                 value = getattr(task, labelname)
             except AttributeError as e:
                 raise InvalidTaskEventLabelName(
-                    f"Label names given to counters for task events must represent valid attribute names of a celery task."
-                    f' You have used labelname: {labelname}. Available task attributes: {[attr for attr in dir(task) if not attr.startswith("_")]}'
+                    f"Label names given to counters for task events must represent valid"
+                    f" attribute names of a celery task."
+                    f" You have used labelname: {labelname}. "
+                    f"Available task attributes: "
+                    f'{[attr for attr in dir(task) if not attr.startswith("_")]}'
                 ) from e
             if labelname == LabelName.EXCEPTION:
                 logger.debug(value)

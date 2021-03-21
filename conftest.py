@@ -1,9 +1,10 @@
-import pytest
-
-from src.exporter import Exporter
 import logging
+
+import pytest
 from _pytest.logging import caplog as _caplog
 from loguru import logger
+
+from src.exporter import Exporter
 
 
 @pytest.fixture(scope="session")

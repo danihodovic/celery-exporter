@@ -1,19 +1,14 @@
-from typing import Dict, Any, Callable
+from typing import Any, Callable, Dict
 
 from celery import Celery
 from prometheus_client import CollectorRegistry
 
-from .constants import (
-    TASK_EVENT_LABELS,
-    WORKER_EVENT_LABELS,
-    LabelName,
-    EventType,
-)
+from .constants import TASK_EVENT_LABELS, WORKER_EVENT_LABELS, EventType, LabelName
 from .event_handlers import (
     TaskEventHandler,
     TaskStartedEventHandler,
-    WorkerStatusHandler,
     WorkerHeartbeatHandler,
+    WorkerStatusHandler,
 )
 from .http_server import start_http_server
 from .instrumentation import EventCounter, EventGauge
