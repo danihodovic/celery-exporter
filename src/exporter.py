@@ -5,6 +5,7 @@ from celery import Celery
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge
 
+from .constants import TASK_EVENT_LABELS, WORKER_EVENT_LABELS, LabelName, EventName, EventEnum
 from .http_server import start_http_server
 
 
@@ -14,87 +15,81 @@ class Exporter:
     def __init__(self):
         self.registry = CollectorRegistry(auto_describe=True)
         self.state_counters = {
-            "task-sent": Counter(
+            EventName.TASK_SENT: Counter(
                 "celery_task_sent",
                 "Sent when a task message is published.",
-                [
-                    "name",
-                    "hostname",
-                ],
+                TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            "task-received": Counter(
+            EventName.TASK_RECEIVED: Counter(
                 "celery_task_received",
                 "Sent when the worker receives a task.",
-                ["name", "hostname"],
+                TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            "task-started": Counter(
+            EventName.TASK_STARTED: Counter(
                 "celery_task_started",
                 "Sent just before the worker executes the task.",
-                [
-                    "name",
-                    "hostname",
-                ],
+                TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            "task-succeeded": Counter(
+            EventName.TASK_SUCCEEDED: Counter(
                 "celery_task_succeeded",
                 "Sent if the task executed successfully.",
-                ["name", "hostname"],
+                TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            "task-failed": Counter(
+            EventName.TASK_FAILED: Counter(
                 "celery_task_failed",
                 "Sent if the execution of the task failed.",
-                ["name", "hostname", "exception"],
+                [*TASK_EVENT_LABELS, LabelName.EXCEPTION],
                 registry=self.registry,
             ),
-            "task-rejected": Counter(
+            EventName.TASK_REJECTED: Counter(
                 "celery_task_rejected",
                 # pylint: disable=line-too-long
                 "The task was rejected by the worker, possibly to be re-queued or moved to a dead letter queue.",
-                ["name", "hostname"],
+                TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            "task-revoked": Counter(
+            EventName.TASK_REVOKED: Counter(
                 "celery_task_revoked",
                 "Sent if the task has been revoked.",
-                ["name", "hostname"],
+                TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
-            "task-retried": Counter(
+            EventName.TASK_RETRIED: Counter(
                 "celery_task_retried",
                 "Sent if the task failed, but will be retried in the future.",
-                ["name", "hostname"],
+                TASK_EVENT_LABELS,
                 registry=self.registry,
             ),
         }
+        self.task_queuing_time = Gauge(
+            "celery_task_queuing_time",
+            "How long the task spent waiting in the queue before it started executing.",
+            TASK_EVENT_LABELS,
+            registry=self.registry,
+        )
         self.celery_worker_up = Gauge(
             "celery_worker_up",
             "Indicates if a worker has recently sent a heartbeat.",
-            ["hostname"],
+            WORKER_EVENT_LABELS,
             registry=self.registry,
         )
         self.worker_tasks_active = Gauge(
             "celery_worker_tasks_active",
             "The number of tasks the worker is currently processing",
-            ["hostname"],
-            registry=self.registry,
-        )
-        self.worker_task_queuing_time = Gauge(
-            "celery_worker_task_queuing_time",
-            "How long the task spent waiting in the queue before it started executing.",
-            ["name", "hostname"],
+            WORKER_EVENT_LABELS,
             registry=self.registry,
         )
 
     def track_task_event(self, event):
         self.state.event(event)
-        task = self.state.tasks.get(event["uuid"])
-        logger.debug("Received event='{}' for task='{}'", event["type"], task.name)
+        task = self.state.tasks.get(event[EventEnum.UUID])
+        logger.debug("Received event='{}' for task='{}'", event[EventEnum.TYPE], task.name)
 
-        counter = self.state_counters.get(event["type"])
+        counter = self.state_counters.get(event[EventEnum.TYPE])
         if not counter:
             logger.warning("No counter matches task state='{}'", task.state)
             return
@@ -103,35 +98,35 @@ class Exporter:
         # pylint: disable=protected-access
         for labelname in counter._labelnames:
             value = getattr(task, labelname)
-            if labelname == "exception":
+            if labelname == LabelName.EXCEPTION:
                 logger.debug(value)
                 value = get_exception_class(value)
             labels[labelname] = value
         counter.labels(**labels).inc()
 
-        if event["type"] in ["task-started", "task-failed"]:
+        if event[EventEnum.TYPE] in [EventName.TASK_STARTED, EventName.TASK_FAILED]:
             queue_time = task.started - task.received
-            self.worker_task_queuing_time.labels(**labels).set(queue_time)
+            self.task_queuing_time.labels(**labels).set(queue_time)
 
         logger.debug("Incremented metric='{}' labels='{}'", counter._name, labels)
 
     def track_worker_status(self, event, is_online):
         value = 1 if is_online else 0
-        event_name = "worker-online" if is_online else "worker-offline"
-        hostname = event["hostname"]
+        event_name = EventName.WORKER_ONLINE if is_online else EventName.WORKER_OFFLINE
+        hostname = event[EventEnum.HOSTNAME]
         logger.debug("Received event='{}' for hostname='{}'", event_name, hostname)
         self.celery_worker_up.labels(hostname=hostname).set(value)
 
     def track_worker_heartbeat(self, event):
         logger.debug(
-            "Received event='{}' for worker='{}'", event["type"], event["hostname"]
+            "Received event='{}' for worker='{}'", event[EventEnum.TYPE], event[EventEnum.HOSTNAME]
         )
 
         worker_state = self.state.event(event)[0][0]
         active = worker_state.active or 0
         up = 1 if worker_state.alive else 0
-        self.celery_worker_up.labels(hostname=event["hostname"]).set(up)
-        self.worker_tasks_active.labels(hostname=event["hostname"]).set(active)
+        self.celery_worker_up.labels(hostname=event[EventEnum.HOSTNAME]).set(up)
+        self.worker_tasks_active.labels(hostname=event[EventEnum.HOSTNAME]).set(active)
         logger.debug(
             "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, active
         )
@@ -142,9 +137,9 @@ class Exporter:
         self.state = self.app.events.State()
 
         handlers = {
-            "worker-heartbeat": self.track_worker_heartbeat,
-            "worker-online": lambda event: self.track_worker_status(event, True),
-            "worker-offline": lambda event: self.track_worker_status(event, False),
+            EventName.WORKER_HEARTBEAT: self.track_worker_heartbeat,
+            EventName.WORKER_ONLINE: lambda event: self.track_worker_status(event, True),
+            EventName.WORKER_OFFLINE: lambda event: self.track_worker_status(event, False),
         }
         for key in self.state_counters:
             handlers[key] = self.track_task_event
