@@ -1,7 +1,6 @@
-from typing import Dict, Any, Union, Callable
+from typing import Dict, Any, Callable
 
-from celery import Celery, Task
-from loguru import logger
+from celery import Celery
 from prometheus_client import CollectorRegistry
 
 from .constants import (
@@ -9,9 +8,13 @@ from .constants import (
     WORKER_EVENT_LABELS,
     LabelName,
     EventName,
-    EventEnum,
 )
-from .helpers import get_exception_class
+from .event_handlers import (
+    TaskEventHandler,
+    TaskStartedEventHandler,
+    WorkerStatusHandler,
+    WorkerHeartbeatHandler,
+)
 from .http_server import start_http_server
 from .instrumentation import EventCounter, EventGauge
 
@@ -73,7 +76,7 @@ class Exporter:
                 registry=self.registry,
             ),
         }
-        self.task_queuing_time = EventGauge(
+        self.queuing_time_gauge = EventGauge(
             "celery_task_queuing_time_seconds",
             "How long in seconds the task spent waiting in the queue before it started executing.",
             TASK_EVENT_LABELS,
@@ -92,89 +95,27 @@ class Exporter:
             registry=self.registry,
         )
 
-    def track_task_event(self, event: Dict[str, Any]):
-        self.state.event(event)
-        task = self.state.tasks.get(event[EventEnum.UUID])
-        logger.debug(
-            "Received event='{}' for task='{}'", event[EventEnum.TYPE], task.name
-        )
-
-        counter = self.state_counters.get(event[EventEnum.TYPE])
-        if not counter:
-            logger.warning("No counter matches task state='{}'", task.state)
-            return
-
-        labels = self._get_instrument_labels(instrument=counter, task=task)
-        counter.labels(**labels).inc()
-        logger.debug("Incremented metric='{}' labels='{}'", counter.name, labels)
-
-    def track_task_started(self, event: Dict[str, Any]):
-        self.track_task_event(event=event)
-        self.update_task_queuing_time_gauge(event=event)
-
-    @staticmethod
-    def _get_instrument_labels(
-        instrument: Union[EventCounter, EventGauge], task: Task
-    ) -> Dict[str, Any]:
-        labels = {}
-        for labelname in instrument.labelnames:
-            value = getattr(task, labelname)
-            if labelname == LabelName.EXCEPTION:
-                logger.debug(value)
-                value = get_exception_class(value)
-            labels[labelname] = value
-
-        return labels
-
-    def update_task_queuing_time_gauge(self, event: Dict[str, Any]):
-        task = self.state.tasks.get(event[EventEnum.UUID])
-        labels = self._get_instrument_labels(
-            instrument=self.task_queuing_time, task=task
-        )
-
-        queue_time = task.started - task.received
-        self.task_queuing_time.labels(**labels).set(queue_time)
-        logger.debug(
-            "Updated gauge='{}' value='{}'", self.task_queuing_time.name, queue_time
-        )
-
-    def track_worker_status(self, event: Dict[str, Any], is_online: bool):
-        value = 1 if is_online else 0
-        event_name = EventName.WORKER_ONLINE if is_online else EventName.WORKER_OFFLINE
-        hostname = event[EventEnum.HOSTNAME]
-        logger.debug("Received event='{}' for hostname='{}'", event_name, hostname)
-        self.celery_worker_up.labels(hostname=hostname).set(value)
-
-    def track_worker_heartbeat(self, event: Dict[str, Any]):
-        logger.debug(
-            "Received event='{}' for hostname='{}'",
-            event[EventEnum.TYPE],
-            event[EventEnum.HOSTNAME],
-        )
-
-        worker_state = self.state.event(event)[0][0]
-        active = worker_state.active or 0
-        up = 1 if worker_state.alive else 0
-        self.celery_worker_up.labels(hostname=event[EventEnum.HOSTNAME]).set(up)
-        self.worker_tasks_active.labels(hostname=event[EventEnum.HOSTNAME]).set(active)
-        logger.debug(
-            "Updated gauge='{}' value='{}'", self.worker_tasks_active.name, active
-        )
-        logger.debug("Updated gauge='{}' value='{}'", self.celery_worker_up.name, up)
-
     def get_handlers(self) -> Dict[str, Callable]:
         handlers = {
-            EventName.WORKER_HEARTBEAT: self.track_worker_heartbeat,
-            EventName.WORKER_ONLINE: lambda event: self.track_worker_status(
-                event, True
+            EventName.WORKER_HEARTBEAT: WorkerHeartbeatHandler(
+                state=self.state,
+                worker_up_gauge=self.celery_worker_up,
+                worker_tasks_active_gauge=self.worker_tasks_active,
             ),
-            EventName.WORKER_OFFLINE: lambda event: self.track_worker_status(
-                event, False
+            EventName.WORKER_ONLINE: WorkerStatusHandler(
+                state=self.state, is_online=True, worker_up_gauge=self.celery_worker_up
+            ),
+            EventName.WORKER_OFFLINE: WorkerStatusHandler(
+                state=self.state, is_online=False, worker_up_gauge=self.celery_worker_up
             ),
         }
-        for key in self.state_counters:
-            handlers[key] = self.track_task_event
-        handlers[EventName.TASK_STARTED] = self.track_task_started
+        for event_name, counter in self.state_counters.items():
+            handlers[event_name] = TaskEventHandler(state=self.state, counter=counter)
+        handlers[EventName.TASK_STARTED] = TaskStartedEventHandler(
+            state=self.state,
+            counter=self.state_counters[EventName.TASK_STARTED],
+            queuing_time_gauge=self.queuing_time_gauge,
+        )
 
         return handlers
 
