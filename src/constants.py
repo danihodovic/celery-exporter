@@ -1,3 +1,6 @@
+# pylint: disable=too-few-public-methods
+
+
 class LabelName:
     NAME = "name"
     HOSTNAME = "hostname"
@@ -23,6 +26,6 @@ class EventName:
 
 
 class EventEnum:
-    TYPE = 'type'
-    HOSTNAME = 'hostname'
-    UUID = 'uuid'
+    TYPE = "type"
+    HOSTNAME = "hostname"
+    UUID = "uuid"
