@@ -1,8 +1,9 @@
+# pylint: disable=too-few-public-methods
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Union
 
 from celery import Task
-from celery.events.state import State
 from loguru import logger
 
 from src.constants import EventEnum, LabelName, EventName
@@ -11,7 +12,7 @@ from src.instrumentation import EventCounter, EventGauge
 
 
 class IEventHandler(ABC):
-    def __init__(self, state: State):
+    def __init__(self, state):
         self._state = state
 
     def __call__(self, event: Dict[str, Any]):
@@ -37,7 +38,7 @@ class IEventHandler(ABC):
 
 
 class TaskEventHandler(IEventHandler):
-    def __init__(self, state: State, counter: EventCounter):
+    def __init__(self, state, counter: EventCounter):
         super().__init__(state)
         self._counter = counter
 
@@ -54,9 +55,7 @@ class TaskEventHandler(IEventHandler):
 
 
 class TaskStartedEventHandler(TaskEventHandler):
-    def __init__(
-        self, state: State, counter: EventCounter, queuing_time_gauge: EventGauge
-    ):
+    def __init__(self, state, counter: EventCounter, queuing_time_gauge: EventGauge):
         super().__init__(state, counter)
         self._queuing_time_gauge = queuing_time_gauge
 
@@ -79,7 +78,7 @@ class TaskStartedEventHandler(TaskEventHandler):
 
 
 class WorkerStatusHandler(IEventHandler):
-    def __init__(self, state: State, is_online: bool, worker_up_gauge: EventGauge):
+    def __init__(self, state, is_online: bool, worker_up_gauge: EventGauge):
         super().__init__(state)
         self._is_online = is_online
         self._worker_up_gauge = worker_up_gauge
@@ -101,7 +100,7 @@ class WorkerStatusHandler(IEventHandler):
 class WorkerHeartbeatHandler(IEventHandler):
     def __init__(
         self,
-        state: State,
+        state,
         worker_up_gauge: EventGauge,
         worker_tasks_active_gauge: EventGauge,
     ):
