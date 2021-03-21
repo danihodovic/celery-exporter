@@ -122,8 +122,8 @@ class WorkerHeartbeatHandler(IEventHandler):
         self._worker_up_gauge.labels(hostname=hostname).set(up)
         self._worker_tasks_active_gauge.labels(hostname=hostname).set(active)
         logger.debug(
-            "Updated gauge='{}' value='{}'", self._worker_up_gauge.name, active
+            "Updated gauge='{}' value='{}'", self._worker_up_gauge.name, up
         )
         logger.debug(
-            "Updated gauge='{}' value='{}'", self._worker_tasks_active_gauge.name, up
+            "Updated gauge='{}' value='{}'", self._worker_tasks_active_gauge.name, active
         )
