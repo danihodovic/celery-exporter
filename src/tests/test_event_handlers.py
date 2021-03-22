@@ -29,7 +29,7 @@ def task_name():
 
 @pytest.fixture
 def mock_task(uuid, hostname, task_name):
-    mock_task = create_autospec(Task, uuid=uuid, hostname=hostname)
+    mock_task = create_autospec(Task, uuid=uuid, hostname=hostname, exception=repr(ValueError('some error')))
     mock_task.configure_mock(name=task_name)
     return mock_task
 
@@ -45,7 +45,7 @@ def mock_counter(counter_name):
     mock_counter = create_autospec(
         EventCounter,
         documentation="some_documentation",
-        labelnames=TASK_EVENT_LABELS,
+        labelnames=[*TASK_EVENT_LABELS, LabelName.EXCEPTION],
         registry=mock_registry,
     )
     mock_counter.configure_mock(name=counter_name)
@@ -86,7 +86,7 @@ class TestTaskEventHandler:
 
         task_event_handler(event=mock_event)
 
-        expected_labels = {LabelName.NAME: task_name, LabelName.HOSTNAME: hostname}
+        expected_labels = {LabelName.NAME: task_name, LabelName.HOSTNAME: hostname, LabelName.EXCEPTION: 'ValueError'}
 
         mock_counter.labels.assert_called_once_with(**expected_labels)
         mock_counter.labels.return_value.inc.assert_called_once()
