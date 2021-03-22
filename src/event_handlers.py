@@ -84,7 +84,7 @@ class TaskStartedEventHandler(TaskEventHandler):
         self._queuing_time_gauge.labels(**labels).set(queue_time)
 
         logger.debug(
-            "Updated gauge='{}' value='{}'", self._queuing_time_gauge.name, queue_time
+            f"Updated gauge={self._queuing_time_gauge.name} value={queue_time}"
         )
 
 
