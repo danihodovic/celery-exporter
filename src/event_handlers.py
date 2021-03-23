@@ -51,6 +51,10 @@ class IEventHandler(ABC):
 
 
 class TaskEventHandler(IEventHandler):
+    """
+    Generic event handler which increments event counter with each event's occurrence.
+    """
+
     def __init__(self, state, counter: EventCounter):
         super().__init__(state)
         self._counter = counter
