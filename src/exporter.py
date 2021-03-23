@@ -7,8 +7,8 @@ from .constants import TASK_EVENT_LABELS, WORKER_EVENT_LABELS, EventType, LabelN
 from .event_handlers import (
     TaskEventHandler,
     TaskStartedEventHandler,
-    WorkerHeartbeatHandler,
-    WorkerStatusHandler,
+    WorkerHeartbeatEventHandler,
+    WorkerStatusEventHandler,
 )
 from .http_server import start_http_server
 from .instrumentation import EventCounter, EventGauge
@@ -92,15 +92,15 @@ class Exporter:
 
     def get_handlers(self) -> Dict[str, Callable]:
         handlers = {
-            EventType.WORKER_HEARTBEAT: WorkerHeartbeatHandler(
+            EventType.WORKER_HEARTBEAT: WorkerHeartbeatEventHandler(
                 state=self.state,
                 worker_up_gauge=self.celery_worker_up,
                 worker_tasks_active_gauge=self.worker_tasks_active,
             ),
-            EventType.WORKER_ONLINE: WorkerStatusHandler(
+            EventType.WORKER_ONLINE: WorkerStatusEventHandler(
                 state=self.state, is_online=True, worker_up_gauge=self.celery_worker_up
             ),
-            EventType.WORKER_OFFLINE: WorkerStatusHandler(
+            EventType.WORKER_OFFLINE: WorkerStatusEventHandler(
                 state=self.state, is_online=False, worker_up_gauge=self.celery_worker_up
             ),
         }
