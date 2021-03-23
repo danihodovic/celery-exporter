@@ -88,7 +88,7 @@ class TaskStartedEventHandler(TaskEventHandler):
         )
 
 
-class WorkerStatusHandler(IEventHandler):
+class WorkerStatusEventHandler(IEventHandler):
     def __init__(self, state, is_online: bool, worker_up_gauge: EventGauge):
         super().__init__(state)
         self._is_online = is_online
@@ -96,19 +96,19 @@ class WorkerStatusHandler(IEventHandler):
 
     def handle_event(self, event: Dict[str, Any]):
         value = 1 if self._is_online else 0
-        event_name = (
+        event_type = (
             EventType.WORKER_ONLINE if self._is_online else EventType.WORKER_OFFLINE
         )
         hostname = event[EventEnum.HOSTNAME]
 
-        logger.debug("Received event='{}' for hostname='{}'", event_name, hostname)
+        logger.debug(f"Received event={event_type} for hostname={hostname}")
 
         self._worker_up_gauge.labels(hostname=hostname).set(value)
 
-        logger.debug("Updated gauge='{}' value='{}'", self._worker_up_gauge.name, value)
+        logger.debug(f"Updated gauge={self._worker_up_gauge.name} value={value}")
 
 
-class WorkerHeartbeatHandler(IEventHandler):
+class WorkerHeartbeatEventHandler(IEventHandler):
     def __init__(
         self,
         state,
