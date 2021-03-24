@@ -125,9 +125,7 @@ class WorkerHeartbeatEventHandler(IEventHandler):
 
     def handle_event(self, event: Dict[str, Any]):
         logger.debug(
-            "Received event='{}' for hostname='{}'",
-            event[EventEnum.TYPE],
-            event[EventEnum.HOSTNAME],
+            f"Received event={event[EventEnum.TYPE]} for hostname={event[EventEnum.HOSTNAME]}"
         )
 
         worker_state = self._state.event(event)[0][0]
@@ -136,9 +134,7 @@ class WorkerHeartbeatEventHandler(IEventHandler):
         hostname = event[EventEnum.HOSTNAME]
         self._worker_up_gauge.labels(hostname=hostname).set(up)
         self._worker_tasks_active_gauge.labels(hostname=hostname).set(active)
-        logger.debug("Updated gauge='{}' value='{}'", self._worker_up_gauge.name, up)
+        logger.debug(f"Updated gauge={self._worker_up_gauge.name} value={up}")
         logger.debug(
-            "Updated gauge='{}' value='{}'",
-            self._worker_tasks_active_gauge.name,
-            active,
+            f"Updated gauge={self._worker_tasks_active_gauge.name} value={active}"
         )

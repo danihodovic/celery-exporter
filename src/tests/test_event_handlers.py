@@ -18,6 +18,7 @@ from src.event_handlers import (
     InvalidTaskEventLabelName,
     TaskEventHandler,
     TaskStartedEventHandler,
+    WorkerHeartbeatEventHandler,
     WorkerStatusEventHandler,
 )
 from src.instrumentation import EventCounter, EventGauge
@@ -210,22 +211,24 @@ class TestTaskStartedEventHandler:
         )
 
 
+@pytest.fixture
+def worker_up_gauge_name():
+    return "worker_up_gauge"
+
+
+@pytest.fixture
+def mock_worker_up_gauge(mock_registry, worker_up_gauge_name):
+    mock_worker_up_gauge = create_autospec(
+        EventGauge,
+        documentation="some_gauge_documentation",
+        labelnames=WORKER_EVENT_LABELS,
+        registry=mock_registry,
+    )
+    mock_worker_up_gauge.configure_mock(name=worker_up_gauge_name)
+    return mock_worker_up_gauge
+
+
 class TestWorkerStatusEventHandler:
-    @pytest.fixture
-    def worker_up_gauge_name(self):
-        return "worker_up_gauge"
-
-    @pytest.fixture
-    def mock_worker_up_gauge(self, mock_registry, worker_up_gauge_name):
-        mock_worker_up_gauge = create_autospec(
-            EventGauge,
-            documentation="some_gauge_documentation",
-            labelnames=WORKER_EVENT_LABELS,
-            registry=mock_registry,
-        )
-        mock_worker_up_gauge.configure_mock(name=worker_up_gauge_name)
-        return mock_worker_up_gauge
-
     @pytest.mark.parametrize("is_online, expected_value", [(True, 1), (False, 0)])
     def test_updates_worker_up_gauge(
         self,
@@ -265,5 +268,92 @@ class TestWorkerStatusEventHandler:
 
         assert (
             f"Updated gauge={worker_up_gauge_name} value={expected_value}"
+            in caplog.text
+        )
+
+
+class TestWorkerHeartbeatEventHandler:
+    @pytest.fixture
+    def worker_tasks_active_gauge_name(self):
+        return "worker_tasks_active_gauge"
+
+    @pytest.fixture
+    def mock_worker_tasks_active_gauge(
+        self, mock_registry, worker_tasks_active_gauge_name
+    ):
+        mock_worker_tasks_active_gauge = create_autospec(
+            EventGauge,
+            documentation="some_gauge_documentation",
+            labelnames=WORKER_EVENT_LABELS,
+            registry=mock_registry,
+        )
+        mock_worker_tasks_active_gauge.configure_mock(
+            name=worker_tasks_active_gauge_name
+        )
+        return mock_worker_tasks_active_gauge
+
+    @pytest.mark.parametrize(
+        "active, alive, expected_active, expected_up",
+        [
+            (2, True, 2, 1),
+            (0, True, 0, 1),
+            (0, False, 0, 0),
+            (2, False, 2, 0),
+        ],
+    )
+    def test_updates_worker_up_and_tasks_active_gauges(
+        self,
+        caplog,
+        hostname,
+        mock_state,
+        mock_event,
+        event_type,
+        mock_worker_up_gauge,
+        worker_up_gauge_name,
+        worker_tasks_active_gauge_name,
+        mock_worker_tasks_active_gauge,
+        active,
+        alive,
+        expected_active,
+        expected_up,
+    ):
+        caplog.set_level(logging.DEBUG)
+        event_type = EventType.WORKER_HEARTBEAT
+        mock_event[EventEnum.TYPE] = event_type
+
+        mock_worker_state = Mock(active=active, alive=alive)
+        mock_state.event.return_value = [[mock_worker_state]]
+
+        worker_heartbeat_event_handler = WorkerHeartbeatEventHandler(
+            state=mock_state,
+            worker_up_gauge=mock_worker_up_gauge,
+            worker_tasks_active_gauge=mock_worker_tasks_active_gauge,
+        )
+
+        worker_heartbeat_event_handler(event=mock_event)
+
+        expected_labels = {
+            LabelName.HOSTNAME: hostname,
+        }
+
+        assert (
+            f"Received event={mock_event[EventEnum.TYPE]} for hostname={hostname}"
+            in caplog.text
+        )
+
+        mock_worker_up_gauge.labels.assert_called_once_with(**expected_labels)
+        mock_worker_up_gauge.labels.return_value.set.assert_called_once_with(
+            expected_up
+        )
+        assert (
+            f"Updated gauge={worker_up_gauge_name} value={expected_up}" in caplog.text
+        )
+
+        mock_worker_tasks_active_gauge.labels.assert_called_once_with(**expected_labels)
+        mock_worker_tasks_active_gauge.labels.return_value.set.assert_called_once_with(
+            expected_active
+        )
+        assert (
+            f"Updated gauge={worker_tasks_active_gauge_name} value={expected_active}"
             in caplog.text
         )
