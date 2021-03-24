@@ -4,7 +4,11 @@ import time
 import pytest
 from celery.contrib.testing.worker import start_worker
 
-from src.instrumentation import registry, celery_worker_up_gauge, worker_tasks_active_gauge
+from src.instrumentation import (
+    registry,
+    celery_worker_up_gauge,
+    worker_tasks_active_gauge,
+)
 
 
 @pytest.fixture
@@ -45,16 +49,12 @@ def test_worker_status(exporter, celery_app):
         hostname = celery_worker.hostname
         time.sleep(2)
         assert (
-            registry.get_sample_value(
-                "celery_worker_up", labels={"hostname": hostname}
-            )
+            registry.get_sample_value("celery_worker_up", labels={"hostname": hostname})
             == 1.0
         )
 
     time.sleep(2)
     assert (
-        registry.get_sample_value(
-            "celery_worker_up", labels={"hostname": hostname}
-        )
+        registry.get_sample_value("celery_worker_up", labels={"hostname": hostname})
         == 0.0
     )

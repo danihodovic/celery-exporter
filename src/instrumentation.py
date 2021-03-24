@@ -84,10 +84,6 @@ task_retried_event_counter = EventCounter(
     registry=registry,
 )
 
-
-TASK_EVENT_COUNTERS = [task_sent_event_counter, task_received_event_counter, task_started_event_counter, task_succeeded_event_counter, task_failed_event_counter, task_rejected_event_counter, task_revoked_event_counter, task_retried_event_counter]
-
-
 queuing_time_gauge = EventGauge(
     "celery_task_queuing_time_seconds",
     "How long in seconds the task spent waiting in the queue before it started executing.",
@@ -106,8 +102,19 @@ worker_tasks_active_gauge = EventGauge(
     "celery_worker_tasks_active",
     "The number of tasks the worker is currently processing",
     WORKER_EVENT_LABELS,
-    registry=registry
+    registry=registry,
 )
 
-
-WORKER_GAUGES = [celery_worker_up_gauge, worker_tasks_active_gauge]
+ALL_INSTRUMENTS = [
+    task_sent_event_counter,
+    task_received_event_counter,
+    task_started_event_counter,
+    task_succeeded_event_counter,
+    task_failed_event_counter,
+    task_rejected_event_counter,
+    task_revoked_event_counter,
+    task_retried_event_counter,
+    queuing_time_gauge,
+    celery_worker_up_gauge,
+    worker_tasks_active_gauge,
+]
