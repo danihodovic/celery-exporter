@@ -1,4 +1,4 @@
-from .instrumentation import TASK_EVENT_COUNTERS, EVENT_GAUGES
+from .instrumentation import EVENT_GAUGES, TASK_EVENT_COUNTERS
 
 prometheus_logo = """
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
