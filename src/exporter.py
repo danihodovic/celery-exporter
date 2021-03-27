@@ -33,7 +33,7 @@ class Exporter:
         self.app = None
 
     def get_handlers(self) -> Dict[str, Callable]:
-        handlers = {
+        return {
             EventType.TASK_SENT: TaskEventHandler(
                 state=self.state, counter=task_sent_event_counter
             ),
@@ -74,8 +74,6 @@ class Exporter:
                 worker_up_gauge=celery_worker_up_gauge,
             ),
         }
-
-        return handlers
 
     def run(self, click_params: Dict[str, Any]):
         self.app = Celery(broker=click_params["broker_url"])
