@@ -11,17 +11,17 @@ from .event_handlers import (
 )
 from .http_server import start_http_server
 from .instrumentation import (
-    task_sent_event_counter,
-    task_received_event_counter,
-    task_started_event_counter,
-    task_succeeded_event_counter,
-    task_failed_event_counter,
-    task_rejected_event_counter,
-    task_revoked_event_counter,
-    task_retried_event_counter,
+    celery_worker_up_gauge,
     queuing_time_gauge,
     registry,
-    celery_worker_up_gauge,
+    task_failed_event_counter,
+    task_received_event_counter,
+    task_rejected_event_counter,
+    task_retried_event_counter,
+    task_revoked_event_counter,
+    task_sent_event_counter,
+    task_started_event_counter,
+    task_succeeded_event_counter,
     worker_tasks_active_gauge,
 )
 

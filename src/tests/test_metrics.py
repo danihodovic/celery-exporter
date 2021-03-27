@@ -5,8 +5,8 @@ import pytest
 from celery.contrib.testing.worker import start_worker
 
 from src.instrumentation import (
-    registry,
     celery_worker_up_gauge,
+    registry,
     worker_tasks_active_gauge,
 )
 

@@ -1,6 +1,6 @@
-from prometheus_client import Counter, Gauge, CollectorRegistry
+from prometheus_client import CollectorRegistry, Counter, Gauge
 
-from src.constants import TASK_EVENT_LABELS, LabelName, WORKER_EVENT_LABELS
+from src.constants import TASK_EVENT_LABELS, WORKER_EVENT_LABELS, LabelName
 
 registry = CollectorRegistry(auto_describe=True)
 

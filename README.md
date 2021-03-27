@@ -138,3 +138,6 @@ For code formatting run:
 
 To carry out code linting:
 `pylint src/`
+
+Sort your imports:
+`isort .`
