@@ -1,4 +1,4 @@
-from .instrumentation import ALL_INSTRUMENTS
+from .instrumentation import TASK_EVENT_COUNTERS, EVENT_GAUGES
 
 prometheus_logo = """
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -36,9 +36,16 @@ Metrics exposed:
 """
 )
 
-for metric in ALL_INSTRUMENTS:
+for metric in TASK_EVENT_COUNTERS:
     cmd_help += f"""
 \b
 {metric.name}_total
+{metric.documentation:30s}
+"""
+
+for metric in EVENT_GAUGES:
+    cmd_help += f"""
+\b
+{metric.name}
 {metric.documentation:30s}
 """

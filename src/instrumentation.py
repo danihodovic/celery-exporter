@@ -105,7 +105,8 @@ worker_tasks_active_gauge = EventGauge(
     registry=registry,
 )
 
-ALL_INSTRUMENTS = [
+
+TASK_EVENT_COUNTERS = [
     task_sent_event_counter,
     task_received_event_counter,
     task_started_event_counter,
@@ -114,6 +115,9 @@ ALL_INSTRUMENTS = [
     task_rejected_event_counter,
     task_revoked_event_counter,
     task_retried_event_counter,
+]
+
+EVENT_GAUGES = [
     queuing_time_gauge,
     celery_worker_up_gauge,
     worker_tasks_active_gauge,
