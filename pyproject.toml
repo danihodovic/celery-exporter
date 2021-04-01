@@ -28,7 +28,7 @@ pylint = "^2.7.1"
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
 black = "^20.8b1"
-isort = "^5.7.0"
+isort = "^5.8.0"
 jedi = "^0.18.0"
 pytest-celery = "^0.0.0-alpha.1"
 pudb = "^2020.1"
