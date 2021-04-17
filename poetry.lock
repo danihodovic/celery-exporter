@@ -484,7 +484,7 @@ twisted = ["twisted"]
 
 [[package]]
 name = "prompt-toolkit"
-version = "3.0.16"
+version = "3.0.18"
 description = "Library for building powerful interactive command lines in Python"
 category = "main"
 optional = false
@@ -495,7 +495,7 @@ wcwidth = "*"
 
 [[package]]
 name = "ptpython"
-version = "3.0.16"
+version = "3.0.17"
 description = "Python REPL build on top of prompt_toolkit"
 category = "dev"
 optional = false
@@ -505,7 +505,7 @@ python-versions = ">=3.6"
 appdirs = "*"
 black = "*"
 jedi = ">=0.16.0"
-prompt-toolkit = ">=3.0.16,<3.1.0"
+prompt-toolkit = ">=3.0.18,<3.1.0"
 pygments = "*"
 
 [package.extras]
@@ -840,7 +840,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "1ffe28ce46c1ae7b27a99480f45ad909d8be9ca655f4bd18433f0044778bcedc"
+content-hash = "8eb1b93e0bdbcc3f72e893aebe7aeda84b90a13a72d368a5c5ec05830f19b563"
 
 [metadata.files]
 altgraph = [
@@ -1112,12 +1112,12 @@ prometheus-client = [
     {file = "prometheus_client-0.9.0.tar.gz", hash = "sha256:9da7b32f02439d8c04f7777021c304ed51d9ec180604700c1ba72a4d44dceb03"},
 ]
 prompt-toolkit = [
-    {file = "prompt_toolkit-3.0.16-py3-none-any.whl", hash = "sha256:62c811e46bd09130fb11ab759012a4ae385ce4fb2073442d1898867a824183bd"},
-    {file = "prompt_toolkit-3.0.16.tar.gz", hash = "sha256:0fa02fa80363844a4ab4b8d6891f62dd0645ba672723130423ca4037b80c1974"},
+    {file = "prompt_toolkit-3.0.18-py3-none-any.whl", hash = "sha256:bf00f22079f5fadc949f42ae8ff7f05702826a97059ffcc6281036ad40ac6f04"},
+    {file = "prompt_toolkit-3.0.18.tar.gz", hash = "sha256:e1b4f11b9336a28fa11810bc623c357420f69dfdb6d2dac41ca2c21a55c033bc"},
 ]
 ptpython = [
-    {file = "ptpython-3.0.16-py2.py3-none-any.whl", hash = "sha256:f153f5c48cad54bd57cbe19ee0b652fd3f9c4437923cfabb27dc33aea727696f"},
-    {file = "ptpython-3.0.16.tar.gz", hash = "sha256:4b0f6e381a8251ec8d6aa94fe12f3400bf6edf789f89c8a6099f8a91d4a5d2e1"},
+    {file = "ptpython-3.0.17-py2.py3-none-any.whl", hash = "sha256:65c79e8ca860f2bdeaa61dbcc362449b3d54286dc449ff32dc013a93f8c4d628"},
+    {file = "ptpython-3.0.17.tar.gz", hash = "sha256:911d25cca31a8e4f9b2ecd16dcdad793b8859e94fca1275f3485d8cdf20b13de"},
 ]
 pudb = [
     {file = "pudb-2020.1.tar.gz", hash = "sha256:2ef23d3371439f13fffbe7f8b9fc180a19d4183dc9cab204d878d7c7766464bf"},
