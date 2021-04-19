@@ -1,5 +1,4 @@
-# pylint: disable=protected-access
-from .exporter import Exporter
+from .instrumentation import EVENT_GAUGES, TASK_EVENT_COUNTERS
 
 prometheus_logo = """
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -37,18 +36,16 @@ Metrics exposed:
 """
 )
 
-temp_exporter = Exporter()
-
-for metric in temp_exporter.state_counters.values():
+for metric in TASK_EVENT_COUNTERS:
     cmd_help += f"""
 \b
-{metric._name}_total
-{metric._documentation:30s}
+{metric.name}_total
+{metric.documentation:30s}
 """
 
-for metric in [temp_exporter.celery_worker_up, temp_exporter.worker_tasks_active]:
+for metric in EVENT_GAUGES:
     cmd_help += f"""
 \b
-{metric._name}
-{metric._documentation:30s}
+{metric.name}
+{metric.documentation:30s}
 """

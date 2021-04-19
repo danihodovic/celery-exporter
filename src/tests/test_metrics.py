@@ -4,6 +4,12 @@ import time
 import pytest
 from celery.contrib.testing.worker import start_worker
 
+from src.instrumentation import (
+    celery_worker_up_gauge,
+    registry,
+    worker_tasks_active_gauge,
+)
+
 
 @pytest.fixture
 def assert_exporter_metric_called(mocker, celery_app, celery_worker):
@@ -26,12 +32,12 @@ def assert_exporter_metric_called(mocker, celery_app, celery_worker):
 
 @pytest.mark.celery()
 def test_worker_tasks_active(exporter, assert_exporter_metric_called):
-    assert_exporter_metric_called(exporter, exporter.worker_tasks_active)
+    assert_exporter_metric_called(exporter, worker_tasks_active_gauge)
 
 
 @pytest.mark.celery()
 def test_worker_heartbeat_status(exporter, assert_exporter_metric_called):
-    assert_exporter_metric_called(exporter, exporter.celery_worker_up)
+    assert_exporter_metric_called(exporter, celery_worker_up_gauge)
 
 
 @pytest.mark.celery()
@@ -43,16 +49,12 @@ def test_worker_status(exporter, celery_app):
         hostname = celery_worker.hostname
         time.sleep(2)
         assert (
-            exporter.registry.get_sample_value(
-                "celery_worker_up", labels={"hostname": hostname}
-            )
+            registry.get_sample_value("celery_worker_up", labels={"hostname": hostname})
             == 1.0
         )
 
     time.sleep(2)
     assert (
-        exporter.registry.get_sample_value(
-            "celery_worker_up", labels={"hostname": hostname}
-        )
+        registry.get_sample_value("celery_worker_up", labels={"hostname": hostname})
         == 0.0
     )

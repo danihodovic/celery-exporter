@@ -94,3 +94,50 @@ celery_task_revoked_total | Sent if the task has been revoked. | Counter
 celery_task_retried_total | Sent if the task failed, but will be retried in the future. | Counter
 celery_worker_up | Indicates if a worker has recently sent a heartbeat. | Gauge
 celery_worker_tasks_active | The number of tasks the worker is currently processing | Gauge
+celery_task_queuing_time_seconds | How long in seconds the task spent waiting in the queue before it started executing. | Gauge
+
+
+## Contributing
+
+Follow the instructions below to set up the project on your local machine.
+
+### Set up project
+
+On a linux machine you need to install a few packages.
+`apt-get update && apt install -y locales libcurl4-openssl-dev libssl-dev`
+
+We are using `poetry` as a Python package manager, install it now.
+
+`pip install poetry`
+
+Install the project's requirements and create a virtual environment.
+
+`poetry install`
+
+Activate the environment.
+
+`poetry shell`
+
+### Run tests
+
+Simply run `pytest --cov`
+
+### Start the exporter locally for debugging/testing
+
+Start your broker (we will use Redis here)
+
+`redis-server`
+
+Run celery exporter with Redis as a broker on localhost.
+`python cli.py --broker-url=redis://localhost/0`
+
+### Linting / code formatting.
+
+For code formatting run:
+`black .`
+
+To carry out code linting:
+`pylint src/`
+
+Sort your imports:
+`isort .`

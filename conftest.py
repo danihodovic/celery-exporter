@@ -1,4 +1,8 @@
+import logging
+
 import pytest
+from _pytest.logging import caplog as _caplog
+from loguru import logger
 
 from src.exporter import Exporter
 
@@ -16,16 +20,6 @@ def celery_config():
 @pytest.fixture(scope="session")
 def celery_worker_parameters():
     return {"without_heartbeat": False}
-
-
-@pytest.fixture()
-def exporter(celery_config):
-    return Exporter(
-        {
-            "broker_url": celery_config["broker_url"],
-            "port": 17000,
-        }
-    )
 
 
 @pytest.fixture(scope="session")
@@ -54,3 +48,14 @@ def exporter(find_free_port, celery_config):
     exporter = Exporter()
     setattr(exporter, "cfg", cfg)
     yield exporter
+
+
+@pytest.fixture
+def caplog(_caplog):
+    class PropogateHandler(logging.Handler):
+        def emit(self, record):
+            logging.getLogger(record.name).handle(record)
+
+    handler_id = logger.add(PropogateHandler(), format="{message} {extra}")
+    yield _caplog
+    logger.remove(handler_id)
