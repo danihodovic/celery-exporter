@@ -31,6 +31,20 @@ Prometheus in real-time.
 - Grafana dashboards provided by the Celery-mixin
 - Prometheus alerts provided by the Celery-mixin
 
+## Dashboards and alerts
+
+Alerting rules can be found [here](./celery-mixin/prometheus-alerts.yaml). By
+default we alert if:
+
+- A task failed in the last 10 minutes.
+- No Celery workers are online.
+
+Tweak these to suit your use-case.
+
+The Grafana dashboard (seen in the image above) is
+[here](https://grafana.com/grafana/dashboards/14015). You can import it
+directly into your Grafana instance.
+
 ## Usage
 
 Celery needs to be configured to send events to the broker which the exporter
