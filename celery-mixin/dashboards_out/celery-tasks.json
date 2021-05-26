@@ -1,0 +1,583 @@
+{
+   "__inputs": [ ],
+   "__requires": [ ],
+   "annotations": {
+      "list": [ ]
+   },
+   "description": "A dashboard that monitors Celery. It is created using the Celery-mixin for the the (Celery-exporter)[https://github.com/danihodovic/celery-exporter]",
+   "editable": false,
+   "gnetId": null,
+   "graphTooltip": 0,
+   "hideControls": false,
+   "id": null,
+   "links": [ ],
+   "panels": [
+      {
+         "collapse": false,
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+         },
+         "id": 2,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
+         "title": "Summary",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "datasource": "$datasource",
+         "fieldConfig": {
+            "defaults": {
+               "links": [ ],
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [ ]
+               },
+               "unit": "none"
+            }
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 0,
+            "y": 1
+         },
+         "id": 3,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            }
+         },
+         "pluginVersion": "7",
+         "targets": [
+            {
+               "expr": "count(celery_worker_up == 1)",
+               "format": "time_series",
+               "intervalFactor": 1,
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "title": "Celery Workers",
+         "transparent": false,
+         "type": "stat"
+      },
+      {
+         "datasource": "$datasource",
+         "fieldConfig": {
+            "defaults": {
+               "links": [ ],
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [ ]
+               },
+               "unit": "none"
+            }
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 6,
+            "y": 1
+         },
+         "id": 4,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            }
+         },
+         "pluginVersion": "7",
+         "targets": [
+            {
+               "expr": "sum(celery_worker_tasks_active)",
+               "format": "time_series",
+               "intervalFactor": 1,
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "title": "Tasks Active",
+         "transparent": false,
+         "type": "stat"
+      },
+      {
+         "datasource": "$datasource",
+         "fieldConfig": {
+            "defaults": {
+               "links": [ ],
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [ ]
+               },
+               "unit": "none"
+            }
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 12,
+            "y": 1
+         },
+         "id": 5,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            }
+         },
+         "pluginVersion": "7",
+         "targets": [
+            {
+               "expr": "sum(increase(celery_task_received_total{job=\"celery\"}[1d]))\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "title": "Tasks received by workers last 24h",
+         "transparent": false,
+         "type": "stat"
+      },
+      {
+         "datasource": "$datasource",
+         "fieldConfig": {
+            "defaults": {
+               "links": [ ],
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": 0.94999999999999996
+                     }
+                  ]
+               },
+               "unit": "percentunit"
+            }
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 18,
+            "y": 1
+         },
+         "id": 6,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            }
+         },
+         "pluginVersion": "7",
+         "targets": [
+            {
+               "expr": "sum(increase(celery_task_succeeded_total{job=\"celery\"}[1d]))\n/(sum(increase(celery_task_succeeded_total{job=\"celery\"}[1d]))\n+sum(increase(celery_task_failed_total{job=\"celery\"}[1d]))\n)\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "title": "Successful completion rate last 24h",
+         "transparent": false,
+         "type": "stat"
+      },
+      {
+         "collapse": false,
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 5
+         },
+         "id": 7,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
+         "title": "Individual Tasks",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "columns": [ ],
+         "datasource": "$datasource",
+         "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 6
+         },
+         "id": 8,
+         "links": [ ],
+         "sort": {
+            "col": 2,
+            "desc": false
+         },
+         "span": "6",
+         "styles": [
+            {
+               "alias": "Time",
+               "dateFormat": "YYYY-MM-DD HH:mm:ss",
+               "pattern": "Time",
+               "type": "hidden"
+            },
+            {
+               "alias": "Task",
+               "pattern": "name"
+            },
+            {
+               "alias": "Success Rate",
+               "pattern": "Value #A",
+               "type": "number",
+               "unit": "percentunit"
+            },
+            {
+               "alias": "Received",
+               "decimals": "0",
+               "pattern": "Value #B",
+               "type": "number",
+               "unit": "short"
+            },
+            {
+               "alias": "Succeeded",
+               "decimals": "0",
+               "pattern": "Value #C",
+               "type": "number",
+               "unit": "short"
+            },
+            {
+               "alias": "Failed",
+               "decimals": "0",
+               "pattern": "Value #D",
+               "type": "number",
+               "unit": "short"
+            },
+            {
+               "alias": "Rejected",
+               "decimals": "0",
+               "pattern": "Value #E",
+               "type": "number",
+               "unit": "short"
+            },
+            {
+               "alias": "Retried",
+               "decimals": "0",
+               "pattern": "Value #F",
+               "type": "number",
+               "unit": "short"
+            },
+            {
+               "alias": "Revoked",
+               "decimals": "0",
+               "pattern": "Value #G",
+               "type": "number",
+               "unit": "short"
+            }
+         ],
+         "targets": [
+            {
+               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=\"celery\", name=~\"$task\"}[$__range]))\n/(sum by (name) (increase(celery_task_succeeded_total{job=\"celery\", name=~\"$task\"}[$__range]))\n+sum by (name) (increase(celery_task_failed_total{job=\"celery\", name=~\"$task\"}[$__range]))\n)\n",
+               "format": "table",
+               "instant": true,
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "A"
+            },
+            {
+               "expr": "sum by (name) (increase(celery_task_received_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "format": "table",
+               "instant": true,
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "B"
+            },
+            {
+               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "format": "table",
+               "instant": true,
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "C"
+            },
+            {
+               "expr": "sum by (name) (increase(celery_task_failed_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "format": "table",
+               "instant": true,
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "D"
+            },
+            {
+               "expr": "sum by (name) (increase(celery_task_rejected_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "format": "table",
+               "instant": true,
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "E"
+            },
+            {
+               "expr": "sum by (name) (increase(celery_task_retried_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "format": "table",
+               "instant": true,
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "F"
+            },
+            {
+               "expr": "sum by (name) (increase(celery_task_revoked_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "format": "table",
+               "instant": true,
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "G"
+            }
+         ],
+         "timeFrom": null,
+         "timeShift": null,
+         "title": "Task Stats",
+         "type": "table"
+      },
+      {
+         "aliasColors": { },
+         "bars": false,
+         "dashLength": 10,
+         "dashes": false,
+         "datasource": null,
+         "fill": 1,
+         "fillGradient": 0,
+         "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 12
+         },
+         "id": 9,
+         "legend": {
+            "alignAsTable": true,
+            "avg": true,
+            "current": false,
+            "hideZero": true,
+            "max": true,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "sideWidth": null,
+            "total": false,
+            "values": true
+         },
+         "lines": true,
+         "linewidth": 1,
+         "links": [ ],
+         "nullPointMode": "null",
+         "percentage": false,
+         "pointradius": 5,
+         "points": false,
+         "renderer": "flot",
+         "repeat": null,
+         "seriesOverrides": [ ],
+         "spaceLength": 10,
+         "stack": false,
+         "steppedLine": false,
+         "targets": [
+            {
+               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=\"celery\", name=~\"$task\"}[10m]))\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "Succeeded - {{ name }}",
+               "refId": "A"
+            },
+            {
+               "expr": "sum by (name) (increase(celery_task_failed_total{job=\"celery\", name=~\"$task\"}[10m]))\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "Failed - {{ name }}",
+               "refId": "B"
+            },
+            {
+               "expr": "sum by (name) (increase(celery_task_retried_total{job=\"celery\", name=~\"$task\"}[10m]))\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "Retried - {{ name }}",
+               "refId": "C"
+            },
+            {
+               "expr": "sum by (name) (increase(celery_task_rejected_total{job=\"celery\", name=~\"$task\"}[10m]))\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "Rejected - {{ name }}",
+               "refId": "D"
+            },
+            {
+               "expr": "sum by (name) (increase(celery_task_revoked_total{job=\"celery\", name=~\"$task\"}[10m]))\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "Revoked - {{ name }}",
+               "refId": "E"
+            }
+         ],
+         "thresholds": [ ],
+         "timeFrom": null,
+         "timeShift": null,
+         "title": "Tasks completed with 10m intervals",
+         "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+         },
+         "type": "graph",
+         "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": [ ]
+         },
+         "yaxes": [
+            {
+               "format": "short",
+               "label": null,
+               "logBase": 1,
+               "max": null,
+               "min": null,
+               "show": true
+            },
+            {
+               "format": "short",
+               "label": null,
+               "logBase": 1,
+               "max": null,
+               "min": null,
+               "show": true
+            }
+         ]
+      }
+   ],
+   "refresh": "",
+   "rows": [ ],
+   "schemaVersion": 14,
+   "style": "dark",
+   "tags": [ ],
+   "templating": {
+      "list": [
+         {
+            "current": {
+               "text": "Prometheus",
+               "value": "Prometheus"
+            },
+            "hide": 0,
+            "label": null,
+            "name": "datasource",
+            "options": [ ],
+            "query": "prometheus",
+            "refresh": 1,
+            "regex": "",
+            "type": "datasource"
+         },
+         {
+            "allValue": null,
+            "current": {
+               "text": "",
+               "value": ""
+            },
+            "datasource": "$datasource",
+            "hide": 0,
+            "includeAll": false,
+            "label": null,
+            "multi": true,
+            "name": "task",
+            "options": [ ],
+            "query": "label_values(celery_task_sent_total, name)",
+            "refresh": 1,
+            "regex": "",
+            "sort": 1,
+            "tagValuesQuery": "",
+            "tags": [ ],
+            "tagsQuery": "",
+            "type": "query",
+            "useTags": false
+         }
+      ]
+   },
+   "time": {
+      "from": "now-2d",
+      "to": "now"
+   },
+   "timepicker": {
+      "refresh_intervals": [
+         "5s",
+         "10s",
+         "30s",
+         "1m",
+         "5m",
+         "15m",
+         "30m",
+         "1h",
+         "2h",
+         "1d"
+      ],
+      "time_options": [
+         "5m",
+         "15m",
+         "1h",
+         "6h",
+         "12h",
+         "24h",
+         "2d",
+         "7d",
+         "30d"
+      ]
+   },
+   "timezone": "utc",
+   "title": "Celery / Tasks",
+   "uid": "celery-exporter",
+   "version": 0
+}
