@@ -36,7 +36,7 @@ requests = "^2.25.1"
 pylint = "^2.7.1"
 pytest-cov = "^2.11.1"
 ptpython = "^3.0.13"
-pytest-mock = "^3.5.1"
+pytest-mock = "^3.6.1"
 pyinstaller = "v4.0"
 staticx = "^0.12.1"
 
