@@ -16,7 +16,7 @@ authors = ["Dani Hodovic <dani.hodovic@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 celery = {git = "https://github.com/danihodovic/celery.git", rev = "allow-heartbeats-in-tests", extras = ["redis", "sqs"]}
-prometheus-client = "^0.9.0"
+prometheus-client = "^0.11.0"
 click = "^7.1.2"
 pretty-errors = "^1.2.19"
 loguru = "^0.5.3"
