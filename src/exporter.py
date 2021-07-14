@@ -12,7 +12,6 @@ class Exporter:
     state = None
 
     def __init__(self, buckets=None):
-        formatted_buckets = list(map(float, buckets.split(","))) if buckets else None
         self.registry = CollectorRegistry(auto_describe=True)
         self.state_counters = {
             "task-sent": Counter(
@@ -88,7 +87,7 @@ class Exporter:
             "Histogram of task runtime measurements.",
             ["name", "hostname"],
             registry=self.registry,
-            buckets=formatted_buckets or Histogram.DEFAULT_BUCKETS,
+            buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
 
     def track_task_event(self, event):
