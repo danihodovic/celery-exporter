@@ -108,3 +108,4 @@ celery_task_revoked_total | Sent if the task has been revoked. | Counter
 celery_task_retried_total | Sent if the task failed, but will be retried in the future. | Counter
 celery_worker_up | Indicates if a worker has recently sent a heartbeat. | Gauge
 celery_worker_tasks_active | The number of tasks the worker is currently processing | Gauge
+celery_worker_runtime | Histogram of runtime measurements for each task | Histogram

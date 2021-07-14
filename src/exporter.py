@@ -3,7 +3,7 @@ import re
 
 from celery import Celery
 from loguru import logger
-from prometheus_client import CollectorRegistry, Counter, Gauge
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
 from .http_server import start_http_server
 
@@ -11,7 +11,8 @@ from .http_server import start_http_server
 class Exporter:
     state = None
 
-    def __init__(self):
+    def __init__(self, buckets=None):
+        formatted_buckets = list(map(float, buckets.split(','))) if buckets else None
         self.registry = CollectorRegistry(auto_describe=True)
         self.state_counters = {
             "task-sent": Counter(
@@ -82,6 +83,13 @@ class Exporter:
             ["hostname"],
             registry=self.registry,
         )
+        self.celery_task_runtime = Histogram(
+            "celery_task_runtime",
+            "Histogram of task runtime measurements.",
+            ["name", "hostname"],
+            registry=self.registry,
+            buckets=formatted_buckets or Histogram.DEFAULT_BUCKETS,
+        )
 
     def track_task_event(self, event):
         self.state.event(event)
@@ -101,8 +109,14 @@ class Exporter:
                 logger.debug(value)
                 value = get_exception_class(value)
             labels[labelname] = value
+
         counter.labels(**labels).inc()
         logger.debug("Incremented metric='{}' labels='{}'", counter._name, labels)
+
+        if event["type"] == "task-succeeded":
+            self.celery_task_runtime.labels(**labels).observe(task.runtime)
+            logger.debug("Observed metric='{}' labels='{}': {}s", self.celery_task_runtime._name, labels, task.runtime)
+
 
     def track_worker_status(self, event, is_online):
         value = 1 if is_online else 0

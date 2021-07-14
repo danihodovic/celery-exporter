@@ -19,6 +19,7 @@ click.core._verify_python3_env = lambda: None  # pylint: disable=protected-acces
     show_default=True,
     help="The port the exporter will listen on",
 )
-def cli(broker_url, port):  # pylint: disable=unused-argument
+@click.option("--buckets", help="Buckets for runtime histogram, e.g '0.005,0.01,inf'")
+def cli(broker_url, port, buckets):  # pylint: disable=unused-argument
     ctx = click.get_current_context()
-    Exporter().run(ctx.params)
+    Exporter(buckets).run(ctx.params)
