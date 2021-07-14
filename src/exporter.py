@@ -12,7 +12,7 @@ class Exporter:
     state = None
 
     def __init__(self, buckets=None):
-        formatted_buckets = list(map(float, buckets.split(','))) if buckets else None
+        formatted_buckets = list(map(float, buckets.split(","))) if buckets else None
         self.registry = CollectorRegistry(auto_describe=True)
         self.state_counters = {
             "task-sent": Counter(
@@ -115,8 +115,12 @@ class Exporter:
 
         if event["type"] == "task-succeeded":
             self.celery_task_runtime.labels(**labels).observe(task.runtime)
-            logger.debug("Observed metric='{}' labels='{}': {}s", self.celery_task_runtime._name, labels, task.runtime)
-
+            logger.debug(
+                "Observed metric='{}' labels='{}': {}s",
+                self.celery_task_runtime._name,
+                labels,
+                task.runtime,
+            )
 
     def track_worker_status(self, event, is_online):
         value = 1 if is_online else 0
