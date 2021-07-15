@@ -58,3 +58,7 @@ def test_integration(celery_app, celery_worker):
         f'celery_task_failed_total{{exception="HTTPError",hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
         in res.text
     )
+    assert (
+        f'celery_task_runtime_count{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        in res.text
+    )

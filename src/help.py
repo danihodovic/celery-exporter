@@ -46,7 +46,11 @@ for metric in temp_exporter.state_counters.values():
 {metric._documentation:30s}
 """
 
-for metric in [temp_exporter.celery_worker_up, temp_exporter.worker_tasks_active]:
+for metric in [
+    temp_exporter.celery_worker_up,
+    temp_exporter.worker_tasks_active,
+    temp_exporter.celery_task_runtime,
+]:
     cmd_help += f"""
 \b
 {metric._name}
