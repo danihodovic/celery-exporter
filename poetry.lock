@@ -500,7 +500,7 @@ wcwidth = "*"
 
 [[package]]
 name = "ptpython"
-version = "3.0.19"
+version = "3.0.20"
 description = "Python REPL build on top of prompt_toolkit"
 category = "dev"
 optional = false
@@ -843,7 +843,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "9ede01887a63a8fe14f2c4c38344d60795af533af709da8653acc3644e246986"
+content-hash = "b61f0afe8cdb7a04f95d5eefb079c6b55f6acaff6954de09cf939566edfe8af8"
 
 [metadata.files]
 altgraph = [
@@ -1137,8 +1137,8 @@ prompt-toolkit = [
     {file = "prompt_toolkit-3.0.19.tar.gz", hash = "sha256:08360ee3a3148bdb5163621709ee322ec34fc4375099afa4bbf751e9b7b7fa4f"},
 ]
 ptpython = [
-    {file = "ptpython-3.0.19-py2.py3-none-any.whl", hash = "sha256:c0f5d6516077d95175169fbc9bf9ade9211bbfdbd2e665c96e34637e3b0f9ae2"},
-    {file = "ptpython-3.0.19.tar.gz", hash = "sha256:b3d41ce7c2ce0e7e55051347eae400fc56b9b42b1c4a9db25b19ccf6195bfc12"},
+    {file = "ptpython-3.0.20-py2.py3-none-any.whl", hash = "sha256:99636899ab0e4d026e2ecc9368269114f387b4bb5411e57f072b0bde724d9f99"},
+    {file = "ptpython-3.0.20.tar.gz", hash = "sha256:eafd4ced27ca5dc370881d4358d1ab5041b32d88d31af8e3c24167fe4af64ed6"},
 ]
 pudb = [
     {file = "pudb-2020.1.tar.gz", hash = "sha256:2ef23d3371439f13fffbe7f8b9fc180a19d4183dc9cab204d878d7c7766464bf"},
