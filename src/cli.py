@@ -1,12 +1,15 @@
 import click
-import pretty_errors  # pylint: disable=unused-import
+
+# pylint: disable=unused-import
+import pretty_errors  # type: ignore
 from prometheus_client import Histogram
 
 from .exporter import Exporter
 from .help import cmd_help
 
 # https://github.com/pallets/click/issues/448#issuecomment-246029304
-click.core._verify_python3_env = lambda: None  # pylint: disable=protected-access
+# pylint: disable=protected-access
+click.core._verify_python3_env = lambda: None  # type: ignore
 
 default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
 

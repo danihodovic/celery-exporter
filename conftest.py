@@ -1,3 +1,5 @@
+import socket
+
 import pytest
 
 from src.exporter import Exporter
@@ -25,7 +27,6 @@ def find_free_port():
     """
 
     def _find_free_port():
-        import socket
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

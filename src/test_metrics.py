@@ -2,7 +2,7 @@ import threading
 import time
 
 import pytest
-from celery.contrib.testing.worker import start_worker
+from celery.contrib.testing.worker import start_worker  # type: ignore
 
 
 @pytest.fixture
@@ -18,6 +18,7 @@ def assert_exporter_metric_called(mocker, celery_app, celery_worker):
         celery_worker.reload()
         slow_task.apply_async()
         time.sleep(4)
+        assert labels.call_count == 3
         labels.assert_called_with(hostname=celery_worker.hostname)
         labels.return_value.set.assert_any_call(1)
 

@@ -1,11 +1,11 @@
 [tool.black]
 skip_numeric_underscore_normalization = true
-exclude = ".*(venv|virtualenv|migrations|node_modules|s3)"
+exclude = ".*(venv|virtualenv|.poetry|migrations|node_modules)"
 
 [tool.isort]
 profile = "black"
 multi_line_output = 3
-skip = '.virtualenv,.venv'
+skip = '.virtualenv,.venv,.poetry,.poetry-cache'
 
 [tool.poetry]
 name = "celery-exporter"
@@ -28,7 +28,7 @@ pylint = "^2.7.1"
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
 black = "^22.1.0"
-isort = "^5.8.0"
+isort = "^5.10.1"
 jedi = "^0.18.0"
 pytest-celery = "^0.0.0-alpha.1"
 pudb = "^2020.1"
@@ -39,6 +39,10 @@ ptpython = "^3.0.13"
 pytest-mock = "^3.5.1"
 pyinstaller = "v4.0"
 staticx = "^0.12.1"
+mypy = "^0.931"
+types-requests = "^2.27.11"
+types-waitress = "^2.0.6"
+celery-types = "^0.11.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0a5"]
