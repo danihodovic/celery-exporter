@@ -1,0 +1,19 @@
+FROM danihodovic/pyinstaller-builder:latest
+
+ARG PYTHON_VERSION=3.9.2
+
+RUN pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION
+
+RUN pip install poetry
+
+WORKDIR /app/
+
+COPY ./pyproject.toml ./poetry.lock /app/
+
+RUN poetry install
+
+COPY . /app/
+
+RUN eval "$(pyenv init -)" && \
+        pyinstaller cli.py -y --onefile --name celery-exporter && \
+        staticx ./dist/celery-exporter ./dist/celery-exporter
