@@ -847,7 +847,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "d328461de313d3e7bcecb68b82fc632f9751718b98d9a75b85148510af45a80a"
+content-hash = "c47b29b8dc682091c4ceae42f9d77872ed6c579ad04ea6c3c2ada477bed5c963"
 
 [metadata.files]
 altgraph = [
