@@ -84,7 +84,7 @@ local prometheus = grafana.prometheus;
           datasource='$datasource',
           reducerFunction='last',
         )
-        .addTarget(prometheus.target('count(celery_worker_up == 1)', intervalFactor=1)),
+        .addTarget(prometheus.target('count(celery_worker_up{%(celerySelector)s} == 1)' % $._config, intervalFactor=1)),
         gridPos={ h: 4, w: 6, x: 0, y: 1 }
       )
       .addPanel(
@@ -93,7 +93,7 @@ local prometheus = grafana.prometheus;
           datasource='$datasource',
           reducerFunction='last',
         )
-        .addTarget(prometheus.target('sum(celery_worker_tasks_active)', intervalFactor=1)),
+        .addTarget(prometheus.target('sum(celery_worker_tasks_active{%(celerySelector)s})' % $._config, intervalFactor=1)),
         gridPos={ h: 4, w: 6, x: 6, y: 1 }
       )
       .addPanel(

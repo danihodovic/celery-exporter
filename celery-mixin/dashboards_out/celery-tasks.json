@@ -63,12 +63,13 @@
                ],
                "fields": "",
                "values": false
-            }
+            },
+            "textMode": "auto"
          },
          "pluginVersion": "7",
          "targets": [
             {
-               "expr": "count(celery_worker_up == 1)",
+               "expr": "count(celery_worker_up{job=~\"celery|celery-exporter\"} == 1)",
                "format": "time_series",
                "intervalFactor": 1,
                "legendFormat": "",
@@ -111,12 +112,13 @@
                ],
                "fields": "",
                "values": false
-            }
+            },
+            "textMode": "auto"
          },
          "pluginVersion": "7",
          "targets": [
             {
-               "expr": "sum(celery_worker_tasks_active)",
+               "expr": "sum(celery_worker_tasks_active{job=~\"celery|celery-exporter\"})",
                "format": "time_series",
                "intervalFactor": 1,
                "legendFormat": "",
@@ -159,12 +161,13 @@
                ],
                "fields": "",
                "values": false
-            }
+            },
+            "textMode": "auto"
          },
          "pluginVersion": "7",
          "targets": [
             {
-               "expr": "sum(increase(celery_task_received_total{job=\"celery\"}[1d]))\n",
+               "expr": "sum(increase(celery_task_received_total{job=~\"celery|celery-exporter\"}[1d]))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "",
@@ -212,12 +215,13 @@
                ],
                "fields": "",
                "values": false
-            }
+            },
+            "textMode": "auto"
          },
          "pluginVersion": "7",
          "targets": [
             {
-               "expr": "sum(increase(celery_task_succeeded_total{job=\"celery\"}[1d]))\n/(sum(increase(celery_task_succeeded_total{job=\"celery\"}[1d]))\n+sum(increase(celery_task_failed_total{job=\"celery\"}[1d]))\n)\n",
+               "expr": "sum(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\"}[1d]))\n/(sum(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\"}[1d]))\n+sum(increase(celery_task_failed_total{job=~\"celery|celery-exporter\"}[1d]))\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "",
@@ -325,7 +329,7 @@
          ],
          "targets": [
             {
-               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=\"celery\", name=~\"$task\"}[$__range]))\n/(sum by (name) (increase(celery_task_succeeded_total{job=\"celery\", name=~\"$task\"}[$__range]))\n+sum by (name) (increase(celery_task_failed_total{job=\"celery\", name=~\"$task\"}[$__range]))\n)\n",
+               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n/(sum by (name) (increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n+sum by (name) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n)\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -333,7 +337,7 @@
                "refId": "A"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_received_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (increase(celery_task_received_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -341,7 +345,7 @@
                "refId": "B"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -349,7 +353,7 @@
                "refId": "C"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_failed_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -357,7 +361,7 @@
                "refId": "D"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_rejected_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (increase(celery_task_rejected_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -365,7 +369,7 @@
                "refId": "E"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_retried_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (increase(celery_task_retried_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -373,7 +377,7 @@
                "refId": "F"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_revoked_total{job=\"celery\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (increase(celery_task_revoked_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -429,35 +433,35 @@
          "steppedLine": false,
          "targets": [
             {
-               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=\"celery\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Succeeded - {{ name }}",
                "refId": "A"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_failed_total{job=\"celery\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Failed - {{ name }}",
                "refId": "B"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_retried_total{job=\"celery\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (increase(celery_task_retried_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Retried - {{ name }}",
                "refId": "C"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_rejected_total{job=\"celery\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (increase(celery_task_rejected_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Rejected - {{ name }}",
                "refId": "D"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_revoked_total{job=\"celery\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (increase(celery_task_revoked_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Revoked - {{ name }}",
