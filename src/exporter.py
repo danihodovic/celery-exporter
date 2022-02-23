@@ -95,23 +95,32 @@ class Exporter:
         task = self.state.tasks.get(event["uuid"])
         logger.debug("Received event='{}' for task='{}'", event["type"], task.name)
 
-        counter = self.state_counters.get(event["type"])
-        if not counter:
+        if event["type"] not in self.state_counters:
             logger.warning("No counter matches task state='{}'", task.state)
-            return
 
-        labels = {}
-        # pylint: disable=protected-access
-        for labelname in counter._labelnames:
-            value = getattr(task, labelname)
-            if labelname == "exception":
-                logger.debug(value)
-                value = get_exception_class(value)
-            labels[labelname] = value
+        labels = {
+            "name": task.name,
+            "hostname": task.hostname
+        }
+        
+        for counter_name, counter in self.state_counters.items():
+            _labels = labels.copy()
 
-        counter.labels(**labels).inc()
+            if counter_name == "task-failed":
+                if counter_name == event["type"]:
+                    _labels["exception"] = get_exception_class(task.exception)
+                else:
+                    _labels["exception"] = ""
+
+            if counter_name == event["type"]:
+                counter.labels(**_labels).inc()
+            else:
+                # increase unaffected counters by zero in order to make them visible
+                counter.labels(**_labels).inc(0)
+
         logger.debug("Incremented metric='{}' labels='{}'", counter._name, labels)
 
+        # observe task runtime
         if event["type"] == "task-succeeded":
             self.celery_task_runtime.labels(**labels).observe(task.runtime)
             logger.debug(
