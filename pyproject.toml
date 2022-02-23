@@ -9,7 +9,7 @@ skip = '.virtualenv,.venv'
 
 [tool.poetry]
 name = "celery-exporter"
-version = "0.0.1"
+version = "0.0.2"
 description = ""
 authors = ["Dani Hodovic <dani.hodovic@gmail.com>"]
 
