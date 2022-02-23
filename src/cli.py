@@ -28,7 +28,12 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     show_default=True,
     help="Buckets for runtime histogram",
 )
-def cli(broker_url, port, buckets):  # pylint: disable=unused-argument
+@click.option(
+    "--log-level",
+    default="INFO",
+    show_default=True,
+)
+def cli(broker_url, port, buckets, log_level):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()
     Exporter(formatted_buckets).run(ctx.params)
