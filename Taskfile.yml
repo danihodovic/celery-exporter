@@ -9,12 +9,12 @@ tasks:
       - docker build . -t danihodovic/celery-exporter
 
   build-binary:
-    desc: Creates a cross platform binary
+    desc: Creates a binary
     cmds:
-      - pyinstaller cli.py -y
-        --onefile
-        --name celery-exporter
-      - staticx ./dist/celery-exporter ./dist/celery-exporter
+      - docker build . -t celery-exporter-builder -f Dockerfile.pyinstaller --build-arg PYTHON_VERSION=$(cat .python-version)
+      - >
+        container=$(docker run --rm -d celery-exporter-builder sleep 5) &&
+        docker cp $container:/app/dist/celery-exporter celery-exporter
 
   release:
     desc: Creates a Github release
@@ -40,4 +40,4 @@ tasks:
         --repo celery-exporter
         --tag latest
         --name celery-exporter
-        --file ./dist/celery-exporter
+        --file ./celery-exporter
