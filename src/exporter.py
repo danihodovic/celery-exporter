@@ -1,5 +1,6 @@
 # pylint: disable=protected-access,,attribute-defined-outside-init
 import re
+import sys
 
 from celery import Celery
 from loguru import logger
@@ -98,11 +99,8 @@ class Exporter:
         if event["type"] not in self.state_counters:
             logger.warning("No counter matches task state='{}'", task.state)
 
-        labels = {
-            "name": task.name,
-            "hostname": task.hostname
-        }
-        
+        labels = {"name": task.name, "hostname": task.hostname}
+
         for counter_name, counter in self.state_counters.items():
             _labels = labels.copy()
 
@@ -153,6 +151,8 @@ class Exporter:
         logger.debug("Updated gauge='{}' value='{}'", self.celery_worker_up._name, up)
 
     def run(self, click_params):
+        logger.remove()
+        logger.add(sys.stdout, level=click_params["log_level"])
         self.app = Celery(broker=click_params["broker_url"])
         self.state = self.app.events.State()
 
