@@ -116,7 +116,7 @@ class Exporter:
                 # increase unaffected counters by zero in order to make them visible
                 counter.labels(**_labels).inc(0)
 
-        logger.debug("Incremented metric='{}' labels='{}'", counter._name, labels)
+            logger.debug("Incremented metric='{}' labels='{}'", counter._name, labels)
 
         # observe task runtime
         if event["type"] == "task-succeeded":
