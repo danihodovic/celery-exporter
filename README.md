@@ -109,3 +109,5 @@ celery_task_retried_total | Sent if the task failed, but will be retried in the 
 celery_worker_up | Indicates if a worker has recently sent a heartbeat. | Gauge
 celery_worker_tasks_active | The number of tasks the worker is currently processing | Gauge
 celery_task_runtime | Histogram of runtime measurements for each task | Histogram
+
+Used in production at [https://findwork.dev](https://findwork.dev).
