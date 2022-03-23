@@ -154,6 +154,19 @@ class Exporter:
         logger.remove()
         logger.add(sys.stdout, level=click_params["log_level"])
         self.app = Celery(broker=click_params["broker_url"])
+        transport_options = {}
+        for transport_option in click_params["broker_transport_option"]:
+            if transport_option is not None:
+                option, value = transport_option.split("=", 1)
+                if option is not None:
+                    if value.isnumeric():
+                        transport_options[option] = int(value)
+                    else:
+                        transport_options[option] = value
+
+        if transport_options is not None:
+            self.app.conf["broker_transport_options"] = transport_options
+
         self.state = self.app.events.State()
 
         handlers = {
