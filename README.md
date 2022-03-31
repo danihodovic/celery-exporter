@@ -91,6 +91,22 @@ chmod+x ./celery-exporter
 ./celery-exporter --broker-url=redis://redis.service.consul/1
 ```
 
+###### Specifying optional broker transport options
+
+While the default options may be fine for most cases,
+there may be a need to specify optional broker transport options. This can be done by specifying
+one or more --broker-transport-option parameters as follows:
+
+```sh
+docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.service.consul/1 \
+  --broker-transport-option globalkeyprefix=danihodovic \
+  --broker-transport-option visibility_timeout=7200
+```
+
+The list of available broker transport options can be found here:
+https://docs.celeryq.dev/projects/kombu/en/stable/reference/kombu.transport.redis.html
+
+
 ##### Grafana Dashboards & Prometheus Alerts
 
 Head over to the [Celery-mixin in this subdirectory](https://github.com/danihodovic/celery-exporter/tree/master/celery-mixin) to generate rules and dashboards suited to your Prometheus setup.

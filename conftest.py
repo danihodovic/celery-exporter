@@ -44,6 +44,7 @@ def exporter(find_free_port, celery_config):
     cfg = {
         "port": find_free_port(),
         "broker_url": celery_config["broker_url"],
+        "broker_transport_option": ["visibility_timeout=7200"],
         "log_level": "DEBUG",
     }
     exporter = Exporter()

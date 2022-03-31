@@ -12,7 +12,15 @@ from .cli import cli
 @pytest.mark.celery()
 def test_integration(celery_app, celery_worker):
     def run():
-        CliRunner().invoke(cli, ["--broker-url=memory://localhost", "--port=23000"])
+        CliRunner().invoke(
+            cli,
+            [
+                "--broker-url=memory://localhost",
+                "--port=23000",
+                "--broker-transport-option",
+                "visibility_timeout=7200",
+            ],
+        )
 
     threading.Thread(target=run, daemon=True).start()
 
