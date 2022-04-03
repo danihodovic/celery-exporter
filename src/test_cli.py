@@ -19,6 +19,7 @@ def test_integration(celery_app, celery_worker):
                 "--port=23000",
                 "--broker-transport-option",
                 "visibility_timeout=7200",
+                "--retry-interval=5",
             ],
         )
 

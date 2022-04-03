@@ -99,13 +99,25 @@ one or more --broker-transport-option parameters as follows:
 
 ```sh
 docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.service.consul/1 \
-  --broker-transport-option globalkeyprefix=danihodovic \
+  --broker-transport-option global_keyprefix=danihodovic \
   --broker-transport-option visibility_timeout=7200
 ```
 
 The list of available broker transport options can be found here:
 https://docs.celeryq.dev/projects/kombu/en/stable/reference/kombu.transport.redis.html
 
+
+###### Specifying an optional retry interval
+
+By default, celery-exporter will raise an exception and exit if there
+are any errors communicating with the broker. If preferred, one can
+have the celery-exporter retry connecting to the broker after a certain
+period of time in seconds via the `--retry-interval` parameter as follows:
+
+```sh
+docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.service.consul/1 \
+  --retry-interval=5
+```
 
 ##### Grafana Dashboards & Prometheus Alerts
 

@@ -173,6 +173,8 @@ class Exporter:
 
         self.state = self.app.events.State()
         self.retry_interval = click_params["retry_interval"]
+        if self.retry_interval:
+            logger.debug("Using retry_interval of {} seconds", self.retry_interval)
 
         handlers = {
             "worker-heartbeat": self.track_worker_heartbeat,
