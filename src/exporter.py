@@ -159,6 +159,9 @@ class Exporter:
             if transport_option is not None:
                 option, value = transport_option.split("=", 1)
                 if option is not None:
+                    logger.debug(
+                        "Setting celery broker_transport_option {}={}", option, value
+                    )
                     if value.isnumeric():
                         transport_options[option] = int(value)
                     else:
