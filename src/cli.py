@@ -49,7 +49,7 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     default="INFO",
     show_default=True,
 )
-def cli(
+def cli(  # pylint: disable=too-many-arguments
     broker_url, broker_transport_option, retry_interval, port, buckets, log_level
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))

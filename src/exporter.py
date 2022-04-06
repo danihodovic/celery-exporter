@@ -4,14 +4,15 @@ import sys
 import time
 
 from celery import Celery
+from celery.events.state import State  # type: ignore
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
 from .http_server import start_http_server
 
 
-class Exporter:
-    state = None
+class Exporter:  # pylint: disable=too-many-instance-attributes
+    state: State = None
 
     def __init__(self, buckets=None):
         self.registry = CollectorRegistry(auto_describe=True)
@@ -191,18 +192,17 @@ class Exporter:
                     recv = self.app.events.Receiver(connection, handlers=handlers)
                     recv.capture(limit=None, timeout=None, wakeup=True)
 
-                except (KeyboardInterrupt, SystemExit):
-                    raise
+                except (KeyboardInterrupt, SystemExit) as ex:
+                    raise ex
 
-                except Exception as e:
-                    logger.error(
+                except Exception as e:  # pylint: disable=broad-except
+                    logger.exception(
                         "celery-exporter exception '{}', retrying in {} seconds.",
                         str(e),
                         self.retry_interval,
                     )
                     if self.retry_interval == 0:
                         raise e
-                    pass
 
                 time.sleep(self.retry_interval)
 
