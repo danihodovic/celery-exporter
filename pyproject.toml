@@ -9,7 +9,7 @@ skip = '.virtualenv,.venv,.poetry,.poetry-cache'
 
 [tool.poetry]
 name = "celery-exporter"
-version = "0.1.1"
+version = "0.1.2"
 description = ""
 authors = ["Dani Hodovic <dani.hodovic@gmail.com>"]
 
@@ -21,7 +21,7 @@ click = "^8.0.4"
 pretty-errors = "^1.2.19"
 loguru = "^0.5.3"
 redis = "^3.5.3"
-Flask = "^2.0.3"
+Flask = "^2.1.1"
 waitress = "^2.0.0"
 pylint = "^2.7.1"
 
