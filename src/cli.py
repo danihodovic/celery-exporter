@@ -16,7 +16,10 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
 
 @click.command(help=cmd_help)
 @click.option(
-    "--broker-url", required=True, help="The url to the broker, e.g redis://1.2.3.4"
+    "--broker-url",
+    required=True,
+    help="The url to the broker, e.g redis://1.2.3.4",
+    envvar="BROKER_URI",
 )
 @click.option(
     "--broker-transport-option",
@@ -24,12 +27,14 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     default=[None],
     multiple=True,
     help="Celery broker transport option, e.g visibility_timeout=18000",
+    envvar="BROKER_TRANSPORT_OPTIONS",
 )
 @click.option(
     "--retry-interval",
     required=False,
     default=0,
     help="Broker exception retry interval in seconds, default is 0 for no retry",
+    envvar="RETRY_INTERVAL",
 )
 @click.option(
     "--port",
@@ -37,18 +42,16 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     default=9808,
     show_default=True,
     help="The port the exporter will listen on",
+    envvar="PORT",
 )
 @click.option(
     "--buckets",
     default=default_buckets_str,
     show_default=True,
     help="Buckets for runtime histogram",
+    envvar="BUCKETS",
 )
-@click.option(
-    "--log-level",
-    default="INFO",
-    show_default=True,
-)
+@click.option("--log-level", default="INFO", show_default=True, envvar="LOG_LEVEL")
 def cli(  # pylint: disable=too-many-arguments
     broker_url, broker_transport_option, retry_interval, port, buckets, log_level
 ):  # pylint: disable=unused-argument
