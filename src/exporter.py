@@ -11,7 +11,7 @@ from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 from .http_server import start_http_server
 
 
-class Exporter:  # pylint: disable=too-many-instance-attributes
+class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branches
     state: State = None
 
     def __init__(self, buckets=None):
@@ -177,9 +177,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes
             if ssl_option is not None:
                 option, value = ssl_option.split("=", 1)
                 if option is not None:
-                    logger.debug(
-                        "Setting celery ssl_option {}={}", option, value
-                    )
+                    logger.debug("Setting celery ssl_option {}={}", option, value)
                     if value.isnumeric():
                         ssl_options[option] = int(value)
                     else:
