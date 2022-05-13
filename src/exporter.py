@@ -172,6 +172,22 @@ class Exporter:  # pylint: disable=too-many-instance-attributes
         if transport_options is not None:
             self.app.conf["broker_transport_options"] = transport_options
 
+        ssl_options = {}
+        for ssl_option in click_params["broker_ssl_option"]:
+            if ssl_option is not None:
+                option, value = ssl_option.split("=", 1)
+                if option is not None:
+                    logger.debug(
+                        "Setting celery ssl_option {}={}", option, value
+                    )
+                    if value.isnumeric():
+                        ssl_options[option] = int(value)
+                    else:
+                        ssl_options[option] = value
+
+        if ssl_options is not None:
+            self.app.conf["broker_use_ssl"] = ssl_options
+
         self.state = self.app.events.State()
         self.retry_interval = click_params["retry_interval"]
         if self.retry_interval:

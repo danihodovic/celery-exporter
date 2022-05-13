@@ -26,6 +26,13 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     help="Celery broker transport option, e.g visibility_timeout=18000",
 )
 @click.option(
+    "--broker-ssl-option",
+    required=False,
+    default=[None],
+    multiple=True,
+    help="Celery broker ssl option, e.g certfile=/var/ssl/amqp-server-cert.pem",
+)
+@click.option(
     "--retry-interval",
     required=False,
     default=0,
@@ -50,7 +57,8 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     show_default=True,
 )
 def cli(  # pylint: disable=too-many-arguments
-    broker_url, broker_transport_option, retry_interval, port, buckets, log_level
+    broker_url, broker_transport_option, retry_interval, port, buckets, log_level,
+    broker_ssl_option
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()
