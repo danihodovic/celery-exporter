@@ -177,9 +177,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes
             if ssl_option is not None:
                 option, value = ssl_option.split("=", 1)
                 if option is not None:
-                    logger.debug(
-                        "Setting celery ssl_option {}={}", option, value
-                    )
+                    logger.debug("Setting celery ssl_option {}={}", option, value)
                     if value.isnumeric():
                         ssl_options[option] = int(value)
                     else:
