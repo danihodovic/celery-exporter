@@ -84,4 +84,4 @@ jobs:
       - name: Test
         run: |
           source .venv/bin/activate
-          pytest --ignore .poetry --ignore --cov
+          pytest --ignore .poetry --cov
