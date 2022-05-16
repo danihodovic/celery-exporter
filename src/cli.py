@@ -16,7 +16,9 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
 
 @click.command(help=cmd_help)
 @click.option(
-    "--broker-url", required=True, help="The url to the broker, e.g redis://1.2.3.4"
+    "--broker-url",
+    required=True,
+    help="The url to the broker, e.g redis://1.2.3.4",
 )
 @click.option(
     "--broker-transport-option",
@@ -51,11 +53,7 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     show_default=True,
     help="Buckets for runtime histogram",
 )
-@click.option(
-    "--log-level",
-    default="INFO",
-    show_default=True,
-)
+@click.option("--log-level", default="INFO", show_default=True)
 def cli(  # pylint: disable=too-many-arguments
     broker_url,
     broker_transport_option,
