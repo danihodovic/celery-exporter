@@ -138,4 +138,4 @@ celery_worker_up | Indicates if a worker has recently sent a heartbeat. | Gauge
 celery_worker_tasks_active | The number of tasks the worker is currently processing | Gauge
 celery_task_runtime_bucket | Histogram of runtime measurements for each task | Histogram
 
-Used in production at [https://findwork.dev](https://findwork.dev).
+Used in production at [https://findwork.dev](https://findwork.dev) and [https://django.wtf](https://django.wtf).
