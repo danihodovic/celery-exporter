@@ -1,4 +1,4 @@
-# celery-exporter [![Build Status](https://ci.depode.com/api/badges/danihodovic/celery-exporter/status.svg)](https://ci.depode.com/danihodovic/celery-exporter)
+# celery-exporter ![Build Status](https://github.com/danihodovic/celery-exporter/actions/workflows/.github/workflows/ci.yml/badge.svg)
 
 ![dashboard](./images/grafana_dashboard.png)
 
