@@ -2,6 +2,7 @@
 import re
 import sys
 import time
+import threading
 
 from celery import Celery
 from celery.events.state import State  # type: ignore
@@ -92,6 +93,25 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
+        self.queue_length = Gauge(
+            "queue_length",
+            "The number of message in broker queue.",
+            ["queue_name"],
+            registry=self.registry,
+        )
+
+    def track_queue_length(self, track_queues, track_interval):
+        with self.app.connection() as connection:
+            while True:
+                for queue in track_queues:
+                    try:
+                        length = connection.default_channel.queue_declare(queue=queue, passive=True).message_count
+                    except Exception as ex:
+                        logger.exception("Get length for queue {} failed: {}".format(queue, str(ex)))
+                        length = 0
+                    self.queue_length.labels(queue_name=queue).set(length)
+
+                time.sleep(track_interval)
 
     def track_task_event(self, event):
         self.state.event(event)
@@ -138,18 +158,14 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.celery_worker_up.labels(hostname=hostname).set(value)
 
     def track_worker_heartbeat(self, event):
-        logger.debug(
-            "Received event='{}' for worker='{}'", event["type"], event["hostname"]
-        )
+        logger.debug("Received event='{}' for worker='{}'", event["type"], event["hostname"])
 
         worker_state = self.state.event(event)[0][0]
         active = worker_state.active or 0
         up = 1 if worker_state.alive else 0
         self.celery_worker_up.labels(hostname=event["hostname"]).set(up)
         self.worker_tasks_active.labels(hostname=event["hostname"]).set(active)
-        logger.debug(
-            "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, active
-        )
+        logger.debug("Updated gauge='{}' value='{}'", self.worker_tasks_active._name, active)
         logger.debug("Updated gauge='{}' value='{}'", self.celery_worker_up._name, up)
 
     def run(self, click_params):
@@ -161,9 +177,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             if transport_option is not None:
                 option, value = transport_option.split("=", 1)
                 if option is not None:
-                    logger.debug(
-                        "Setting celery broker_transport_option {}={}", option, value
-                    )
+                    logger.debug("Setting celery broker_transport_option {}={}", option, value)
                     if value.isnumeric():
                         transport_options[option] = int(value)
                     else:
@@ -198,6 +212,13 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         }
         for key in self.state_counters:
             handlers[key] = self.track_task_event
+
+        if click_params["track_queue"]:
+            threading.Thread(
+                target=self.track_queue_length,
+                args=(click_params["track_queue"], click_params["queue_track_interval"]),
+                daemon=True,
+            ).start()
 
         with self.app.connection() as connection:
             start_http_server(self.registry, connection, click_params["port"])

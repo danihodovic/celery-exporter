@@ -41,6 +41,19 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     help="Broker exception retry interval in seconds, default is 0 for no retry",
 )
 @click.option(
+    "--track-queue",
+    required=False,
+    multiple=True,
+    default=[],
+    help="Queue which length needs to be tracked by the exporter",
+)
+@click.option(
+    "--queue-track-interval",
+    required=False,
+    default=30,
+    help="Broker queue length track interval in seconds, default is 30",
+)
+@click.option(
     "--port",
     type=int,
     default=9808,
@@ -58,6 +71,8 @@ def cli(  # pylint: disable=too-many-arguments
     broker_url,
     broker_transport_option,
     retry_interval,
+    track_queue,
+    queue_track_interval,
     port,
     buckets,
     log_level,
