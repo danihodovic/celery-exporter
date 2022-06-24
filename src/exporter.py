@@ -93,8 +93,8 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
-        self.queue_length = Gauge(
-            "queue_length",
+        self.celery_queue_length = Gauge(
+            "celery_queue_length",
             "The number of message in broker queue.",
             ["queue_name"],
             registry=self.registry,
@@ -113,7 +113,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                             "Get length for queue {} failed: {}".format(queue, str(ex))
                         )
                         length = 0
-                    self.queue_length.labels(queue_name=queue).set(length)
+                    self.celery_queue_length.labels(queue_name=queue).set(length)
 
                 time.sleep(track_interval)
 

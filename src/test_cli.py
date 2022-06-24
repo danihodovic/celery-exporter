@@ -20,6 +20,7 @@ def test_integration(celery_app, celery_worker):
                 "--broker-transport-option",
                 "visibility_timeout=7200",
                 "--retry-interval=5",
+                "--track-queue=celery",
             ],
         )
 
@@ -71,3 +72,4 @@ def test_integration(celery_app, celery_worker):
         f'celery_task_runtime_count{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
         in res.text
     )
+    assert 'celery_queue_length{queue_name="celery"} 3.0' in res.text
