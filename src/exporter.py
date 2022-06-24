@@ -105,9 +105,13 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             while True:
                 for queue in track_queues:
                     try:
-                        length = connection.default_channel.queue_declare(queue=queue, passive=True).message_count
+                        length = connection.default_channel.queue_declare(
+                            queue=queue, passive=True
+                        ).message_count
                     except Exception as ex:
-                        logger.exception("Get length for queue {} failed: {}".format(queue, str(ex)))
+                        logger.exception(
+                            "Get length for queue {} failed: {}".format(queue, str(ex))
+                        )
                         length = 0
                     self.queue_length.labels(queue_name=queue).set(length)
 
@@ -158,14 +162,18 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.celery_worker_up.labels(hostname=hostname).set(value)
 
     def track_worker_heartbeat(self, event):
-        logger.debug("Received event='{}' for worker='{}'", event["type"], event["hostname"])
+        logger.debug(
+            "Received event='{}' for worker='{}'", event["type"], event["hostname"]
+        )
 
         worker_state = self.state.event(event)[0][0]
         active = worker_state.active or 0
         up = 1 if worker_state.alive else 0
         self.celery_worker_up.labels(hostname=event["hostname"]).set(up)
         self.worker_tasks_active.labels(hostname=event["hostname"]).set(active)
-        logger.debug("Updated gauge='{}' value='{}'", self.worker_tasks_active._name, active)
+        logger.debug(
+            "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, active
+        )
         logger.debug("Updated gauge='{}' value='{}'", self.celery_worker_up._name, up)
 
     def run(self, click_params):
@@ -177,7 +185,9 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             if transport_option is not None:
                 option, value = transport_option.split("=", 1)
                 if option is not None:
-                    logger.debug("Setting celery broker_transport_option {}={}", option, value)
+                    logger.debug(
+                        "Setting celery broker_transport_option {}={}", option, value
+                    )
                     if value.isnumeric():
                         transport_options[option] = int(value)
                     else:
@@ -216,7 +226,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         if click_params["track_queue"]:
             threading.Thread(
                 target=self.track_queue_length,
-                args=(click_params["track_queue"], click_params["queue_track_interval"]),
+                args=(
+                    click_params["track_queue"],
+                    click_params["queue_track_interval"],
+                ),
                 daemon=True,
             ).start()
 
