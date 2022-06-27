@@ -73,3 +73,4 @@ def test_integration(celery_app, celery_worker):
         in res.text
     )
     assert 'celery_queue_length{queue_name="celery"} 3.0' in res.text
+    assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text

@@ -99,21 +99,32 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             ["queue_name"],
             registry=self.registry,
         )
+        self.celery_active_consumer_count = Gauge(
+            "celery_active_consumer_count",
+            "The number of active consumer in broker queue.",
+            ["queue_name"],
+            registry=self.registry,
+        )
 
     def track_queue_length(self, track_queues, track_interval):
         with self.app.connection() as connection:
             while True:
                 for queue in track_queues:
                     try:
-                        length = connection.default_channel.queue_declare(
+                        ret = connection.default_channel.queue_declare(
                             queue=queue, passive=True
-                        ).message_count
-                    except Exception as ex:
+                        )
+                        length, consumer_count = ret.message_count, ret.consumer_count
+                    except Exception as ex:  # pylint: disable=broad-except
                         logger.exception(
-                            "Get length for queue {} failed: {}".format(queue, str(ex))
+                            f"Get length for queue {queue} failed: {str(ex)}"
                         )
                         length = 0
+                        consumer_count = 0
                     self.celery_queue_length.labels(queue_name=queue).set(length)
+                    self.celery_active_consumer_count.labels(queue_name=queue).set(
+                        consumer_count
+                    )
 
                 time.sleep(track_interval)
 
