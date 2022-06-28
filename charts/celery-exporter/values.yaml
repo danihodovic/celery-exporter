@@ -23,6 +23,15 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+env: []
+  # - name: CELERY_BROKER_URL
+  #   value: <MY_BROKER_URL>
+  # - name: CELERY_BROKER_URL
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: MY_SECRET
+  #       key: MY_SECRET_KEY
+
 podAnnotations: {}
 
 podSecurityContext: {}
