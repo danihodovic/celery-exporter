@@ -2,6 +2,26 @@ apiVersion: v1
 entries:
   celery-exporter:
   - apiVersion: v2
+    appVersion: 0.3.0
+    created: "2022-06-28T20:25:03.883229791Z"
+    description: Prometheus exporter for Celery
+    digest: 321280114b4145b859b4b769661592bed165780f0f6b2f1959253fcb562c6ddb
+    home: https://github.com/danihodovic/celery-exporter
+    keywords:
+    - celery
+    - prometheus
+    - exporter
+    maintainers:
+    - name: danihodovic
+    - name: adinhodovic
+    name: celery-exporter
+    sources:
+    - https://github.com/danihodovic/celery-exporter
+    type: application
+    urls:
+    - https://github.com/danihodovic/celery-exporter/releases/download/celery-exporter-0.2.0/celery-exporter-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     appVersion: 0.2.1
     created: "2022-06-28T20:08:01.478698438Z"
     description: Prometheus exporter for Celery
@@ -21,4 +41,4 @@ entries:
     urls:
     - https://github.com/danihodovic/celery-exporter/releases/download/celery-exporter-0.1.1/celery-exporter-0.1.1.tgz
     version: 0.1.1
-generated: "2022-06-28T20:08:01.478703338Z"
+generated: "2022-06-28T20:25:03.883237591Z"
