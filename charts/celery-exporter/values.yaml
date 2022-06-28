@@ -24,9 +24,9 @@ serviceAccount:
   name: ""
 
 env: []
-  # - name: CELERY_BROKER_URL
+  # - name: CELERY_EXPORTER_BROKER_URL
   #   value: <MY_BROKER_URL>
-  # - name: CELERY_BROKER_URL
+  # - name: CELERY_EXPORTER_BROKER_URL
   #   valueFrom:
   #     secretKeyRef:
   #       name: MY_SECRET
