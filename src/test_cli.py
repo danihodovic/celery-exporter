@@ -24,6 +24,7 @@ def test_integration(celery_app, celery_worker):
         )
 
     threading.Thread(target=run, daemon=True).start()
+    time.sleep(2)
 
     @celery_app.task
     def succeed():
@@ -43,6 +44,14 @@ def test_integration(celery_app, celery_worker):
     assert res.status_code == 200
 
     # pylint: disable=line-too-long
+    assert (
+        f'celery_task_sent_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        in res.text
+    )
+    assert (
+        f'celery_task_sent_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        in res.text
+    )
     assert (
         f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
         in res.text
