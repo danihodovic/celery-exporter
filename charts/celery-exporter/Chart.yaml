@@ -1,0 +1,17 @@
+apiVersion: v2
+name: celery-exporter
+description: Prometheus exporter for Celery
+type: application
+home: https://github.com/danihodovic/celery-exporter
+keywords:
+  - celery
+  - prometheus
+  - exporter
+sources:
+  - https://github.com/danihodovic/celery-exporter
+maintainers:
+  - name: danihodovic
+  - name: adinhodovic
+
+version: 0.1.0
+appVersion: 0.2.1
