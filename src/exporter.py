@@ -2,7 +2,6 @@
 import re
 import sys
 import time
-import threading
 
 from celery import Celery
 from celery.events.state import State  # type: ignore
@@ -17,6 +16,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
 
     def __init__(self, buckets=None):
         self.registry = CollectorRegistry(auto_describe=True)
+        self.queue_cache = set()
         self.state_counters = {
             "task-sent": Counter(
                 "celery_task_sent",
@@ -106,27 +106,26 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
         )
 
-    def track_queue_length(self, track_queues, track_interval):
-        with self.app.connection() as connection:
-            while True:
-                for queue in track_queues:
-                    try:
-                        ret = connection.default_channel.queue_declare(
-                            queue=queue, passive=True
-                        )
-                        length, consumer_count = ret.message_count, ret.consumer_count
-                    except Exception as ex:  # pylint: disable=broad-except
-                        logger.exception(
-                            f"Get length for queue {queue} failed: {str(ex)}"
-                        )
-                        length = 0
-                        consumer_count = 0
-                    self.celery_queue_length.labels(queue_name=queue).set(length)
-                    self.celery_active_consumer_count.labels(queue_name=queue).set(
-                        consumer_count
-                    )
+    def track_queue_length(self):
+        # request workers to response active queues
+        # we need to cache queue info in exporter in case all workers are offline
+        # so that no worker response exporter make active_queues return None
+        queues = self.app.control.inspect().active_queues() or {}
+        for info_list in queues.values():
+            for queue_info in info_list:
+                self.queue_cache.add(queue_info["name"])
 
-                time.sleep(track_interval)
+        with self.app.connection() as connection:
+            for queue in self.queue_cache:
+                try:
+                    ret = connection.default_channel.queue_declare(queue=queue, passive=True)
+                    length, consumer_count = ret.message_count, ret.consumer_count
+                except Exception as ex:  # pylint: disable=broad-except
+                    logger.exception(f"Queue {queue} declare failed: {str(ex)}")
+                    length = 0
+                    consumer_count = 0
+                self.celery_queue_length.labels(queue_name=queue).set(length)
+                self.celery_active_consumer_count.labels(queue_name=queue).set(consumer_count)
 
     def track_task_event(self, event):
         self.state.event(event)
@@ -234,18 +233,8 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         for key in self.state_counters:
             handlers[key] = self.track_task_event
 
-        if click_params["track_queue"]:
-            threading.Thread(
-                target=self.track_queue_length,
-                args=(
-                    click_params["track_queue"],
-                    click_params["queue_track_interval"],
-                ),
-                daemon=True,
-            ).start()
-
         with self.app.connection() as connection:
-            start_http_server(self.registry, connection, click_params["port"])
+            start_http_server(self.registry, connection, click_params["port"], self.track_queue_length)
             while True:
                 try:
                     recv = self.app.events.Receiver(connection, handlers=handlers)
