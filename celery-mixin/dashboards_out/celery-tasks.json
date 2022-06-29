@@ -395,7 +395,7 @@
          "bars": false,
          "dashLength": 10,
          "dashes": false,
-         "datasource": null,
+         "datasource": "$datasource",
          "fill": 1,
          "fillGradient": 0,
          "gridPos": {
@@ -447,25 +447,32 @@
                "refId": "B"
             },
             {
+               "expr": "sum by (name) (increase(celery_task_received_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "Received - {{ name }}",
+               "refId": "C"
+            },
+            {
                "expr": "sum by (name) (increase(celery_task_retried_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Retried - {{ name }}",
-               "refId": "C"
+               "refId": "D"
             },
             {
                "expr": "sum by (name) (increase(celery_task_rejected_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Rejected - {{ name }}",
-               "refId": "D"
+               "refId": "E"
             },
             {
                "expr": "sum by (name) (increase(celery_task_revoked_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Revoked - {{ name }}",
-               "refId": "E"
+               "refId": "F"
             }
          ],
          "thresholds": [ ],
