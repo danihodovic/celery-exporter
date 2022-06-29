@@ -25,6 +25,7 @@ def test_integration(celery_app):
         )
 
     threading.Thread(target=run, daemon=True).start()
+    time.sleep(2)
 
     @celery_app.task
     def succeed():
