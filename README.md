@@ -91,6 +91,18 @@ chmod+x ./celery-exporter
 ./celery-exporter --broker-url=redis://redis.service.consul/1
 ```
 
+###### Kubernetes
+
+There's a Helm in the directory `charts/celery-exporter` for deploying the Celery-exporter to Kubernetes using Helm.
+
+###### Environment variables
+
+All arguments can be specified using environment variables with a `CE_` prefix:
+
+```sh
+docker run -p 9808:9808 -e CE_BROKER_URL=redis://redis danihodovic/celery-exporter
+```
+
 ###### Specifying optional broker transport options
 
 While the default options may be fine for most cases,
