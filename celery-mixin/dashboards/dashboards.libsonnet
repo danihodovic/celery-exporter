@@ -199,6 +199,7 @@ local prometheus = grafana.prometheus;
       .addPanel(
         grafana.graphPanel.new(
           'Tasks completed with %(taskInterval)s intervals' % $._config,
+          datasource='$datasource',
           legend_show=true,
           legend_values=true,
           legend_alignAsTable=true,
@@ -214,6 +215,10 @@ local prometheus = grafana.prometheus;
         .addTarget(prometheus.target(
           taskFailedInterval,
           legendFormat='Failed - {{ name }}',
+        ))
+        .addTarget(prometheus.target(
+          taskReceivedInterval,
+          legendFormat='Received - {{ name }}',
         ))
         .addTarget(prometheus.target(
           taskRetriedInterval,
