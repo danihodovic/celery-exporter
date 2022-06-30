@@ -109,7 +109,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
     def track_queue_length(self):
         # request workers to response active queues
         # we need to cache queue info in exporter in case all workers are offline
-        # so that no worker response exporter make active_queues return None
+        # so that no worker response to exporter will make active_queues return None
         queues = self.app.control.inspect().active_queues() or {}
         for info_list in queues.values():
             for queue_info in info_list:
