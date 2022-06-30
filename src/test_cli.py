@@ -60,6 +60,14 @@ def test_integration(celery_app):
     assert res.status_code == 200
     # pylint: disable=line-too-long
     assert (
+        f'celery_task_sent_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        in res.text
+    )
+    assert (
+        f'celery_task_sent_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        in res.text
+    )
+    assert (
         f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
         in res.text
     )
