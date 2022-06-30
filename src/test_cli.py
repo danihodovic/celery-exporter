@@ -55,36 +55,37 @@ def test_integration(celery_app):
     # start worker and consume message in broker
     with start_worker(celery_app, without_heartbeat=False) as celery_worker:
         time.sleep(2)
-        res = requests.get("http://localhost:23000/metrics")
-        assert res.status_code == 200
-        # pylint: disable=line-too-long
-        assert (
-            f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
-            in res.text
-        )
-        assert (
-            f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
-            in res.text
-        )
-        assert (
-            f'celery_task_started_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
-            in res.text
-        )
-        assert (
-            f'celery_task_started_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
-            in res.text
-        )
-        assert (
-            f'celery_task_succeeded_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
-            in res.text
-        )
-        assert (
-            f'celery_task_failed_total{{exception="HTTPError",hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
-            in res.text
-        )
-        assert (
-            f'celery_task_runtime_count{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
-            in res.text
-        )
-        assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text
-        assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
+
+    res = requests.get("http://localhost:23000/metrics")
+    assert res.status_code == 200
+    # pylint: disable=line-too-long
+    assert (
+        f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        in res.text
+    )
+    assert (
+        f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        in res.text
+    )
+    assert (
+        f'celery_task_started_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        in res.text
+    )
+    assert (
+        f'celery_task_started_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        in res.text
+    )
+    assert (
+        f'celery_task_succeeded_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        in res.text
+    )
+    assert (
+        f'celery_task_failed_total{{exception="HTTPError",hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        in res.text
+    )
+    assert (
+        f'celery_task_runtime_count{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        in res.text
+    )
+    assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text
+    assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
