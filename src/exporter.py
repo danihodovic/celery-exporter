@@ -118,14 +118,18 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         with self.app.connection() as connection:
             for queue in self.queue_cache:
                 try:
-                    ret = connection.default_channel.queue_declare(queue=queue, passive=True)
+                    ret = connection.default_channel.queue_declare(
+                        queue=queue, passive=True
+                    )
                     length, consumer_count = ret.message_count, ret.consumer_count
                 except Exception as ex:  # pylint: disable=broad-except
                     logger.exception(f"Queue {queue} declare failed: {str(ex)}")
                     length = 0
                     consumer_count = 0
                 self.celery_queue_length.labels(queue_name=queue).set(length)
-                self.celery_active_consumer_count.labels(queue_name=queue).set(consumer_count)
+                self.celery_active_consumer_count.labels(queue_name=queue).set(
+                    consumer_count
+                )
 
     def track_task_event(self, event):
         self.state.event(event)
@@ -234,7 +238,9 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             handlers[key] = self.track_task_event
 
         with self.app.connection() as connection:
-            start_http_server(self.registry, connection, click_params["port"], self.track_queue_length)
+            start_http_server(
+                self.registry, connection, click_params["port"], self.track_queue_length
+            )
             while True:
                 try:
                     recv = self.app.events.Receiver(connection, handlers=handlers)
