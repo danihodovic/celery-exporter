@@ -3,9 +3,9 @@ import time
 
 import pytest
 import requests
+from celery.contrib.testing.worker import start_worker  # type: ignore
 from click.testing import CliRunner
 from requests.exceptions import HTTPError
-from celery.contrib.testing.worker import start_worker  # type: ignore
 
 from .cli import cli
 
