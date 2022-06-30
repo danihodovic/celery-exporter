@@ -14,4 +14,11 @@ RUN poetry install
 
 COPY . /app/
 
-RUN eval "$(pyenv init -)" && pyinstaller cli.py -y --onefile --name celery-exporter
+RUN eval "$(pyenv init -)" && pyinstaller cli.py -y --onefile --name celery-exporter \
+        --hidden-import=celery.fixups \
+        --hidden-import=celery.fixups.django \
+        --hidden-import=celery.app.events \
+        --hidden-import=celery.loaders.app \
+        --hidden-import=celery.app.amqp \
+        --hidden-import=celery.app.control \
+        --hidden-import=kombu.transport.redis
