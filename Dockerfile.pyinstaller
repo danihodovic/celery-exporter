@@ -14,6 +14,4 @@ RUN poetry install
 
 COPY . /app/
 
-RUN eval "$(pyenv init -)" && \
-        pyinstaller cli.py -y --onefile --name celery-exporter && \
-        staticx ./dist/celery-exporter ./dist/celery-exporter
+RUN eval "$(pyenv init -)" && pyinstaller cli.py -y --onefile --name celery-exporter
