@@ -29,6 +29,7 @@ def index():
 
 @blueprint.route("/metrics")
 def metrics():
+    current_app.config["metrics_puller"]()
     encoder, content_type = choose_encoder(request.headers.get("accept"))
     output = encoder(current_app.config["registry"])
     return output, 200, {"Content-Type": content_type}
@@ -50,10 +51,11 @@ def health():
     return f"Connected to the broker {conn.as_uri()}"
 
 
-def start_http_server(registry, celery_connection, port):
+def start_http_server(registry, celery_connection, port, metrics_puller):
     app = Flask(__name__)
     app.config["registry"] = registry
     app.config["celery_connection"] = celery_connection
+    app.config["metrics_puller"] = metrics_puller
     app.register_blueprint(blueprint)
     Thread(
         target=serve,

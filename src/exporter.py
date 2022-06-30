@@ -16,6 +16,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
 
     def __init__(self, buckets=None):
         self.registry = CollectorRegistry(auto_describe=True)
+        self.queue_cache = set()
         self.state_counters = {
             "task-sent": Counter(
                 "celery_task_sent",
@@ -92,6 +93,39 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
+        self.celery_queue_length = Gauge(
+            "celery_queue_length",
+            "The number of message in broker queue.",
+            ["queue_name"],
+            registry=self.registry,
+        )
+        self.celery_active_consumer_count = Gauge(
+            "celery_active_consumer_count",
+            "The number of active consumer in broker queue.",
+            ["queue_name"],
+            registry=self.registry,
+        )
+
+    def track_queue_length(self):
+        # request workers to response active queues
+        # we need to cache queue info in exporter in case all workers are offline
+        # so that no worker response to exporter will make active_queues return None
+        queues = self.app.control.inspect().active_queues() or {}
+        for info_list in queues.values():
+            for queue_info in info_list:
+                self.queue_cache.add(queue_info["name"])
+
+        with self.app.connection() as connection:
+            for queue in self.queue_cache:
+                try:
+                    ret = connection.default_channel.queue_declare(queue=queue, passive=True)
+                    length, consumer_count = ret.message_count, ret.consumer_count
+                except Exception as ex:  # pylint: disable=broad-except
+                    logger.exception(f"Queue {queue} declare failed: {str(ex)}")
+                    length = 0
+                    consumer_count = 0
+                self.celery_queue_length.labels(queue_name=queue).set(length)
+                self.celery_active_consumer_count.labels(queue_name=queue).set(consumer_count)
 
     def track_task_event(self, event):
         self.state.event(event)
@@ -200,7 +234,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             handlers[key] = self.track_task_event
 
         with self.app.connection() as connection:
-            start_http_server(self.registry, connection, click_params["port"])
+            start_http_server(self.registry, connection, click_params["port"], self.track_queue_length)
             while True:
                 try:
                     recv = self.app.events.Receiver(connection, handlers=handlers)
