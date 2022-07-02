@@ -52,3 +52,8 @@ def exporter(find_free_port, celery_config):
     exporter = Exporter()
     setattr(exporter, "cfg", cfg)
     yield exporter
+
+
+@pytest.fixture()
+def hostname():
+    return socket.gethostname()
