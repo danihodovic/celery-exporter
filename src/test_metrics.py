@@ -6,7 +6,7 @@ from celery.contrib.testing.worker import start_worker  # type: ignore
 
 
 @pytest.fixture
-def assert_exporter_metric_called(mocker, celery_app, celery_worker):
+def assert_exporter_metric_called(mocker, celery_app, celery_worker, hostname):
     def fn(exporter, metric):
         labels = mocker.patch.object(metric, "labels")
         threading.Thread(target=exporter.run, args=(exporter.cfg,), daemon=True).start()
@@ -19,7 +19,7 @@ def assert_exporter_metric_called(mocker, celery_app, celery_worker):
         slow_task.apply_async()
         time.sleep(4)
         assert labels.call_count == 3
-        labels.assert_called_with(hostname=celery_worker.hostname)
+        labels.assert_called_with(hostname=hostname)
         labels.return_value.set.assert_any_call(1)
 
     return fn
@@ -36,12 +36,11 @@ def test_worker_heartbeat_status(exporter, assert_exporter_metric_called):
 
 
 @pytest.mark.celery()
-def test_worker_status(exporter, celery_app):
+def test_worker_status(exporter, celery_app, hostname):
     threading.Thread(target=exporter.run, args=(exporter.cfg,), daemon=True).start()
     time.sleep(5)
 
-    with start_worker(celery_app, without_heartbeat=False) as celery_worker:
-        hostname = celery_worker.hostname
+    with start_worker(celery_app, without_heartbeat=False):
         time.sleep(2)
         assert (
             exporter.registry.get_sample_value(

@@ -5,6 +5,7 @@ import time
 
 from celery import Celery
 from celery.events.state import State  # type: ignore
+from celery.utils import nodesplit  # type: ignore
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
@@ -139,7 +140,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         if event["type"] not in self.state_counters:
             logger.warning("No counter matches task state='{}'", task.state)
 
-        labels = {"name": task.name, "hostname": task.hostname}
+        labels = {"name": task.name, "hostname": get_hostname(task.hostname)}
 
         for counter_name, counter in self.state_counters.items():
             _labels = labels.copy()
@@ -171,20 +172,19 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
     def track_worker_status(self, event, is_online):
         value = 1 if is_online else 0
         event_name = "worker-online" if is_online else "worker-offline"
-        hostname = event["hostname"]
+        hostname = get_hostname(event["hostname"])
         logger.debug("Received event='{}' for hostname='{}'", event_name, hostname)
         self.celery_worker_up.labels(hostname=hostname).set(value)
 
     def track_worker_heartbeat(self, event):
-        logger.debug(
-            "Received event='{}' for worker='{}'", event["type"], event["hostname"]
-        )
+        hostname = get_hostname(event["hostname"])
+        logger.debug("Received event='{}' for worker='{}'", event["type"], hostname)
 
         worker_state = self.state.event(event)[0][0]
         active = worker_state.active or 0
         up = 1 if worker_state.alive else 0
-        self.celery_worker_up.labels(hostname=event["hostname"]).set(up)
-        self.worker_tasks_active.labels(hostname=event["hostname"]).set(active)
+        self.celery_worker_up.labels(hostname=hostname).set(up)
+        self.worker_tasks_active.labels(hostname=hostname).set(active)
         logger.debug(
             "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, active
         )
@@ -268,3 +268,20 @@ def get_exception_class(exception_name: str):
     m = exception_pattern.match(exception_name)
     assert m
     return m.group(1)
+
+
+def get_hostname(name: str) -> str:
+    """
+    Get hostname from celery's hostname.
+
+    Celery's hostname contains either worker's name or Process ID in it.
+    >>> get_hostname("workername@hostname")
+    'hostname'
+    >>> get_hostname("gen531@hostname")
+    'hostname'
+
+    Prometheus suggests it:
+    > Do not use labels to store dimensions with high cardinality (many different label values)
+    """
+    _, hostname = nodesplit(name)
+    return hostname

@@ -11,7 +11,7 @@ from .cli import cli
 
 
 @pytest.mark.celery()
-def test_integration(celery_app):
+def test_integration(celery_app, hostname):
     def run():
         CliRunner().invoke(
             cli,
@@ -36,7 +36,7 @@ def test_integration(celery_app):
         raise HTTPError("Big, big error")
 
     # start worker first so the exporter can fetch and cache queue information
-    with start_worker(celery_app, without_heartbeat=False) as celery_worker:
+    with start_worker(celery_app, without_heartbeat=False):
         res = requests.get("http://localhost:23000/metrics")
         assert res.status_code == 200
         assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text
@@ -53,46 +53,46 @@ def test_integration(celery_app):
     assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
 
     # start worker and consume message in broker
-    with start_worker(celery_app, without_heartbeat=False) as celery_worker:
+    with start_worker(celery_app, without_heartbeat=False):
         time.sleep(2)
 
     res = requests.get("http://localhost:23000/metrics")
     assert res.status_code == 200
     # pylint: disable=line-too-long
     assert (
-        f'celery_task_sent_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_sent_total{{hostname="{hostname}",name="src.test_cli.succeed"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_sent_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_sent_total{{hostname="{hostname}",name="src.test_cli.fail"}} 1.0'
         in res.text
     )
     assert (
-        f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_received_total{{hostname="{hostname}",name="src.test_cli.succeed"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_received_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_received_total{{hostname="{hostname}",name="src.test_cli.fail"}} 1.0'
         in res.text
     )
     assert (
-        f'celery_task_started_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_started_total{{hostname="{hostname}",name="src.test_cli.succeed"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_started_total{{hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_started_total{{hostname="{hostname}",name="src.test_cli.fail"}} 1.0'
         in res.text
     )
     assert (
-        f'celery_task_succeeded_total{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_succeeded_total{{hostname="{hostname}",name="src.test_cli.succeed"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_failed_total{{exception="HTTPError",hostname="{celery_worker.hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_failed_total{{exception="HTTPError",hostname="{hostname}",name="src.test_cli.fail"}} 1.0'
         in res.text
     )
     assert (
-        f'celery_task_runtime_count{{hostname="{celery_worker.hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_runtime_count{{hostname="{hostname}",name="src.test_cli.succeed"}} 2.0'
         in res.text
     )
     assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text
