@@ -1,0 +1,36 @@
+repos:
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        entry: poetry
+        language: system
+        types: [python]
+        args:
+          - run
+          - black
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: poetry
+        language: system
+        pass_filenames: false
+        args:
+          - run
+          - mypy
+          - .
+
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: poetry
+        language: system
+        types: [python]
+        args:
+          - run
+          - pylint
+          - "-rn" # Only display messages
+          - "-sn" # Don't display the score
