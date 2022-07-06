@@ -41,7 +41,7 @@ pyinstaller = "v4.0"
 mypy = "^0.931"
 types-requests = "^2.27.11"
 types-waitress = "^2.0.6"
-celery-types = "^0.11.0"
+celery-types = "^0.13.1"
 pre-commit = "^2.19.0"
 
 [build-system]
