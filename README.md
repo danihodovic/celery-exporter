@@ -10,6 +10,7 @@
   * [Enable events using the CLI](#enable-events-using-the-cli)
   * [Running the exporter](#running-the-exporter)
 * [Metrics](#metrics)
+* [Development](#development)
 
 ### Why another exporter?
 
@@ -153,3 +154,18 @@ celery_queue_length | The number of message in broker queue | Gauge
 celery_active_consumer_count | The number of active consumer in broker queue **(Only work for [Qpid](https://qpid.apache.org/) broker, more details at [here](https://github.com/danihodovic/celery-exporter/pull/118#issuecomment-1169870481))** | Gauge
 
 Used in production at [https://findwork.dev](https://findwork.dev) and [https://django.wtf](https://django.wtf).
+
+
+## Development
+Pull requests are welcome here!
+
+To start developing run commands below to prepare your environment after the `git clone` command:
+```shell
+# Install dependencies and pre-commit hooks
+poetry install
+pre-commit install
+
+# Test everything works fine
+pre-commit run --all-files
+pytest
+```
