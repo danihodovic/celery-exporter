@@ -639,15 +639,18 @@ ptipython = ["ipython"]
 
 [[package]]
 name = "pudb"
-version = "2020.1"
+version = "2022.1.1"
 description = "A full-screen, console-based Python debugger"
 category = "dev"
 optional = false
 python-versions = "~=3.6"
 
 [package.dependencies]
-pygments = ">=1.0"
+jedi = ">=0.18,<1"
+packaging = ">=20.0"
+pygments = ">=2.7.4"
 urwid = ">=1.1.1"
+urwid_readline = "*"
 
 [[package]]
 name = "py"
@@ -921,6 +924,20 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "urwid-readline"
+version = "0.13"
+description = "A textbox edit widget for urwid that supports readline shortcuts"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+urwid = "*"
+
+[package.extras]
+dev = ["black", "pytest"]
+
+[[package]]
 name = "vine"
 version = "5.0.0"
 description = "Promises, promises, promises."
@@ -999,7 +1016,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "1b4334dc201d3730e166e33160160546dad4c6e9e6b9f0d8822ea5bc1c73d0c2"
+content-hash = "15f328959bf9f36a910ba4718309f6661d8f93733a4fd28b33ebd7c3037dc9fe"
 
 [metadata.files]
 altgraph = [
@@ -1360,7 +1377,7 @@ ptpython = [
     {file = "ptpython-3.0.20.tar.gz", hash = "sha256:eafd4ced27ca5dc370881d4358d1ab5041b32d88d31af8e3c24167fe4af64ed6"},
 ]
 pudb = [
-    {file = "pudb-2020.1.tar.gz", hash = "sha256:2ef23d3371439f13fffbe7f8b9fc180a19d4183dc9cab204d878d7c7766464bf"},
+    {file = "pudb-2022.1.1.tar.gz", hash = "sha256:db3bdd66423c9d29074c1c2c49fcb224bd0d6f08319fed1b4e7ead683914083f"},
 ]
 py = [
     {file = "py-1.11.0-py2.py3-none-any.whl", hash = "sha256:607c53218732647dff4acdfcd50cb62615cedf612e72d1724fb1a0cc6405b378"},
@@ -1486,6 +1503,9 @@ urllib3 = [
 ]
 urwid = [
     {file = "urwid-2.1.2.tar.gz", hash = "sha256:588bee9c1cb208d0906a9f73c613d2bd32c3ed3702012f51efe318a3f2127eae"},
+]
+urwid-readline = [
+    {file = "urwid_readline-0.13.tar.gz", hash = "sha256:018020cbc864bb5ed87be17dc26b069eae2755cb29f3a9c569aac3bded1efaf4"},
 ]
 vine = [
     {file = "vine-5.0.0-py2.py3-none-any.whl", hash = "sha256:4c9dceab6f76ed92105027c49c823800dd33cacce13bdedc5b914e3514b7fb30"},
