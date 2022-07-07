@@ -1,2 +1,10 @@
 .virtualenv
 .venv
+.mypy_cache
+.pytest_cache
+.git
+build
+dist
+images
+__pycache__
+vendor
