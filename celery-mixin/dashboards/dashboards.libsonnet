@@ -24,7 +24,7 @@ local prometheus = grafana.prometheus;
         hide='',
         refresh=1,
         multi=true,
-        includeAll=false,
+        includeAll=true,
         sort=1
       ),
 
