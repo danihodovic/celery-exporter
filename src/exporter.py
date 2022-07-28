@@ -124,7 +124,11 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                     )
                     length, consumer_count = ret.message_count, ret.consumer_count
                 except Exception as ex:  # pylint: disable=broad-except
-                    logger.exception(f"Queue {queue} declare failed: {str(ex)}")
+                    if not (
+                        type(ex).__name__ == "ChannelError"
+                        and connection.transport_cls == "redis"
+                    ):
+                        logger.exception(f"Queue {queue} declare failed: {str(ex)}")
                     length = 0
                     consumer_count = 0
                 self.celery_queue_length.labels(queue_name=queue).set(length)
