@@ -6,6 +6,7 @@ import time
 from celery import Celery
 from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
+from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
@@ -123,14 +124,13 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                         queue=queue, passive=True
                     )
                     length, consumer_count = ret.message_count, ret.consumer_count
-                except Exception as ex:  # pylint: disable=broad-except
-                    if not (
-                        type(ex).__name__ == "ChannelError"
-                        and connection.transport_cls == "redis"
-                    ):
-                        logger.exception(f"Queue {queue} declare failed: {str(ex)}")
-                    length = 0
-                    consumer_count = 0
+                except ChannelError as ex:
+                    if "NOT_FOUND" in ex.message:
+                        logger.debug(f"Queue '{queue}' not found")
+                        length = 0
+                        consumer_count = 0
+                    else:
+                        raise ex
                 self.celery_queue_length.labels(queue_name=queue).set(length)
                 self.celery_active_consumer_count.labels(queue_name=queue).set(
                     consumer_count
