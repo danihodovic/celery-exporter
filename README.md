@@ -116,9 +116,17 @@ docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.s
   --broker-transport-option visibility_timeout=7200
 ```
 
+In case of extended transport options, such as `sentinel_kwargs` you can pass JSON string:,
+for example:
+
+```sh
+docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=sentinel://sentinel.service.consul/1 \
+  --broker-transport-option master_name=my_master \
+  --broker-transport-option sentinel_kwargs="{\"password\": \"sentinelpass\"}"
+```
+
 The list of available broker transport options can be found here:
 https://docs.celeryq.dev/projects/kombu/en/stable/reference/kombu.transport.redis.html
-
 
 ###### Specifying an optional retry interval
 
