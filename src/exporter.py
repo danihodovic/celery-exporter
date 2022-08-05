@@ -1,4 +1,5 @@
 # pylint: disable=protected-access,,attribute-defined-outside-init
+import json
 import re
 import sys
 import time
@@ -206,10 +207,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                     logger.debug(
                         "Setting celery broker_transport_option {}={}", option, value
                     )
-                    if value.isnumeric():
-                        transport_options[option] = int(value)
-                    else:
-                        transport_options[option] = value
+                    transport_options[option] = transform_option_value(value)
 
         if transport_options is not None:
             self.app.conf["broker_transport_options"] = transport_options
@@ -289,3 +287,20 @@ def get_hostname(name: str) -> str:
     """
     _, hostname = nodesplit(name)
     return hostname
+
+
+def transform_option_value(value: str):
+    """
+    Make an attempt to transform option value to appropriate type
+
+    Result type:
+        - int - if input contains only digits
+        - dict - if input may be correctly decoded from JSON string
+        - str - in any other cases
+    """
+    if value.isnumeric():
+        return int(value)
+    try:
+        return json.loads(value)
+    except ValueError:
+        return value
