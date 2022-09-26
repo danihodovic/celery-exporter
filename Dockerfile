@@ -8,7 +8,7 @@ RUN apt-get update && apt install -y locales libcurl4-openssl-dev libssl-dev \
 
 WORKDIR /app/
 
-RUN pip install poetry==1.1.4
+RUN pip install poetry==1.2.1
 COPY pyproject.toml poetry.lock /app/
 RUN poetry config virtualenvs.create false && poetry install --no-interaction #!COMMIT
 
