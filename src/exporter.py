@@ -4,7 +4,7 @@ import re
 import sys
 import time
 
-from celery import Celery
+from celery import Celery, worker
 from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
@@ -24,10 +24,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             "task-sent": Counter(
                 "celery_task_sent",
                 "Sent when a task message is published.",
-                [
-                    "name",
-                    "hostname",
-                ],
+                ["name", "hostname"],
                 registry=self.registry,
             ),
             "task-received": Counter(
@@ -39,10 +36,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             "task-started": Counter(
                 "celery_task_started",
                 "Sent just before the worker executes the task.",
-                [
-                    "name",
-                    "hostname",
-                ],
+                ["name", "hostname"],
                 registry=self.registry,
             ),
             "task-succeeded": Counter(
@@ -92,7 +86,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.celery_task_runtime = Histogram(
             "celery_task_runtime",
             "Histogram of task runtime measurements.",
-            ["name", "hostname"],
+            ["hostname", "name"],
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
@@ -180,6 +174,44 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         hostname = get_hostname(event["hostname"])
         logger.debug("Received event='{}' for hostname='{}'", event_name, hostname)
         self.celery_worker_up.labels(hostname=hostname).set(value)
+
+        if value == 0:
+            # Hostname specific metrics to prune
+            metricTypes = [
+                self.celery_worker_up,
+                self.worker_tasks_active,
+                self.celery_task_runtime,
+            ] + list(self.state_counters.values())
+
+            for metricType in metricTypes:
+                if "hostname" in metricType._labelnames:
+                    for labels in list(metricType._metrics.keys()):
+                        labels = list(labels)
+
+                        labelvalues = []
+                        if hostname in labels:
+                            for label in labels:
+                                labelvalues.append(label)
+                            try:
+                                logger.debug(
+                                    "Removing the following metrics with the labels='{}' for the hostname='{}' metricType='{}'",
+                                    labelvalues,
+                                    hostname,
+                                    metricType._name,
+                                )
+                                metricType.remove(*labelvalues)
+                                logger.debug(
+                                    "Removed all metrics for the hostname='{}' metricType='{}'",
+                                    hostname,
+                                    metricType._name,
+                                )
+                            except KeyError:
+                                logger.debug(
+                                    "Non-existent metric with the labels='{}' for the hostname='{}' metricType='{}'",
+                                    labelvalues,
+                                    hostname,
+                                    metricType._name,
+                                )
 
     def track_worker_heartbeat(self, event):
         hostname = get_hostname(event["hostname"])
