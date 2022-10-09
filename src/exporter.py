@@ -86,7 +86,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.celery_task_runtime = Histogram(
             "celery_task_runtime",
             "Histogram of task runtime measurements.",
-            ["hostname", "name"],
+            ["name", "hostname"],
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
