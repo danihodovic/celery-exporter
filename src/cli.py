@@ -53,6 +53,13 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     show_default=True,
     help="Buckets for runtime histogram",
 )
+@click.option(
+    "--prune-offline-workers-metrics",
+    required=False,
+    default=False,
+    multiple=False,
+    help="Prune metrics for the workers that go offline",
+)
 @click.option("--log-level", default="INFO", show_default=True)
 def cli(  # pylint: disable=too-many-arguments
     broker_url,
@@ -62,6 +69,7 @@ def cli(  # pylint: disable=too-many-arguments
     buckets,
     log_level,
     broker_ssl_option,
+    prune_offline_workers_metrics,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()

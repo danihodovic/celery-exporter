@@ -1,10 +1,10 @@
-# pylint: disable=protected-access,,attribute-defined-outside-init
+# pylint: disable=protected-access,attribute-defined-outside-init
 import json
 import re
 import sys
 import time
 
-from celery import Celery, worker
+from celery import Celery
 from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
@@ -103,6 +103,12 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
         )
 
+        self.pruneable_hostname_metrics = [
+                self.celery_worker_up,
+                self.worker_tasks_active,
+                self.celery_task_runtime,
+            ] + list(self.state_counters.values())
+
     def track_queue_length(self):
         # request workers to response active queues
         # we need to cache queue info in exporter in case all workers are offline
@@ -175,15 +181,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         logger.debug("Received event='{}' for hostname='{}'", event_name, hostname)
         self.celery_worker_up.labels(hostname=hostname).set(value)
 
-        if value == 0:
+        if value == 0 and self.prune_offline_workers_metrics:
             # Hostname specific metrics to prune
-            metricTypes = [
-                self.celery_worker_up,
-                self.worker_tasks_active,
-                self.celery_task_runtime,
-            ] + list(self.state_counters.values())
 
-            for metricType in metricTypes:
+            for metricType in self.pruneable_hostname_metrics:
                 if "hostname" in metricType._labelnames:
                     for labels in list(metricType._metrics.keys()):
                         labels = list(labels)
@@ -231,6 +232,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         logger.remove()
         logger.add(sys.stdout, level=click_params["log_level"])
         self.app = Celery(broker=click_params["broker_url"])
+        self.prune_offline_workers_metrics = click_params["prune_offline_workers_metrics"]
         transport_options = {}
         for transport_option in click_params["broker_transport_option"]:
             if transport_option is not None:

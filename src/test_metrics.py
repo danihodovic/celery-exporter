@@ -60,7 +60,15 @@ def test_worker_status(exporter, celery_app, hostname):
 
 @pytest.mark.celery()
 def test_offline_worker_prune_metrics(exporter, celery_app, celery_worker, hostname):
-    threading.Thread(target=exporter.run, args=(exporter.cfg,), daemon=True).start()
+
+    config = {
+        **exporter.cfg,
+        **{
+            "prune_offline_workers_metrics": True,
+        },
+    }
+
+    threading.Thread(target=exporter.run, args=(config,), daemon=True).start()
     time.sleep(5)
 
     with start_worker(celery_app, without_heartbeat=False):
@@ -89,7 +97,6 @@ def test_offline_worker_prune_metrics(exporter, celery_app, celery_worker, hostn
         )
 
     time.sleep(10)
-    print(exporter.state_counters["task-sent"].collect())
     assert (
         exporter.registry.get_sample_value(
             "celery_worker_up", labels={"hostname": hostname}
