@@ -46,7 +46,7 @@
          },
          "gridPos": {
             "h": 4,
-            "w": 6,
+            "w": 4,
             "x": 0,
             "y": 1
          },
@@ -95,8 +95,8 @@
          },
          "gridPos": {
             "h": 4,
-            "w": 6,
-            "x": 6,
+            "w": 5,
+            "x": 4,
             "y": 1
          },
          "id": 4,
@@ -144,8 +144,8 @@
          },
          "gridPos": {
             "h": 4,
-            "w": 6,
-            "x": 12,
+            "w": 5,
+            "x": 9,
             "y": 1
          },
          "id": 5,
@@ -167,7 +167,7 @@
          "pluginVersion": "7",
          "targets": [
             {
-               "expr": "sum(increase(celery_task_received_total{job=~\"celery|celery-exporter\"}[1d]))\n",
+               "expr": "sum(round(increase(celery_task_received_total{job=~\"celery|celery-exporter\"}[1d])))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "",
@@ -198,8 +198,8 @@
          },
          "gridPos": {
             "h": 4,
-            "w": 6,
-            "x": 18,
+            "w": 5,
+            "x": 14,
             "y": 1
          },
          "id": 6,
@@ -221,7 +221,7 @@
          "pluginVersion": "7",
          "targets": [
             {
-               "expr": "sum(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\"}[1d]))\n/(sum(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\"}[1d]))\n+sum(increase(celery_task_failed_total{job=~\"celery|celery-exporter\"}[1d]))\n)\n",
+               "expr": "sum(round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\"}[1d])))\n/(sum(round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\"}[1d])))\n+sum(round(increase(celery_task_failed_total{job=~\"celery|celery-exporter\"}[1d])))\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "",
@@ -233,15 +233,193 @@
          "type": "stat"
       },
       {
+         "datasource": "$datasource",
+         "fieldConfig": {
+            "defaults": {
+               "links": [ ],
+               "mappings": [ ],
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [ ]
+               },
+               "unit": "none"
+            }
+         },
+         "gridPos": {
+            "h": 4,
+            "w": 5,
+            "x": 19,
+            "y": 1
+         },
+         "id": 7,
+         "links": [ ],
+         "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "last"
+               ],
+               "fields": "",
+               "values": false
+            },
+            "textMode": "auto"
+         },
+         "pluginVersion": "7",
+         "targets": [
+            {
+               "expr": "sum(rate(celery_task_runtime_sum{job=~\"celery|celery-exporter\"}[1d])) / sum(rate(celery_task_runtime_count{job=~\"celery|celery-exporter\"}[1d]))\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "title": "Average Runtime for Tasks last 24h",
+         "transparent": false,
+         "type": "stat"
+      },
+      {
+         "columns": [ ],
+         "datasource": "$datasource",
+         "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 5
+         },
+         "id": 8,
+         "links": [ ],
+         "sort": {
+            "col": 2,
+            "desc": true
+         },
+         "span": "4",
+         "styles": [
+            {
+               "alias": "Time",
+               "dateFormat": "YYYY-MM-DD HH:mm:ss",
+               "pattern": "Time",
+               "type": "hidden"
+            },
+            {
+               "alias": "Task",
+               "pattern": "name"
+            }
+         ],
+         "targets": [
+            {
+               "expr": "round(topk(5, sum by (name) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\"}[1d]))))\n",
+               "format": "table",
+               "instant": true,
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "timeFrom": null,
+         "timeShift": null,
+         "title": "Top 5 failed tasks last 24h",
+         "type": "table"
+      },
+      {
+         "columns": [ ],
+         "datasource": "$datasource",
+         "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 5
+         },
+         "id": 9,
+         "links": [ ],
+         "sort": {
+            "col": 2,
+            "desc": true
+         },
+         "span": "4",
+         "styles": [
+            {
+               "alias": "Time",
+               "dateFormat": "YYYY-MM-DD HH:mm:ss",
+               "pattern": "Time",
+               "type": "hidden"
+            },
+            {
+               "alias": "Task",
+               "pattern": "name"
+            }
+         ],
+         "targets": [
+            {
+               "expr": "round(topk(5, sum by (exception) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\"}[1d]))))\n",
+               "format": "table",
+               "instant": true,
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "timeFrom": null,
+         "timeShift": null,
+         "title": "Top 5 exceptions last 24h",
+         "type": "table"
+      },
+      {
+         "columns": [ ],
+         "datasource": "$datasource",
+         "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 5
+         },
+         "id": 10,
+         "links": [ ],
+         "sort": {
+            "col": 2,
+            "desc": true
+         },
+         "span": "4",
+         "styles": [
+            {
+               "alias": "Time",
+               "dateFormat": "YYYY-MM-DD HH:mm:ss",
+               "pattern": "Time",
+               "type": "hidden"
+            },
+            {
+               "alias": "Task",
+               "pattern": "name"
+            }
+         ],
+         "targets": [
+            {
+               "expr": "topk(5, sum by(name) (rate(celery_task_runtime_sum{job=~\"celery|celery-exporter\"}[1d])) / sum by (name) (rate(celery_task_runtime_count{job=~\"celery|celery-exporter\"}[1d])))\n",
+               "format": "table",
+               "instant": true,
+               "intervalFactor": 2,
+               "legendFormat": "",
+               "refId": "A"
+            }
+         ],
+         "timeFrom": null,
+         "timeShift": null,
+         "title": "Top 5 task runtime last 24h",
+         "type": "table"
+      },
+      {
          "collapse": false,
          "collapsed": false,
          "gridPos": {
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 5
+            "y": 13
          },
-         "id": 7,
+         "id": 11,
          "panels": [ ],
          "repeat": null,
          "repeatIteration": null,
@@ -255,12 +433,12 @@
          "columns": [ ],
          "datasource": "$datasource",
          "gridPos": {
-            "h": 6,
+            "h": 8,
             "w": 24,
             "x": 0,
-            "y": 6
+            "y": 14
          },
-         "id": 8,
+         "id": 12,
          "links": [ ],
          "sort": {
             "col": 2,
@@ -329,7 +507,7 @@
          ],
          "targets": [
             {
-               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n/(sum by (name) (increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n+sum by (name) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n)\n",
+               "expr": "sum by (name) (round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n/(sum by (name) (round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n+sum by (name) (round(increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n)\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -337,7 +515,7 @@
                "refId": "A"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_received_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_received_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -345,7 +523,7 @@
                "refId": "B"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -353,7 +531,7 @@
                "refId": "C"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -361,7 +539,7 @@
                "refId": "D"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_rejected_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_rejected_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -369,7 +547,7 @@
                "refId": "E"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_retried_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_retried_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -377,7 +555,7 @@
                "refId": "F"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_revoked_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_revoked_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -402,15 +580,15 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 12
+            "y": 22
          },
-         "id": 9,
+         "id": 13,
          "legend": {
             "alignAsTable": true,
             "avg": true,
-            "current": false,
+            "current": true,
             "hideZero": true,
-            "max": true,
+            "max": false,
             "min": false,
             "rightSide": true,
             "show": true,
@@ -433,42 +611,42 @@
          "steppedLine": false,
          "targets": [
             {
-               "expr": "sum by (name) (increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m])))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Succeeded - {{ name }}",
                "refId": "A"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m])))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Failed - {{ name }}",
                "refId": "B"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_received_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_received_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m])))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Received - {{ name }}",
                "refId": "C"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_retried_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_retried_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m])))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Retried - {{ name }}",
                "refId": "D"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_rejected_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_rejected_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m])))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Rejected - {{ name }}",
                "refId": "E"
             },
             {
-               "expr": "sum by (name) (increase(celery_task_revoked_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (round(increase(celery_task_revoked_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m])))\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Revoked - {{ name }}",
@@ -479,6 +657,92 @@
          "timeFrom": null,
          "timeShift": null,
          "title": "Tasks completed with 10m intervals",
+         "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+         },
+         "type": "graph",
+         "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": [ ]
+         },
+         "yaxes": [
+            {
+               "format": "short",
+               "label": null,
+               "logBase": 1,
+               "max": null,
+               "min": null,
+               "show": true
+            },
+            {
+               "format": "short",
+               "label": null,
+               "logBase": 1,
+               "max": null,
+               "min": null,
+               "show": true
+            }
+         ]
+      },
+      {
+         "aliasColors": { },
+         "bars": false,
+         "dashLength": 10,
+         "dashes": false,
+         "datasource": "$datasource",
+         "fill": 1,
+         "fillGradient": 0,
+         "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 32
+         },
+         "id": 14,
+         "legend": {
+            "alignAsTable": true,
+            "avg": true,
+            "current": true,
+            "hideZero": true,
+            "max": false,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "sideWidth": null,
+            "total": false,
+            "values": true
+         },
+         "lines": true,
+         "linewidth": 1,
+         "links": [ ],
+         "nullPointMode": "null",
+         "percentage": false,
+         "pointradius": 5,
+         "points": false,
+         "renderer": "flot",
+         "repeat": null,
+         "seriesOverrides": [ ],
+         "spaceLength": 10,
+         "stack": false,
+         "steppedLine": false,
+         "targets": [
+            {
+               "expr": "sum by (name) (rate(celery_task_runtime_sum{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m])) / sum by (name) (rate(celery_task_runtime_count{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "{{ name }}",
+               "refId": "A"
+            }
+         ],
+         "thresholds": [ ],
+         "timeFrom": null,
+         "timeShift": null,
+         "title": "Tasks Runtime with 10m intervals",
          "tooltip": {
             "shared": true,
             "sort": 0,
@@ -541,7 +805,7 @@
             },
             "datasource": "$datasource",
             "hide": 0,
-            "includeAll": false,
+            "includeAll": true,
             "label": null,
             "multi": true,
             "name": "task",
