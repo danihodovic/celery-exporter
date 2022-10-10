@@ -50,7 +50,7 @@ local prometheus = grafana.prometheus;
     local taskRejectedInterval = std.strReplace(taskFailedInterval, 'failed', 'rejected'),
 
     local taskRuntimeInterval = |||
-      sum by (name) (rate(celery_task_runtime_sum{%(celerySelector)s, name=~"$task"}[10m])) / sum by (name) (rate(celery_task_runtime_count{%(celerySelector)s, name=~"$task"}[10m]))
+      sum by (name) (rate(celery_task_runtime_sum{%(celerySelector)s, name=~"$task"}[%(taskInterval)s])) / sum by (name) (rate(celery_task_runtime_count{%(celerySelector)s, name=~"$task"}[%(taskInterval)s]))
     ||| % $._config,
 
     local taskFailed1d = |||
@@ -74,7 +74,7 @@ local prometheus = grafana.prometheus;
     ||| % $._config,
 
     local topTaskRuntime = |||
-      topk(5, sum by(name) (rate(celery_task_runtime_sum{%(celerySelector)s}[1h])) / sum by (name) (rate(celery_task_runtime_count{%(celerySelector)s}[1d])))
+      topk(5, sum by(name) (rate(celery_task_runtime_sum{%(celerySelector)s}[1d])) / sum by (name) (rate(celery_task_runtime_count{%(celerySelector)s}[1d])))
     ||| % $._config,
 
     local summaryRow =
