@@ -50,7 +50,7 @@ local prometheus = grafana.prometheus;
     local taskRejectedInterval = std.strReplace(taskFailedInterval, 'failed', 'rejected'),
 
     local taskRuntimeInterval = |||
-      sum by (name) (rate(celery_task_runtime_sum{%(celerySelector)s, name=~"$task"}[%(taskInterval)s])) / sum by (name) (rate(celery_task_runtime_count{%(celerySelector)s, name=~"$task"}[%(taskInterval)s]))
+      sum by (name) (rate(celery_task_runtime_sum{%(celerySelector)s, name=~"$task"}[%(taskInterval)s])) / sum by (name) (rate(celery_task_runtime_count{%(celerySelector)s, name=~"$task"}[%(taskInterval)s])) > 0
     ||| % $._config,
 
     local taskFailed1d = |||
@@ -62,19 +62,19 @@ local prometheus = grafana.prometheus;
       %s/(%s+%s)
     ||| % [taskSucceeded1d, taskSucceeded1d, taskFailed1d],
     local taskRuntime1d = |||
-      sum(rate(celery_task_runtime_sum{%(celerySelector)s}[1d])) / sum(rate(celery_task_runtime_count{%(celerySelector)s}[1d]))
+      sum(rate(celery_task_runtime_sum{%(celerySelector)s}[1d])) / sum(rate(celery_task_runtime_count{%(celerySelector)s}[1d])) > 0
     ||| % $._config,
 
     local topFailedTasks = |||
-      round(topk(5, sum by (name) (increase(celery_task_failed_total{%(celerySelector)s}[1d]))))
+      round(topk(5, sum by (name) (increase(celery_task_failed_total{%(celerySelector)s}[1d]) > 0 )))
     ||| % $._config,
 
     local topTaskExceptions = |||
-      round(topk(5, sum by (exception) (increase(celery_task_failed_total{%(celerySelector)s}[1d]))))
+      round(topk(5, sum by (exception) (increase(celery_task_failed_total{%(celerySelector)s}[1d]) > 0 )))
     ||| % $._config,
 
     local topTaskRuntime = |||
-      topk(5, sum by(name) (rate(celery_task_runtime_sum{%(celerySelector)s}[1d])) / sum by (name) (rate(celery_task_runtime_count{%(celerySelector)s}[1d])))
+      topk(5, (sum by(name) (rate(celery_task_runtime_sum{%(celerySelector)s}[1d])) / sum by (name) (rate(celery_task_runtime_count{%(celerySelector)s}[1d])) > 0 ))
     ||| % $._config,
 
     local summaryRow =
@@ -353,7 +353,7 @@ local prometheus = grafana.prometheus;
           taskRuntimeInterval,
           legendFormat='{{ name }}',
         )),
-        gridPos={ h: 10, w: 24, x: 0, y: 32 },
+        gridPos={ h: 8, w: 24, x: 0, y: 32 },
       ) +
       { templating+: { list+: [prometheusTemplate, taskTemplate] } },
   },

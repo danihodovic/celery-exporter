@@ -270,7 +270,7 @@
          "pluginVersion": "7",
          "targets": [
             {
-               "expr": "sum(rate(celery_task_runtime_sum{job=~\"celery|celery-exporter\"}[1d])) / sum(rate(celery_task_runtime_count{job=~\"celery|celery-exporter\"}[1d]))\n",
+               "expr": "sum(rate(celery_task_runtime_sum{job=~\"celery|celery-exporter\"}[1d])) / sum(rate(celery_task_runtime_count{job=~\"celery|celery-exporter\"}[1d])) > 0\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "",
@@ -311,7 +311,7 @@
          ],
          "targets": [
             {
-               "expr": "round(topk(5, sum by (name) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\"}[1d]))))\n",
+               "expr": "round(topk(5, sum by (name) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\"}[1d]) > 0 )))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -354,7 +354,7 @@
          ],
          "targets": [
             {
-               "expr": "round(topk(5, sum by (exception) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\"}[1d]))))\n",
+               "expr": "round(topk(5, sum by (exception) (increase(celery_task_failed_total{job=~\"celery|celery-exporter\"}[1d]) > 0 )))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -397,7 +397,7 @@
          ],
          "targets": [
             {
-               "expr": "topk(5, sum by(name) (rate(celery_task_runtime_sum{job=~\"celery|celery-exporter\"}[1d])) / sum by (name) (rate(celery_task_runtime_count{job=~\"celery|celery-exporter\"}[1d])))\n",
+               "expr": "topk(5, (sum by(name) (rate(celery_task_runtime_sum{job=~\"celery|celery-exporter\"}[1d])) / sum by (name) (rate(celery_task_runtime_count{job=~\"celery|celery-exporter\"}[1d])) > 0 ))\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -698,7 +698,7 @@
          "fill": 1,
          "fillGradient": 0,
          "gridPos": {
-            "h": 10,
+            "h": 8,
             "w": 24,
             "x": 0,
             "y": 32
@@ -732,7 +732,7 @@
          "steppedLine": false,
          "targets": [
             {
-               "expr": "sum by (name) (rate(celery_task_runtime_sum{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m])) / sum by (name) (rate(celery_task_runtime_count{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m]))\n",
+               "expr": "sum by (name) (rate(celery_task_runtime_sum{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m])) / sum by (name) (rate(celery_task_runtime_count{job=~\"celery|celery-exporter\", name=~\"$task\"}[10m])) > 0\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "{{ name }}",
