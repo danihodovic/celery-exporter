@@ -152,7 +152,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
 
             if counter_name == "task-failed":
                 if counter_name == event["type"]:
-                    _labels["exception"] = get_exception_class(task.exception)
+                    _labels["exception"] = get_exception_class_name(task.exception)
                 else:
                     _labels["exception"] = ""
 
@@ -266,10 +266,11 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
 exception_pattern = re.compile(r"^(\w+)\(")
 
 
-def get_exception_class(exception_name: str):
+def get_exception_class_name(exception_name: str):
     m = exception_pattern.match(exception_name)
-    assert m
-    return m.group(1)
+    if m:
+        return m.group(1)
+    return "UnknownException"
 
 
 def get_hostname(name: str) -> str:
