@@ -29,7 +29,7 @@ local prometheus = grafana.prometheus;
       ),
 
     local taskFailed = |||
-      sum by (name) (round(increase(celery_task_failed_total{%(celerySelector)s, name=~"$task"}[$__range])))
+      sum by (name) (round(increase(celery_task_failed_total{%(celerySelector)s, name=~"$task"}[$__range]))) > 0
     ||| % $._config,
     local taskSucceeded = std.strReplace(taskFailed, 'failed', 'succeeded'),
     local taskReceived = std.strReplace(taskFailed, 'failed', 'received'),
@@ -37,7 +37,7 @@ local prometheus = grafana.prometheus;
     local taskRevoked = std.strReplace(taskFailed, 'failed', 'revoked'),
     local taskRejected = std.strReplace(taskFailed, 'failed', 'rejected'),
     local taskSuccessRate = |||
-      %s/(%s+%s)
+      %s/(%s+%s) > 0
     ||| % [taskSucceeded, taskSucceeded, taskFailed],
 
     local taskFailedInterval = |||
