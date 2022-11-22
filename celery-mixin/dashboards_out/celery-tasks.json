@@ -507,7 +507,7 @@
          ],
          "targets": [
             {
-               "expr": "sum by (name) (round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n/(sum by (name) (round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n+sum by (name) (round(increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n)\n",
+               "expr": "sum by (name) (round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n/(sum by (name) (round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n+sum by (name) (round(increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n) > -1\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -515,7 +515,7 @@
                "refId": "A"
             },
             {
-               "expr": "sum by (name) (round(increase(celery_task_received_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
+               "expr": "sum by (name) (round(increase(celery_task_received_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -523,7 +523,7 @@
                "refId": "B"
             },
             {
-               "expr": "sum by (name) (round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
+               "expr": "sum by (name) (round(increase(celery_task_succeeded_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -531,7 +531,7 @@
                "refId": "C"
             },
             {
-               "expr": "sum by (name) (round(increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
+               "expr": "sum by (name) (round(increase(celery_task_failed_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -539,7 +539,7 @@
                "refId": "D"
             },
             {
-               "expr": "sum by (name) (round(increase(celery_task_rejected_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
+               "expr": "sum by (name) (round(increase(celery_task_rejected_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -547,7 +547,7 @@
                "refId": "E"
             },
             {
-               "expr": "sum by (name) (round(increase(celery_task_retried_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
+               "expr": "sum by (name) (round(increase(celery_task_retried_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -555,7 +555,7 @@
                "refId": "F"
             },
             {
-               "expr": "sum by (name) (round(increase(celery_task_revoked_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range])))\n",
+               "expr": "sum by (name) (round(increase(celery_task_revoked_total{job=~\"celery|celery-exporter\", name=~\"$task\"}[$__range]))) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
