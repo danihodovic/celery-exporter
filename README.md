@@ -1,6 +1,8 @@
 # celery-exporter ![Build Status](https://github.com/danihodovic/celery-exporter/actions/workflows/.github/workflows/ci.yml/badge.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-![dashboard](./images/grafana_dashboard.png)
+![celery-tasks-overview](images/celery-tasks-overview.png)
+
+![celery-tasks-by-task](images/celery-tasks-by-task.png)
 
 ##### Table of Contents
 
