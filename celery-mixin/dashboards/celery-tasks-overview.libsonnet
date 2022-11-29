@@ -554,6 +554,15 @@ local paginateTable = {
         tasksRuntimeGraphPanel,
         gridPos={ h: 8, w: 24, x: 0, y: 28 },
       ) +
-      { templating+: { list+: [prometheusTemplate] } },
+      { templating+: { list+: [prometheusTemplate] } } +
+      if $._config.annotation.enabled then
+        {
+          annotations: {
+            list: [
+              $._config.customAnnotation,
+            ],
+          },
+        }
+      else {},
   },
 }

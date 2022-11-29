@@ -341,6 +341,15 @@ local paginateTable = {
         gridPos={ h: 6, w: 24, x: 0, y: 19 }
       )
       +
-      { templating+: { list+: [prometheusTemplate, taskTemplate] } },
+      { templating+: { list+: [prometheusTemplate, taskTemplate] } } +
+      if $._config.annotation.enabled then
+        {
+          annotations: {
+            list: [
+              $._config.customAnnotation,
+            ],
+          },
+        }
+      else {},
   },
 }
