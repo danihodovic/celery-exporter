@@ -1,7 +1,5 @@
 # celery-exporter ![Build Status](https://github.com/danihodovic/celery-exporter/actions/workflows/.github/workflows/ci.yml/badge.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-![celery-tasks-overview](images/celery-tasks-overview.png)
-
 ![celery-tasks-by-task](images/celery-tasks-by-task.png)
 
 ##### Table of Contents
@@ -45,8 +43,11 @@ default we alert if:
 Tweak these to suit your use-case.
 
 The Grafana dashboard (seen in the image above) is
-[here](https://grafana.com/grafana/dashboards/14015). You can import it
+[here](https://grafana.com/grafana/dashboards/17508). You can import it
 directly into your Grafana instance.
+
+There's another Grafana dashboards that shows an overview of Celery tasks. An image can be found in `./images/celery-tasks-overview.png`. It can also be found
+[here](https://grafana.com/grafana/dashboards/17509).
 
 ## Usage
 
