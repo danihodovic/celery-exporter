@@ -2,7 +2,9 @@
   _config+:: {
     // Selectors are inserted between {} in Prometheus queries.
     celerySelector: 'job=~"celery|celery-exporter"',
+
     celeryTasksOverviewUid: 'celery-tasks-overview-32s3',
+    celeryTasksByTaskUid: 'celery-tasks-by-task-32s3',
 
     tags: ['celery', 'celery-mixin'],
 

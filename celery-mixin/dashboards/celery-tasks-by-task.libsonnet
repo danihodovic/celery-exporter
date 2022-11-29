@@ -316,7 +316,8 @@ local paginateTable = {
       grafana.dashboard.new(
         'Celery / Tasks / By Task',
         description='A dashboard that monitors Celery. It is created using the Celery-mixin for the the (Celery-exporter)[https://github.com/danihodovic/celery-exporter]',
-        uid='celery-exporter',
+        uid=$._config.celeryTasksByTaskUid,
+        tags=$._config.tags,
         editable=true,
         time_from='now-2d',
         time_to='now',
