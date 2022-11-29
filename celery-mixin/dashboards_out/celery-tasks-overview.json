@@ -209,6 +209,7 @@
          "datasource": "$datasource",
          "fieldConfig": {
             "defaults": {
+               "decimals": "3",
                "links": [ ],
                "mappings": [ ],
                "thresholds": {
@@ -512,6 +513,7 @@
             },
             {
                "alias": "Success Rate",
+               "decimals": "3",
                "pattern": "Value #A",
                "type": "number",
                "unit": "percentunit"

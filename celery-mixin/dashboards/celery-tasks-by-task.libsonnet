@@ -126,6 +126,7 @@ local paginateTable = {
             pattern: 'Value #A',
             type: 'number',
             unit: 'percentunit',
+            decimals: '3',
           },
           {
             alias: 'Suceeded',

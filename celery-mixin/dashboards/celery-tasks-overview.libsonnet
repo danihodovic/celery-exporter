@@ -91,6 +91,7 @@ local paginateTable = {
         'Tasks Success Rate [1w]',
         datasource='$datasource',
         unit='percentunit',
+        decimals='3',
         reducerFunction='last',
       )
       .addTarget(prometheus.target(taskSuccessRate1wQuery))
@@ -308,6 +309,7 @@ local paginateTable = {
             pattern: 'Value #A',
             type: 'number',
             unit: 'percentunit',
+            decimals: '3',
           },
           {
             alias: 'Suceeded',
