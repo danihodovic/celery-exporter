@@ -377,7 +377,7 @@ local paginateTable = {
           increase(
             celery_task_failed_total{
               %(celerySelector)s,
-            }[%(taskInterval)s]
+            }[$__rate_interval]
           )
         )
       )
