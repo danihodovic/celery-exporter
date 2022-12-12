@@ -199,6 +199,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         logger.remove()
         logger.add(sys.stdout, level=click_params["log_level"])
         self.app = Celery(broker=click_params["broker_url"])
+        if click_params["accept_content"] is not None:
+            accept_content_list = click_params["accept_content"].split(",")
+            logger.info("Setting celery accept_content {}", accept_content_list)
+            self.app.config_from_object(dict(accept_content=accept_content_list))
         transport_options = {}
         for transport_option in click_params["broker_transport_option"]:
             if transport_option is not None:
