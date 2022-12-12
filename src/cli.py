@@ -35,6 +35,12 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     help="Celery broker ssl option, e.g certfile=/var/ssl/amqp-server-cert.pem",
 )
 @click.option(
+    "--accept-content",
+    required=False,
+    default=None,
+    help="Celery accept content options, e.g 'json,pickle'",
+)
+@click.option(
     "--retry-interval",
     required=False,
     default=0,
@@ -57,6 +63,7 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
 def cli(  # pylint: disable=too-many-arguments
     broker_url,
     broker_transport_option,
+    accept_content,
     retry_interval,
     port,
     buckets,
