@@ -48,6 +48,7 @@ def exporter(find_free_port, celery_config):
         "broker_ssl_option": [],
         "retry_interval": 5,
         "log_level": "DEBUG",
+        "accept_content": None,
     }
     exporter = Exporter()
     setattr(exporter, "cfg", cfg)
