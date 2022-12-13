@@ -22,7 +22,7 @@ local paginateTable = {
       template.new(
         name='task',
         datasource='$datasource',
-        query='label_values(celery_task_sent_total, name)',
+        query='label_values(celery_task_sent_total{name!~"%(celeryIgnoredTasks)"}, name)' % $._config,
         hide='',
         refresh=1,
         multi=true,
@@ -220,8 +220,6 @@ local paginateTable = {
         legend_hideZero=true,
         legend_sort='avg',
         legend_sortDesc=true,
-        stack=true,
-        fill=10,
         nullPointMode='null as zero'
       )
       .addTarget(prometheus.target(
