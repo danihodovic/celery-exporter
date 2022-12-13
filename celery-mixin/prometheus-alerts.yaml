@@ -1,12 +1,30 @@
 "groups":
 - "name": "celery"
   "rules":
-  - "alert": "CeleryTaskFailed"
+  - "alert": "CeleryTaskHighFailRate"
     "annotations":
-      "description": "The task {{ $labels.name }} failed to complete."
-      "summary": "A Celery task has failed to complete."
+      "dashboard_url": "https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?&var-task={{ $labels.name }}"
+      "description": "More than 5% tasks failed for the task {{ $labels.namespace }}/{{ $labels.name }} the past 10m."
+      "summary": "Celery high task fail rate."
     "expr": |
-      increase(celery_task_failed_total{job="celery"}[10m]) > 1
+      sum(
+        increase(
+          celery_task_failed_total{
+            job=~"celery|celery-exporter",
+            name!~"None"
+          }[10m]
+        )
+      )  by (job, namespace, name)
+      /
+      sum(
+        increase(
+          celery_task_succeeded_total{
+            job=~"celery|celery-exporter",
+            name!~"None"
+          }[10m]
+        )
+      )  by (job, namespace, name)
+      * 100 > 5
     "labels":
       "severity": "warning"
   - "alert": "CeleryWorkerDown"
@@ -14,6 +32,7 @@
       "description": "The Celery worker {{ $labels.hostname }} is offline."
       "summary": "A Celery worker is offline."
     "expr": |
-      celery_worker_up{job="celery"} == 0
+      celery_worker_up{job=~"celery|celery-exporter"} == 0
+    "for": "15m"
     "labels":
       "severity": "warning"

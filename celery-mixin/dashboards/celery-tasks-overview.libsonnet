@@ -402,8 +402,6 @@ local paginateTable = {
         legend_hideZero=true,
         legend_sort='avg',
         legend_sortDesc=true,
-        stack=true,
-        fill=10,
         nullPointMode='null as zero'
       )
       .addTarget(prometheus.target(

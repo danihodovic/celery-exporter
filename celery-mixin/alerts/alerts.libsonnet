@@ -3,25 +3,44 @@
     groups+: [
       {
         name: 'celery',
-        rules: [
+        rules: std.prune([
           {
-            alert: 'CeleryTaskFailed',
+            alert: 'CeleryTaskHighFailRate',
             expr: |||
-              increase(celery_task_failed_total{%(celerySelector)s}[%(taskInterval)s]) > 1
+              sum(
+                increase(
+                  celery_task_failed_total{
+                    %(celerySelector)s,
+                    name!~"%(celeryIgnoredTasks)s"
+                  }[%(celeryTaskFailedInterval)s]
+                )
+              )  by (job, namespace, name)
+              /
+              sum(
+                increase(
+                  celery_task_succeeded_total{
+                    %(celerySelector)s,
+                    name!~"%(celeryIgnoredTasks)s"
+                  }[%(celeryTaskFailedInterval)s]
+                )
+              )  by (job, namespace, name)
+              * 100 > %(celeryTaskFailedThreshold)s
             ||| % $._config,
+            annotations: {
+              summary: 'Celery high task fail rate.',
+              description: 'More than %(celeryTaskFailedThreshold)s%% tasks failed for the task {{ $labels.namespace }}/{{ $labels.name }} the past %(celeryTaskFailedInterval)s.' % $._config,
+              dashboard_url: $._config.celeryTasksByTaskUrl + '?&var-task={{ $labels.name }}',
+            },
             labels: {
               severity: 'warning',
             },
-            annotations: {
-              summary: 'A Celery task has failed to complete.',
-              description: 'The task {{ $labels.name }} failed to complete.',
-            },
           },
-          {
+          if $._config.celeryWorkerDownAlertEnabled then {
             alert: 'CeleryWorkerDown',
             expr: |||
               celery_worker_up{%(celerySelector)s} == 0
             ||| % $._config,
+            'for': '15m',
             labels: {
               severity: 'warning',
             },
@@ -30,7 +49,7 @@
               description: 'The Celery worker {{ $labels.hostname }} is offline.',
             },
           },
-        ],
+        ]),
       },
     ],
   },
