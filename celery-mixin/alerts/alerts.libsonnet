@@ -17,7 +17,7 @@
               )  by (job, namespace, name)
               /
               sum(
-                rate(
+                increase(
                   celery_task_succeeded_total{
                     %(celerySelector)s,
                     name!~"%(celeryIgnoredTasks)s"

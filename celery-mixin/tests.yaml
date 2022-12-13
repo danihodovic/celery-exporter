@@ -1,3 +1,4 @@
+# yamllint disable rule:line-length
 ---
 rule_files:
   - prometheus-alerts.yaml
@@ -7,10 +8,10 @@ tests:
     input_series:
       - series: 'celery_task_failed_total{job="celery-exporter", name="test-task", namespace="staging"}'
         values: '1+10x10'
-      - series: 'celery_task_suceeded_total{job="celery-exporter", name="test-task", namespace="staging"}'
-        values: '1+1x10'
+      - series: 'celery_task_succeeded_total{job="celery-exporter", name="test-task", namespace="staging"}'
+        values: '1+10x10'
     alert_rule_test:
-      - eval_time: 20m
+      - eval_time: 15m
         alertname: CeleryTaskHighFailRate
         exp_alerts:
           - exp_labels:
@@ -25,11 +26,11 @@ tests:
   - interval: 1m
     input_series:
       - series: 'celery_worker_up{job="celery", hostname="down"}'
-        values: '1 0'
+        values: '0+0x20'
       - series: 'celery_worker_up{job="celery", hostname="up"}'
-        values: '1 1'
+        values: '1+0x20'
     alert_rule_test:
-      - eval_time: 5m
+      - eval_time: 20m
         alertname: CeleryWorkerDown
         exp_alerts:
           - exp_labels:

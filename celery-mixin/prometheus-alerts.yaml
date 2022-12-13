@@ -17,13 +17,22 @@
       )  by (job, namespace, name)
       /
       sum(
-        rate(
-          celery_task_suceeded_total{
+        increase(
+          celery_task_succeeded_total{
             job=~"celery|celery-exporter",
             name!~"None"
           }[10m]
         )
       )  by (job, namespace, name)
       * 100 > 5
+    "labels":
+      "severity": "warning"
+  - "alert": "CeleryWorkerDown"
+    "annotations":
+      "description": "The Celery worker {{ $labels.hostname }} is offline."
+      "summary": "A Celery worker is offline."
+    "expr": |
+      celery_worker_up{job=~"celery|celery-exporter"} == 0
+    "for": "15m"
     "labels":
       "severity": "warning"

@@ -19,7 +19,7 @@ local annotation = grafana.annotation;
     tags: ['celery', 'celery-mixin'],
 
     // If you have autoscaling workers then you maybe do not want to alert on workers that are down.
-    celeryWorkerDownAlertEnabled: false,
+    celeryWorkerDownAlertEnabled: true,
     // The task interval is used as the interval for Prometheus alerts of failed tasks.
     celeryTaskFailedInterval: '10m',
     celeryTaskFailedThreshold: '5',  // percent
