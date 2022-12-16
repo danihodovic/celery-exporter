@@ -22,7 +22,7 @@ local paginateTable = {
       template.new(
         name='task',
         datasource='$datasource',
-        query='label_values(celery_task_sent_total{name!~"%(celeryIgnoredTasks)"}, name)' % $._config,
+        query='label_values(celery_task_sent_total{name!~"%(celeryIgnoredTasks)s"}, name)' % $._config,
         hide='',
         refresh=1,
         multi=true,
