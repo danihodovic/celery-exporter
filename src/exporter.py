@@ -10,6 +10,7 @@ from celery.utils import nodesplit  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
+from redis.client import Redis
 
 from .http_server import start_http_server
 
@@ -120,22 +121,26 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
 
         with self.app.connection() as connection:
             for queue in self.queue_cache:
-                try:
-                    ret = connection.default_channel.queue_declare(
-                        queue=queue, passive=True
+                if isinstance(connection.default_channel.client, Redis):
+                    length = connection.default_channel.client.llen(queue)
+                    self.celery_queue_length.labels(queue_name=queue).set(length)
+                else:
+                    try:
+                        ret = connection.default_channel.queue_declare(
+                            queue=queue, passive=True
+                        )
+                        length, consumer_count = ret.message_count, ret.consumer_count
+                    except ChannelError as ex:
+                        if "NOT_FOUND" in ex.message:
+                            logger.debug(f"Queue '{queue}' not found")
+                            length = 0
+                            consumer_count = 0
+                        else:
+                            raise ex
+                    self.celery_queue_length.labels(queue_name=queue).set(length)
+                    self.celery_active_consumer_count.labels(queue_name=queue).set(
+                        consumer_count
                     )
-                    length, consumer_count = ret.message_count, ret.consumer_count
-                except ChannelError as ex:
-                    if "NOT_FOUND" in ex.message:
-                        logger.debug(f"Queue '{queue}' not found")
-                        length = 0
-                        consumer_count = 0
-                    else:
-                        raise ex
-                self.celery_queue_length.labels(queue_name=queue).set(length)
-                self.celery_active_consumer_count.labels(queue_name=queue).set(
-                    consumer_count
-                )
 
     def track_task_event(self, event):
         self.state.event(event)
