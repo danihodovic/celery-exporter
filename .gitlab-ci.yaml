@@ -1,0 +1,52 @@
+# Include files from gitlab-ci-template repo
+include:
+  - project: 'devops/gitlab-ci-template'
+    file: '.script-template.yaml'
+
+image: "asia.gcr.io/inspectorio-ant/python:3.9-without-nginx"
+
+variables:
+    WORKON_HOME: "${CI_PROJECT_DIR}/cache/poetry"
+
+cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+        - cache/poetry
+
+stages:
+  - security-checks
+  - deploy
+
+security-git-secrets-checks:
+  stage: security-checks
+  script:
+    - security_git_secrets_checks "aws"
+  only:
+    - tags
+    - merge_requests
+
+dockerize-staging:
+  extends: .dockerize_staging
+
+dockerize-preprod:
+  extends: .dockerize_preprod
+
+dockerize-prod:
+  extends: .dockerize_prod
+
+
+deploy-staging:
+  extends: .deploy_staging
+  environment:
+    name: gcp-stg
+
+deploy-preprod:
+  extends: .deploy_preprod
+  environment:
+    name: gcp-pre
+
+deploy-prod:
+  extends: .deploy_prod
+  environment:
+    name: gcp-prd
+

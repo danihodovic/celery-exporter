@@ -9,7 +9,12 @@ from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
-from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
+from prometheus_client import (
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    Histogram,
+)
 
 from .http_server import start_http_server
 
@@ -118,24 +123,38 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             for queue_info in info_list:
                 self.queue_cache.add(queue_info["name"])
 
+        # Check celery queues based on worker separator & priority steps
+        separator = '\x06\x16'
+        if 'sep' in self.app.conf["broker_transport_options"]:
+            separator = self.app.conf["broker_transport_options"]['sep']
+        if 'priority_steps' in self.app.conf["broker_transport_options"]:
+            queue_cache = self.queue_cache.copy()
+            for queue in queue_cache:
+                for step in self.app.conf['broker_transport_options']['priority_steps']:
+                    self.queue_cache.add(f'{queue}{separator}{str(step)}')
+
         with self.app.connection() as connection:
             for queue in self.queue_cache:
-                try:
-                    ret = connection.default_channel.queue_declare(
-                        queue=queue, passive=True
+                if type(connection.default_channel.client).__name__ == 'Redis':
+                    length = connection.default_channel.client.llen(queue)
+                    self.celery_queue_length.labels(queue_name=queue).set(length)
+                else:
+                    try:
+                        ret = connection.default_channel.queue_declare(
+                            queue=queue, passive=True
+                        )
+                        length, consumer_count = ret.message_count, ret.consumer_count
+                    except ChannelError as ex:
+                        if "NOT_FOUND" in ex.message:
+                            logger.debug(f"Queue '{queue}' not found")
+                            length = 0
+                            consumer_count = 0
+                        else:
+                            raise ex
+                    self.celery_queue_length.labels(queue_name=queue).set(length)
+                    self.celery_active_consumer_count.labels(queue_name=queue).set(
+                        consumer_count
                     )
-                    length, consumer_count = ret.message_count, ret.consumer_count
-                except ChannelError as ex:
-                    if "NOT_FOUND" in ex.message:
-                        logger.debug(f"Queue '{queue}' not found")
-                        length = 0
-                        consumer_count = 0
-                    else:
-                        raise ex
-                self.celery_queue_length.labels(queue_name=queue).set(length)
-                self.celery_active_consumer_count.labels(queue_name=queue).set(
-                    consumer_count
-                )
 
     def track_task_event(self, event):
         self.state.event(event)
