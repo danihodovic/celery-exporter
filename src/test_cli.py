@@ -1,31 +1,14 @@
-import threading
 import time
 
 import pytest
 import requests
 from celery.contrib.testing.worker import start_worker  # type: ignore
-from click.testing import CliRunner
 from requests.exceptions import HTTPError
-
-from .cli import cli
 
 
 @pytest.mark.celery()
-def test_integration(celery_app, hostname):
-    def run():
-        CliRunner().invoke(
-            cli,
-            [
-                "--broker-url=memory://localhost",
-                "--port=23000",
-                "--broker-transport-option",
-                "visibility_timeout=7200",
-                "--retry-interval=5",
-            ],
-        )
-
-    threading.Thread(target=run, daemon=True).start()
-    time.sleep(2)
+def test_integration(broker, celery_app, threaded_exporter, hostname):
+    exporter_url = f"http://localhost:{threaded_exporter.cfg['port']}/metrics"
 
     @celery_app.task
     def succeed():
@@ -33,21 +16,26 @@ def test_integration(celery_app, hostname):
 
     @celery_app.task
     def fail():
-        raise HTTPError("Big, big error")
+        raise HTTPError("Intentional error")
 
     # start worker first so the exporter can fetch and cache queue information
     with start_worker(celery_app, without_heartbeat=False):
-        res = requests.get("http://localhost:23000/metrics")
+        time.sleep(5)
+        res = requests.get(exporter_url)
         assert res.status_code == 200
-        assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text
-        assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
+        assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text, res.text
+        # TODO: This metric exists for RabbitMQ. Fix it once we've fixed the other brokers
+        if broker != "rabbitmq":
+            assert (
+                'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
+            ), res.text
 
     succeed.apply_async()
     succeed.apply_async()
     fail.apply_async()
 
     # assert celery_queue_length when message in broker but no worker start
-    res = requests.get("http://localhost:23000/metrics")
+    res = requests.get(exporter_url)
     assert res.status_code == 200
     assert 'celery_queue_length{queue_name="celery"} 3.0' in res.text
     assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
@@ -56,7 +44,7 @@ def test_integration(celery_app, hostname):
     with start_worker(celery_app, without_heartbeat=False):
         time.sleep(2)
 
-    res = requests.get("http://localhost:23000/metrics")
+    res = requests.get(exporter_url)
     assert res.status_code == 200
     # pylint: disable=line-too-long
     assert (
@@ -96,4 +84,7 @@ def test_integration(celery_app, hostname):
         in res.text
     )
     assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text
-    assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
+
+    # TODO: This metric exists for RabbitMQ. Fix it once we've fixed the other brokers
+    if broker != "rabbitmq":
+        assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text

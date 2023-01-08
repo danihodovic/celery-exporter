@@ -178,5 +178,8 @@ pre-commit install
 
 # Test everything works fine
 pre-commit run --all-files
-pytest
+docker-compose up -d
+pytest --broker=memory      --log-level=DEBUG
+pytest --broker=redis       --log-level=DEBUG
+pytest --broker=rabbitmq    --log-level=DEBUG
 ```

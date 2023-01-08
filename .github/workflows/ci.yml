@@ -56,6 +56,16 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:6
+        ports: ['6379:6379']
+      rabbitmq:
+        image: rabbitmq:3
+        ports: ['5672:5672']
+    strategy:
+      matrix:
+        broker: [memory, redis, rabbitmq]
     steps:
       - uses: actions/checkout@v3
 
@@ -87,4 +97,4 @@ jobs:
       - name: Test
         run: |
           source .venv/bin/activate
-          pytest --ignore .poetry --cov
+          pytest --broker=${{ matrix.broker }} --ignore .poetry --cov
