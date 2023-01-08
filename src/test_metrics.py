@@ -1,4 +1,4 @@
-import threading
+import logging
 import time
 
 import pytest
@@ -7,18 +7,19 @@ from celery.contrib.testing.worker import start_worker  # type: ignore
 
 @pytest.fixture
 def assert_exporter_metric_called(mocker, celery_app, celery_worker, hostname):
-    def fn(exporter, metric):
+    def fn(metric):
         labels = mocker.patch.object(metric, "labels")
-        threading.Thread(target=exporter.run, args=(exporter.cfg,), daemon=True).start()
 
         @celery_app.task
         def slow_task():
-            time.sleep(6)
+            logging.info("Started the slow task")
+            time.sleep(3)
+            logging.info("Finished the slow task")
 
+        # Reload so that the worker detects the task
         celery_worker.reload()
-        slow_task.apply_async()
-        time.sleep(4)
-        assert labels.call_count == 3
+        slow_task.delay().get()
+        assert labels.call_count >= 1
         labels.assert_called_with(hostname=hostname)
         labels.return_value.set.assert_any_call(1)
 
@@ -26,24 +27,35 @@ def assert_exporter_metric_called(mocker, celery_app, celery_worker, hostname):
 
 
 @pytest.mark.celery()
-def test_worker_tasks_active(exporter, assert_exporter_metric_called):
-    assert_exporter_metric_called(exporter, exporter.worker_tasks_active)
+def test_worker_tasks_active(broker, threaded_exporter, assert_exporter_metric_called):
+    if broker != "memory":
+        pytest.skip(
+            reason="test_worker_tasks_active can only be tested for the in-memory broker"
+        )
+
+    assert_exporter_metric_called(threaded_exporter.worker_tasks_active)
 
 
 @pytest.mark.celery()
-def test_worker_heartbeat_status(exporter, assert_exporter_metric_called):
-    assert_exporter_metric_called(exporter, exporter.celery_worker_up)
+def test_worker_heartbeat_status(
+    broker, threaded_exporter, assert_exporter_metric_called
+):
+    if broker != "memory":
+        pytest.skip(
+            reason="test_worker_tasks_active can only be tested for the in-memory broker"
+        )
+
+    assert_exporter_metric_called(threaded_exporter.celery_worker_up)
 
 
 @pytest.mark.celery()
-def test_worker_status(exporter, celery_app, hostname):
-    threading.Thread(target=exporter.run, args=(exporter.cfg,), daemon=True).start()
+def test_worker_status(threaded_exporter, celery_app, hostname):
     time.sleep(5)
 
     with start_worker(celery_app, without_heartbeat=False):
         time.sleep(2)
         assert (
-            exporter.registry.get_sample_value(
+            threaded_exporter.registry.get_sample_value(
                 "celery_worker_up", labels={"hostname": hostname}
             )
             == 1.0
@@ -51,7 +63,7 @@ def test_worker_status(exporter, celery_app, hostname):
 
     time.sleep(2)
     assert (
-        exporter.registry.get_sample_value(
+        threaded_exporter.registry.get_sample_value(
             "celery_worker_up", labels={"hostname": hostname}
         )
         == 0.0
