@@ -1,0 +1,117 @@
+# yamllint disable rule:line-length
+---
+name: CI/CD
+
+env:
+  # Enable Buildkit and let compose use it to speed up image building
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+on:
+  pull_request:
+    branches: [ "master", "main" ]
+  push:
+    branches: [ "master", "main" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          lfs: 'true'
+
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: 3.9.16
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: |
+          poetry install --no-interaction --no-root
+
+      - name: Format
+        run: |
+          source .venv/bin/activate
+          black --check $(git ls-files -- '*.py')
+
+      - name: Sort imports
+        run: |
+          source .venv/bin/activate
+          isort --check-only $(git ls-files -- '*.py')
+
+      - name: Type Check
+        run: |
+          source .venv/bin/activate
+          mypy .
+
+      - name: Lint
+        run: |
+          source .venv/bin/activate
+          pylint $(git ls-files -- '*.py')
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest-8-cores
+    services:
+      redis:
+        image: redis:6
+        ports: ['6379:6379']
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          lfs: 'true'
+
+      - name: Install apt dependencies
+        run: sudo apt-get install -y sox libsox-fmt-mp3
+
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: 3.9.16
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: |
+          poetry install --no-interaction --no-root
+          source .venv/bin/activate
+
+      - name: Run Pytest
+        run: |
+          source .venv/bin/activate
+          pytest --ignore .poetry --cov
