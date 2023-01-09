@@ -1,4 +1,5 @@
 import socket
+# import boto3
 import threading
 
 import pytest
@@ -12,7 +13,7 @@ def pytest_addoption(parser):
         action="store",
         default="redis",
         help="What broker to use in tests",
-        choices=("redis", "rabbitmq", "memory"),
+        choices=("redis", "rabbitmq", "sqs", "memory"),
     )
     parser.addoption(
         "--loglevel",
@@ -40,9 +41,28 @@ def celery_config(broker):
         worker_send_task_events=True,
     )
     if broker == "redis":
-        config["broker_url"] = "redis://localhost:6379/"  # type: ignore
+        config["broker_url"] = "redis://localhost:6379"  # type: ignore
     elif broker == "rabbitmq":
         config["broker_url"] = "amqp://guest:guest@localhost:5672"  # type: ignore
+    elif broker == "sqs":
+        config["broker_url"] = "sqs://test:test@localhost:4566"  # type: ignore
+        config["broker_transport_options"] = dict(
+            polling_interval=0.3,
+            wait_time_seconds=0.5,
+        )
+
+        # queue = sqs.create_queue(QueueName='test', Attributes={'DelaySeconds': '5'})
+        # broker_transport_options = {'polling_interval': 0.3}
+# broker_transport_options = {'queue_name_prefix': 'celery-'}
+# broker_transport_options = {
+#     'predefined_queues': {
+#         'my-q': {
+#             'url': 'https://ap-southeast-2.queue.amazonaws.com/123456/my-q',
+#             'access_key_id': 'xxx',
+#             'secret_access_key': 'xxx',
+#         }
+#     }
+# }
     elif broker == "memory":
         config["broker_url"] = "memory://localhost/"  # type: ignore
 
@@ -110,3 +130,28 @@ def threaded_exporter(exporter_instance):
 @pytest.fixture()
 def hostname():
     return socket.gethostname()
+
+
+# session = boto3.session.Session(profile_name=local_aws_profile)
+# s3_resource = session.resource("s3", endpoint_url=local_s3_url)
+# broker_transport_options = {'polling_interval': 0.3}
+# broker_transport_options = {'queue_name_prefix': 'celery-'}
+# broker_transport_options = {
+#     'predefined_queues': {
+#         'my-q': {
+#             'url': 'https://ap-southeast-2.queue.amazonaws.com/123456/my-q',
+#             'access_key_id': 'xxx',
+#             'secret_access_key': 'xxx',
+#         }
+#     }
+# }
+
+# >>> import boto3
+#   2
+#   3 session = boto3.Session(
+#   4     aws_access_key_id="123",
+#   5     aws_secret_access_key="345",
+#   6 )                                                                                                                                                   [Meta+Enter] Execute
+# sqs = session.resource("sqs", endpoint_url="http://localhost:4566")
+# queue = sqs.create_queue(QueueName='test', Attributes={'DelaySeconds': '5'})
+# response = queue.send_message(MessageBody='world')

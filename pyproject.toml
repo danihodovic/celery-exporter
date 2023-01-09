@@ -45,6 +45,8 @@ pre-commit = "^2.19.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest-celery = "^0.0.0"
+boto3 = "^1.26.45"
+pycurl = "^7.45.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0a5"]
