@@ -161,8 +161,8 @@ celery_task_retried_total | Sent if the task failed, but will be retried in the 
 celery_worker_up | Indicates if a worker has recently sent a heartbeat. | Gauge
 celery_worker_tasks_active | The number of tasks the worker is currently processing | Gauge
 celery_task_runtime_bucket | Histogram of runtime measurements for each task | Histogram
-celery_queue_length | The number of message in broker queue **(Only works for rabbitMQ)**| Gauge
-celery_active_consumer_count | The number of active consumer in broker queue **(Only work for [Qpid](https://qpid.apache.org/) broker, more details at [here](https://github.com/danihodovic/celery-exporter/pull/118#issuecomment-1169870481))** | Gauge
+celery_queue_length | The number of message in broker queue | Gauge
+celery_active_consumer_count | The number of active consumer in broker queue **(Only work for [RabbitMQ and Qpid](https://qpid.apache.org/) broker, more details at [here](https://github.com/danihodovic/celery-exporter/pull/118#issuecomment-1169870481))** | Gauge
 
 Used in production at [https://findwork.dev](https://findwork.dev) and [https://django.wtf](https://django.wtf).
 
