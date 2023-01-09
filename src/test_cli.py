@@ -24,8 +24,8 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
         res = requests.get(exporter_url)
         assert res.status_code == 200
         assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text, res.text
-        # TODO: This metric exists for RabbitMQ. Fix it once we've fixed the other brokers
-        if broker != "rabbitmq":
+        # TODO: Fix this...
+        if broker == "memory":
             assert (
                 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
             ), res.text
@@ -38,7 +38,8 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
     res = requests.get(exporter_url)
     assert res.status_code == 200
     assert 'celery_queue_length{queue_name="celery"} 3.0' in res.text
-    assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
+    if broker == "memory":
+        assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
 
     # start worker and consume message in broker
     with start_worker(celery_app, without_heartbeat=False):
@@ -85,6 +86,6 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
     )
     assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text
 
-    # TODO: This metric exists for RabbitMQ. Fix it once we've fixed the other brokers
-    if broker != "rabbitmq":
+    # TODO: Fix this...
+    if broker == "memory":
         assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text

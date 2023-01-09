@@ -10,7 +10,6 @@ from celery.utils import nodesplit  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
-from redis.client import Redis
 
 from .http_server import start_http_server
 
@@ -110,34 +109,36 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
         )
 
-    def track_queue_length(self):
-        # request workers to response active queues
-        # we need to cache queue info in exporter in case all workers are offline
-        # so that no worker response to exporter will make active_queues return None
-        queues = self.app.control.inspect().active_queues() or {}
-        for info_list in queues.values():
-            for queue_info in info_list:
-                self.queue_cache.add(queue_info["name"])
+    def track_queue_metrics(self):
+        with self.app.connection() as connection:  # type: ignore
+            transport = connection.info()["transport"]
+            acceptable_transports = ["redis", "amqp", "memory"]
+            if transport not in acceptable_transports:
+                logger.debug(
+                    f"Queue length tracking is only implemented for {acceptable_transports}"
+                )
+                return
 
-        with self.app.connection() as connection:
+            # request workers to response active queues
+            # we need to cache queue info in exporter in case all workers are offline
+            # so that no worker response to exporter will make active_queues return None
+            queues = self.app.control.inspect().active_queues() or {}
+            for info_list in queues.values():
+                for queue_info in info_list:
+                    self.queue_cache.add(queue_info["name"])
+
+            track_length = lambda q, l: self.celery_queue_length.labels(
+                queue_name=q
+            ).set(l)
             for queue in self.queue_cache:
-                if isinstance(connection.default_channel.client, Redis):
-                    length = connection.default_channel.client.llen(queue)
-                    self.celery_queue_length.labels(queue_name=queue).set(length)
-                else:
-                    try:
-                        ret = connection.default_channel.queue_declare(
-                            queue=queue, passive=True
-                        )
-                        length, consumer_count = ret.message_count, ret.consumer_count
-                    except ChannelError as ex:
-                        if "NOT_FOUND" in ex.message:
-                            logger.debug(f"Queue '{queue}' not found")
-                            length = 0
-                            consumer_count = 0
-                        else:
-                            raise ex
-                    self.celery_queue_length.labels(queue_name=queue).set(length)
+                if transport == "redis":
+                    queue_length = redis_queue_length(connection, queue)
+                    track_length(queue, queue_length)
+                elif transport in ["amqp", "memory"]:
+                    queue_length = rabbitmq_queue_length(connection, queue)
+                    track_length(queue, queue_length)
+
+                    consumer_count = rabbitmq_queue_consumer_count(connection, queue)
                     self.celery_active_consumer_count.labels(queue_name=queue).set(
                         consumer_count
                     )
@@ -235,7 +236,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         if ssl_options is not None:
             self.app.conf["broker_use_ssl"] = ssl_options
 
-        self.state = self.app.events.State()
+        self.state = self.app.events.State()  # type: ignore
         self.retry_interval = click_params["retry_interval"]
         if self.retry_interval:
             logger.debug("Using retry_interval of {} seconds", self.retry_interval)
@@ -248,14 +249,17 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         for key in self.state_counters:
             handlers[key] = self.track_task_event
 
-        with self.app.connection() as connection:
+        with self.app.connection() as connection:  # type: ignore
             start_http_server(
-                self.registry, connection, click_params["port"], self.track_queue_length
+                self.registry,
+                connection,
+                click_params["port"],
+                self.track_queue_metrics,
             )
             while True:
                 try:
-                    recv = self.app.events.Receiver(connection, handlers=handlers)
-                    recv.capture(limit=None, timeout=None, wakeup=True)
+                    recv = self.app.events.Receiver(connection, handlers=handlers)  # type: ignore
+                    recv.capture(limit=None, timeout=None, wakeup=True)  # type: ignore
 
                 except (KeyboardInterrupt, SystemExit) as ex:
                     raise ex
@@ -314,3 +318,26 @@ def transform_option_value(value: str):
         return json.loads(value)
     except ValueError:
         return value
+
+
+def redis_queue_length(connection, queue: str) -> int:
+    return connection.default_channel.client.llen(queue)
+
+
+def rabbitmq_queue_length(connection, queue: str) -> int:
+    return rabbitmq_queue_info(connection, queue).message_count
+
+
+def rabbitmq_queue_consumer_count(connection, queue: str) -> int:
+    return rabbitmq_queue_info(connection, queue).consumer_count
+
+
+def rabbitmq_queue_info(connection, queue: str):
+    try:
+        queue_info = connection.default_channel.queue_declare(queue=queue, passive=True)
+        return queue_info
+    except ChannelError as ex:
+        if "NOT_FOUND" in ex.message:
+            logger.debug(f"Queue '{queue}' not found")
+            return 0
+        raise ex
