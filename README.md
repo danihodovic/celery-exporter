@@ -118,7 +118,10 @@ docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.s
   --broker-transport-option global_keyprefix=danihodovic \
   --broker-transport-option visibility_timeout=7200
 ```
-
+In case you changed celery transport options to enable [priority](https://docs.celeryq.dev/en/stable/userguide/routing.html#redis-message-priorities) or changed separator just use same config here as well.
+```sh
+--broker-transport-option sep=':' --broker-transport-option priority_steps=[0,1,2,3,4,5,6,7,8,9]
+```
 In case of extended transport options, such as `sentinel_kwargs` you can pass JSON string:,
 for example:
 

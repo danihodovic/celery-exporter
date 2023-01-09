@@ -9,7 +9,12 @@ from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
-from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
+from prometheus_client import (
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    Histogram,
+)
 
 from .http_server import start_http_server
 
@@ -123,9 +128,20 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             # we need to cache queue info in exporter in case all workers are offline
             # so that no worker response to exporter will make active_queues return None
             queues = self.app.control.inspect().active_queues() or {}
+            queue_cache = set()
             for info_list in queues.values():
                 for queue_info in info_list:
                     self.queue_cache.add(queue_info["name"])
+                    queue_cache.add((queue_info['name']))
+
+            # Check celery queues based on worker separator & priority steps
+            separator = '\x06\x16'
+            if 'sep' in self.app.conf["broker_transport_options"]:
+                separator = self.app.conf["broker_transport_options"]['sep']
+            if 'priority_steps' in self.app.conf["broker_transport_options"]:
+                for queue in queue_cache:
+                    for step in self.app.conf['broker_transport_options']['priority_steps']:
+                        self.queue_cache.add(f'{queue}{separator}{str(step)}')
 
             track_length = lambda q, l: self.celery_queue_length.labels(
                 queue_name=q
