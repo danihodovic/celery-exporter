@@ -24,50 +24,50 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             "task-sent": Counter(
                 "celery_task_sent",
                 "Sent when a task message is published.",
-                ["name", "hostname", "queue"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-received": Counter(
                 "celery_task_received",
                 "Sent when the worker receives a task.",
-                ["name", "hostname", "queue"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-started": Counter(
                 "celery_task_started",
                 "Sent just before the worker executes the task.",
-                ["name", "hostname", "queue"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-succeeded": Counter(
                 "celery_task_succeeded",
                 "Sent if the task executed successfully.",
-                ["name", "hostname", "queue"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-failed": Counter(
                 "celery_task_failed",
                 "Sent if the execution of the task failed.",
-                ["name", "hostname", "exception", "queue"],
+                ["name", "hostname", "exception", "queue_name"],
                 registry=self.registry,
             ),
             "task-rejected": Counter(
                 "celery_task_rejected",
                 # pylint: disable=line-too-long
                 "The task was rejected by the worker, possibly to be re-queued or moved to a dead letter queue.",
-                ["name", "hostname", "queue"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-revoked": Counter(
                 "celery_task_revoked",
                 "Sent if the task has been revoked.",
-                ["name", "hostname", "queue"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-retried": Counter(
                 "celery_task_retried",
                 "Sent if the task failed, but will be retried in the future.",
-                ["name", "hostname", "queue"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
         }
@@ -86,7 +86,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.celery_task_runtime = Histogram(
             "celery_task_runtime",
             "Histogram of task runtime measurements.",
-            ["name", "hostname", "queue"],
+            ["name", "hostname", "queue_name"],
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
@@ -148,7 +148,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         labels = {
             "name": task.name,
             "hostname": get_hostname(task.hostname),
-            "queue": getattr(task, "queue", "celery"),
+            "queue_name": getattr(task, "queue", "celery"),
         }
 
         for counter_name, counter in self.state_counters.items():
