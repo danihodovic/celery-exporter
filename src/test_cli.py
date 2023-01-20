@@ -49,39 +49,39 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
     assert res.status_code == 200
     # pylint: disable=line-too-long
     assert (
-        f'celery_task_sent_total{{hostname="{hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_sent_total{{hostname="{hostname}",name="src.test_cli.succeed",queue="celery"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_sent_total{{hostname="{hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_sent_total{{hostname="{hostname}",name="src.test_cli.fail",queue="celery"}} 1.0'
         in res.text
     )
     assert (
-        f'celery_task_received_total{{hostname="{hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_received_total{{hostname="{hostname}",name="src.test_cli.succeed",queue="celery"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_received_total{{hostname="{hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_received_total{{hostname="{hostname}",name="src.test_cli.fail",queue="celery"}} 1.0'
         in res.text
     )
     assert (
-        f'celery_task_started_total{{hostname="{hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_started_total{{hostname="{hostname}",name="src.test_cli.succeed",queue="celery"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_started_total{{hostname="{hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_started_total{{hostname="{hostname}",name="src.test_cli.fail",queue="celery"}} 1.0'
         in res.text
     )
     assert (
-        f'celery_task_succeeded_total{{hostname="{hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_succeeded_total{{hostname="{hostname}",name="src.test_cli.succeed",queue="celery"}} 2.0'
         in res.text
     )
     assert (
-        f'celery_task_failed_total{{exception="HTTPError",hostname="{hostname}",name="src.test_cli.fail"}} 1.0'
+        f'celery_task_failed_total{{exception="HTTPError",hostname="{hostname}",name="src.test_cli.fail",queue="celery"}} 1.0'
         in res.text
     )
     assert (
-        f'celery_task_runtime_count{{hostname="{hostname}",name="src.test_cli.succeed"}} 2.0'
+        f'celery_task_runtime_count{{hostname="{hostname}",name="src.test_cli.succeed",queue="celery"}} 2.0'
         in res.text
     )
     assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text
