@@ -9,6 +9,7 @@ local annotation = grafana.annotation;
     grafanaUrl: 'https://grafana.com',
 
     celeryIgnoredTasks: 'None',
+    celeryIgnoredQueues: 'None',
 
     celeryTasksOverviewUid: 'celery-tasks-overview-32s3',
     celeryTasksByTaskUid: 'celery-tasks-by-task-32s3',

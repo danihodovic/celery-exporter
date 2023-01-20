@@ -18,25 +18,45 @@ local paginateTable = {
         hide='',
       ),
 
+    local queueTemplate =
+      template.new(
+        name='queue',
+        datasource='$datasource',
+        query='label_values(celery_task_received_total{name!~"%(celeryIgnoredQueues)s"}, queue)' % $._config,
+        hide='',
+        refresh=2,
+        multi=true,
+        includeAll=true,
+        allValues='.*|',  // Add custom | matching metrics without a queue. Deprecate and remove this down the road
+        sort=1
+      ),
+
     local taskTemplate =
       template.new(
         name='task',
         datasource='$datasource',
-        query='label_values(celery_task_sent_total{name!~"%(celeryIgnoredTasks)s"}, name)' % $._config,
+        query='label_values(celery_task_received_total{queue=~"$queue", name!~"%(celeryIgnoredTasks)s"}, name)' % $._config,
         hide='',
-        refresh=1,
+        refresh=2,
         multi=true,
         includeAll=false,
         sort=1
       ),
+
+    local templates = [
+      prometheusTemplate,
+      queueTemplate,
+      taskTemplate,
+    ],
 
     local taskExceptionsQuery = |||
       round(
         sum (
           increase(
             celery_task_failed_total{
+              %(celerySelector)s,
               name=~"$task",
-              %(celerySelector)s
+              queue=~"$queue"
             }[$__range]
           )
         ) by (name, exception) > 0
@@ -78,8 +98,9 @@ local paginateTable = {
         round(
           increase(
             celery_task_failed_total{
-              name=~"$task",
               %(celerySelector)s,
+              name=~"$task",
+              queue=~"$queue"
             }[$__range]
           )
         )
@@ -193,8 +214,9 @@ local paginateTable = {
         round(
           increase(
             celery_task_failed_total{
-              name=~"$task",
               %(celerySelector)s,
+              name=~"$task",
+              queue=~"$queue"
             }[$__rate_interval]
           )
         )
@@ -256,8 +278,9 @@ local paginateTable = {
         sum(
           irate(
             celery_task_runtime_bucket{
+              %(celerySelector)s,
               name=~"$task",
-              %(celerySelector)s
+              queue=~"$queue"
             }[$__rate_interval]
           ) > 0
         ) by (name, job, le)
@@ -340,7 +363,7 @@ local paginateTable = {
         gridPos={ h: 6, w: 24, x: 0, y: 19 }
       )
       +
-      { templating+: { list+: [prometheusTemplate, taskTemplate] } } +
+      { templating+: { list+: templates } } +
       if $._config.annotation.enabled then
         {
           annotations: {
