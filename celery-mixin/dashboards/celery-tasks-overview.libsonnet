@@ -283,6 +283,35 @@ local paginateTable = {
         prometheus.target(topTaskRuntime1wQuery, format='table', instant=true)
       ) + paginateTable,
 
+    local celeryQueueLengthQuery = |||
+      sum (
+        celery_queue_length{
+          %(celerySelector)s,
+          queue=~"$queue"
+        }
+      ) by (job, queue) > 0
+    ||| % $._config,
+
+    local celeryQueueLengthGraphPanel =
+      grafana.graphPanel.new(
+        'Queue Length' % $._config,
+        datasource='$datasource',
+        legend_show=true,
+        legend_values=true,
+        legend_alignAsTable=true,
+        legend_rightSide=true,
+        legend_avg=true,
+        legend_current=true,
+        legend_hideZero=true,
+        legend_sort='avg',
+        legend_sortDesc=true,
+        nullPointMode='null as zero'
+      )
+      .addTarget(prometheus.target(
+        celeryQueueLengthQuery,
+        legendFormat='{{ queue }}',
+      )),
+
     local taskFailedQuery = |||
       sum (
         round(
@@ -521,6 +550,11 @@ local paginateTable = {
         title='Summary'
       ),
 
+    local queuesRow =
+      row.new(
+        title='Queues'
+      ),
+
     local tasksRow =
       row.new(
         title='Tasks'
@@ -570,18 +604,23 @@ local paginateTable = {
         tasksRuntime1wTable,
         gridPos={ h: 8, w: 8, x: 16, y: 5 }
       )
-      .addPanel(tasksRow, gridPos={ h: 1, w: 24, x: 0, y: 13 })
+      .addPanel(queuesRow, gridPos={ h: 1, w: 24, x: 0, y: 13 })
+      .addPanel(
+        celeryQueueLengthGraphPanel,
+        gridPos={ h: 6, w: 24, x: 0, y: 14 },
+      )
+      .addPanel(tasksRow, gridPos={ h: 1, w: 24, x: 0, y: 20 })
       .addPanel(
         tasksStatsTable,
-        gridPos={ h: 4, w: 24, x: 0, y: 14 }
+        gridPos={ h: 4, w: 24, x: 0, y: 21 }
       )
       .addPanel(
         tasksCompletedGraphPanel,
-        gridPos={ h: 10, w: 24, x: 0, y: 18 },
+        gridPos={ h: 10, w: 24, x: 0, y: 25 },
       )
       .addPanel(
         tasksRuntimeGraphPanel,
-        gridPos={ h: 8, w: 24, x: 0, y: 28 },
+        gridPos={ h: 8, w: 24, x: 0, y: 35 },
       ) +
       { templating+: { list+: templates } } +
       if $._config.annotation.enabled then
