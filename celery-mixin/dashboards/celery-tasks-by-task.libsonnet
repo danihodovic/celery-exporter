@@ -18,11 +18,12 @@ local paginateTable = {
         hide='',
       ),
 
-    local queueTemplate =
+    local queueNameTemplate =
       template.new(
-        name='queue',
+        name='queue_name',
+        label='Queue Name',
         datasource='$datasource',
-        query='label_values(celery_task_received_total{name!~"%(celeryIgnoredQueues)s"}, queue)' % $._config,
+        query='label_values(celery_task_received_total{name!~"%(celeryIgnoredQueues)s"}, queue_name)' % $._config,
         hide='',
         refresh=2,
         multi=true,
@@ -35,7 +36,7 @@ local paginateTable = {
       template.new(
         name='task',
         datasource='$datasource',
-        query='label_values(celery_task_received_total{queue=~"$queue", name!~"%(celeryIgnoredTasks)s"}, name)' % $._config,
+        query='label_values(celery_task_received_total{queue_name=~"$queue_name", name!~"%(celeryIgnoredTasks)s"}, name)' % $._config,
         hide='',
         refresh=2,
         multi=true,
@@ -45,7 +46,7 @@ local paginateTable = {
 
     local templates = [
       prometheusTemplate,
-      queueTemplate,
+      queueNameTemplate,
       taskTemplate,
     ],
 
@@ -56,7 +57,7 @@ local paginateTable = {
             celery_task_failed_total{
               %(celerySelector)s,
               name=~"$task",
-              queue=~"$queue"
+              queue_name=~"$queue_name"
             }[$__range]
           )
         ) by (name, exception) > 0
@@ -100,7 +101,7 @@ local paginateTable = {
             celery_task_failed_total{
               %(celerySelector)s,
               name=~"$task",
-              queue=~"$queue"
+              queue_name=~"$queue_name"
             }[$__range]
           )
         )
@@ -216,7 +217,7 @@ local paginateTable = {
             celery_task_failed_total{
               %(celerySelector)s,
               name=~"$task",
-              queue=~"$queue"
+              queue_name=~"$queue_name"
             }[$__rate_interval]
           )
         )
@@ -280,7 +281,7 @@ local paginateTable = {
             celery_task_runtime_bucket{
               %(celerySelector)s,
               name=~"$task",
-              queue=~"$queue"
+              queue_name=~"$queue_name"
             }[$__rate_interval]
           ) > 0
         ) by (name, job, le)
