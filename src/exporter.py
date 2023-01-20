@@ -319,6 +319,7 @@ def transform_option_value(value: str):
 
 
 def redis_queue_length(connection, queue: str) -> int:
+    c.default_channel.client.llen("celery")
     return connection.default_channel.client.llen(queue)
 
 

@@ -19,6 +19,24 @@ local paginateTable = {
         hide='',
       ),
 
+    local queueTemplate =
+      template.new(
+        name='queue',
+        datasource='$datasource',
+        query='label_values(celery_task_received_total{name!~"%(celeryIgnoredQueues)s"}, queue)' % $._config,
+        hide='',
+        refresh=2,
+        multi=true,
+        includeAll=true,
+        allValues='.*|',  // Add custom | matching metrics without a queue. Deprecate and remove this down the road
+        sort=1
+      ),
+
+    local templates = [
+      prometheusTemplate,
+      queueTemplate,
+    ],
+
     local celeryWorkersQuery = |||
       count(
         celery_worker_up{
@@ -62,7 +80,8 @@ local paginateTable = {
         round(
           increase(
             celery_task_failed_total{
-              %(celerySelector)s
+              %(celerySelector)s,
+              queue=~"$queue"
             }[1w]
           )
         )
@@ -105,7 +124,8 @@ local paginateTable = {
       sum(
         rate(
           celery_task_runtime_sum{
-            %(celerySelector)s
+            %(celerySelector)s,
+            queue=~"$queue"
           }[1w]
         )
       )
@@ -113,7 +133,8 @@ local paginateTable = {
       sum(
         rate(
           celery_task_runtime_count{
-            %(celerySelector)s
+            %(celerySelector)s,
+            queue=~"$queue"
           }[1w]
         )
       ) > 0
@@ -137,7 +158,8 @@ local paginateTable = {
         sum (
           increase(
             celery_task_failed_total{
-              %(celerySelector)s
+              %(celerySelector)s,
+              queue=~"$queue"
             }[1w]
           ) > 0
         )  by (name)
@@ -176,7 +198,8 @@ local paginateTable = {
         sum (
           increase(
             celery_task_failed_total{
-              %(celerySelector)s
+              %(celerySelector)s,
+              queue=~"$queue"
             }[1w]
           )
         ) by (exception) > 0
@@ -213,14 +236,17 @@ local paginateTable = {
       sum (
         rate(
           celery_task_runtime_sum{
-            %(celerySelector)s}[1w]
+            %(celerySelector)s,
+            queue=~"$queue"
+          }[1w]
         )
       ) by(name)
       /
       sum (
         rate(
           celery_task_runtime_count{
-            %(celerySelector)s
+            %(celerySelector)s,
+            queue=~"$queue"
           }[1w]
         )
       ) by (name) > 0
@@ -263,6 +289,7 @@ local paginateTable = {
           increase(
             celery_task_failed_total{
               %(celerySelector)s,
+              queue=~"$queue"
             }[$__range]
           )
         )
@@ -377,6 +404,7 @@ local paginateTable = {
           increase(
             celery_task_failed_total{
               %(celerySelector)s,
+              queue=~"$queue"
             }[$__rate_interval]
           )
         )
@@ -438,7 +466,8 @@ local paginateTable = {
         sum(
           irate(
             celery_task_runtime_bucket{
-              %(celerySelector)s
+              %(celerySelector)s,
+              queue=~"$queue"
             }[$__rate_interval]
           ) > 0
         ) by (job, le)
@@ -554,7 +583,7 @@ local paginateTable = {
         tasksRuntimeGraphPanel,
         gridPos={ h: 8, w: 24, x: 0, y: 28 },
       ) +
-      { templating+: { list+: [prometheusTemplate] } } +
+      { templating+: { list+: templates } } +
       if $._config.annotation.enabled then
         {
           annotations: {
