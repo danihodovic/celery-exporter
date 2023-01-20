@@ -148,7 +148,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         labels = {
             "name": task.name,
             "hostname": get_hostname(task.hostname),
-            "queue": getattr(task, "queue", "default"),
+            "queue": getattr(task, "queue", "celery"),
         }
 
         for counter_name, counter in self.state_counters.items():
