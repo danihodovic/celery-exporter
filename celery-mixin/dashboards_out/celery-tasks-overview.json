@@ -500,15 +500,15 @@
          "id": 12,
          "legend": {
             "alignAsTable": true,
-            "avg": true,
+            "avg": false,
             "current": true,
-            "hideZero": true,
-            "max": false,
+            "hideZero": false,
+            "max": true,
             "min": false,
             "rightSide": true,
             "show": true,
             "sideWidth": null,
-            "sort": "avg",
+            "sort": "current",
             "sortDesc": true,
             "total": false,
             "values": true
@@ -528,7 +528,7 @@
          "steppedLine": false,
          "targets": [
             {
-               "expr": "sum (\n  celery_queue_length{\n    job=~\"celery|celery-exporter\",\n    queue_name=~\"$queue_name\"\n  }\n) by (job, queue_name) > 0\n",
+               "expr": "sum (\n  celery_queue_length{\n    job=~\"celery|celery-exporter\",\n    queue_name=~\"$queue_name\"\n  }\n) by (job, queue_name)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "{{ queue_name }}",
