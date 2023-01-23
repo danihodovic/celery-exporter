@@ -290,7 +290,7 @@ local paginateTable = {
           %(celerySelector)s,
           queue_name=~"$queue_name"
         }
-      ) by (job, queue_name) > 0
+      ) by (job, queue_name)
     ||| % $._config,
 
     local celeryQueueLengthGraphPanel =
@@ -301,10 +301,10 @@ local paginateTable = {
         legend_values=true,
         legend_alignAsTable=true,
         legend_rightSide=true,
-        legend_avg=true,
+        legend_max=true,
         legend_current=true,
-        legend_hideZero=true,
-        legend_sort='avg',
+        legend_hideZero=false,
+        legend_sort='current',
         legend_sortDesc=true,
         nullPointMode='null as zero'
       )
