@@ -3,28 +3,45 @@
   "rules":
   - "alert": "CeleryTaskHighFailRate"
     "annotations":
-      "dashboard_url": "https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?&var-task={{ $labels.name }}"
-      "description": "More than 5% tasks failed for the task {{ $labels.namespace }}/{{ $labels.name }} the past 10m."
+      "dashboard_url": "https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?&var-queue_name={{ $labels.queue_name }}&var-task={{ $labels.name }}"
+      "description": "More than 5% tasks failed for the task {{ $labels.queue_name }}/{{ $labels.name }} the past 10m."
       "summary": "Celery high task fail rate."
     "expr": |
       sum(
         increase(
           celery_task_failed_total{
             job=~"celery|celery-exporter",
+            queue_name!~"None",
             name!~"None"
           }[10m]
         )
-      )  by (job, namespace, name)
+      )  by (job, namespace, queue_name, name)
       /
       sum(
         increase(
           celery_task_succeeded_total{
             job=~"celery|celery-exporter",
+            queue_name!~"None",
             name!~"None"
           }[10m]
         )
-      )  by (job, namespace, name)
+      )  by (job, namespace, queue_name, name)
       * 100 > 5
+    "labels":
+      "severity": "warning"
+  - "alert": "CeleryHighQueueLength"
+    "annotations":
+      "description": "More than 100 tasks in the queue {{ $labels.queue_name }} the past 20m."
+      "summary": "Celery high queue length."
+    "expr": |
+      sum(
+        celery_queue_length{
+          job=~"celery|celery-exporter",
+          queue_name!~"None"
+        }
+      )  by (job, namespace, queue_name)
+      > 100
+    "for": "20m"
     "labels":
       "severity": "warning"
   - "alert": "CeleryWorkerDown"

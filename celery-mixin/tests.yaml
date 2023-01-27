@@ -6,9 +6,9 @@ rule_files:
 tests:
   - interval: 5m
     input_series:
-      - series: 'celery_task_failed_total{job="celery-exporter", name="test-task", namespace="staging"}'
+      - series: 'celery_task_failed_total{job="celery-exporter", namespace="staging", queue_name="celery", name="test-task"}'
         values: '1+10x10'
-      - series: 'celery_task_succeeded_total{job="celery-exporter", name="test-task", namespace="staging"}'
+      - series: 'celery_task_succeeded_total{job="celery-exporter", namespace="staging", queue_name="celery", name="test-task"}'
         values: '1+10x10'
     alert_rule_test:
       - eval_time: 15m
@@ -17,25 +17,45 @@ tests:
           - exp_labels:
               job: celery-exporter
               severity: warning
-              name: test-task
               namespace: staging
+              queue_name: celery
+              name: test-task
             exp_annotations:
               summary: 'Celery high task fail rate.'
-              description: 'More than 5% tasks failed for the task staging/test-task the past 10m.'
-              dashboard_url: 'https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?&var-task=test-task'
+              description: 'More than 5% tasks failed for the task celery/test-task the past 10m.'
+              dashboard_url: 'https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?&var-queue_name=celery&var-task=test-task'
   - interval: 1m
     input_series:
-      - series: 'celery_worker_up{job="celery", hostname="down"}'
+      - series: 'celery_queue_length{job="celery-exporter", namespace="staging", queue_name="celery-low-queue"}'
+        values: '1+0x50'
+      - series: 'celery_queue_length{job="celery-exporter", namespace="staging", queue_name="celery-high-queue"}'
+        values: '1000+200x50'
+    alert_rule_test:
+      - eval_time: 40m
+        alertname: CeleryHighQueueLength
+        exp_alerts:
+          - exp_labels:
+              job: celery-exporter
+              severity: warning
+              namespace: staging
+              queue_name: celery-high-queue
+            exp_annotations:
+              summary: 'Celery high queue length.'
+              description: 'More than 100 tasks in the queue celery-high-queue the past 20m.'
+  - interval: 1m
+    input_series:
+      - series: 'celery_worker_up{job="celery-exporter", namespace="staging", hostname="down"}'
         values: '0+0x20'
-      - series: 'celery_worker_up{job="celery", hostname="up"}'
+      - series: 'celery_worker_up{job="celery-exporter", namespace="staging", hostname="up"}'
         values: '1+0x20'
     alert_rule_test:
       - eval_time: 20m
         alertname: CeleryWorkerDown
         exp_alerts:
           - exp_labels:
-              job: celery
+              job: celery-exporter
               severity: warning
+              namespace: staging
               hostname: down
             exp_annotations:
               summary: 'A Celery worker is offline.'

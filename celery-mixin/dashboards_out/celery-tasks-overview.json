@@ -1009,7 +1009,7 @@
             "type": "datasource"
          },
          {
-            "allValue": ".*|",
+            "allValue": null,
             "current": { },
             "datasource": "$datasource",
             "hide": 0,
