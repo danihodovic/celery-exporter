@@ -29,7 +29,6 @@ local paginateTable = {
         refresh=2,
         multi=true,
         includeAll=true,
-        allValues='.*|',  // Add custom | matching metrics without a queue. Deprecate and remove this down the road
         sort=1
       ),
 
