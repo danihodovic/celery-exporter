@@ -210,6 +210,40 @@ local paginateTable = {
       .addTarget(prometheus.target(taskRetriedQuery, format='table', instant=true))
       .addTarget(prometheus.target(taskRevokedQuery, format='table', instant=true)),
 
+    local taskFailedByExceptionIntervalQuery = |||
+      sum (
+        round(
+          increase(
+            celery_task_failed_total{
+              %(celerySelector)s,
+              name=~"$task",
+              queue_name=~"$queue_name"
+            }[$__rate_interval]
+          )
+        )
+      ) by (name, exception)
+    ||| % $._config,
+
+    local tasksFailedByExceptionGraphPanel =
+      grafana.graphPanel.new(
+        'Task Exceptions',
+        datasource='$datasource',
+        legend_show=true,
+        legend_values=true,
+        legend_alignAsTable=true,
+        legend_rightSide=true,
+        legend_avg=true,
+        legend_current=true,
+        legend_hideZero=true,
+        legend_sort='avg',
+        legend_sortDesc=true,
+        nullPointMode='null as zero'
+      )
+      .addTarget(prometheus.target(
+        taskFailedByExceptionIntervalQuery,
+        legendFormat='{{ name }} - {{ exception }}',
+      )),
+
     local taskFailedIntervalQuery = |||
       sum (
         round(
@@ -289,7 +323,6 @@ local paginateTable = {
     ||| % $._config,
     local tasksRuntimeP95Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.95'),
     local tasksRuntimeP99Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.99'),
-    local tasksRuntimeP999Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.999'),
 
     local tasksRuntimeGraphPanel =
       grafana.graphPanel.new(
@@ -321,12 +354,6 @@ local paginateTable = {
         prometheus.target(
           tasksRuntimeP99Query,
           legendFormat='99 - {{ name }}',
-        )
-      )
-      .addTarget(
-        prometheus.target(
-          tasksRuntimeP999Query,
-          legendFormat='99.9 - {{ name }}',
         )
       ),
 
@@ -360,8 +387,12 @@ local paginateTable = {
         gridPos={ h: 10, w: 24, x: 0, y: 9 }
       )
       .addPanel(
+        tasksFailedByExceptionGraphPanel,
+        gridPos={ h: 8, w: 24, x: 0, y: 19 }
+      )
+      .addPanel(
         tasksRuntimeGraphPanel,
-        gridPos={ h: 6, w: 24, x: 0, y: 19 }
+        gridPos={ h: 6, w: 24, x: 0, y: 27 }
       )
       +
       { templating+: { list+: templates } } +
