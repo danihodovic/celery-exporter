@@ -47,6 +47,12 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     help="Broker exception retry interval in seconds, default is 0 for no retry",
 )
 @click.option(
+    "--host",
+    default="0.0.0.0",
+    show_default=True,
+    help="The host the exporter will listen on",
+)
+@click.option(
     "--port",
     type=int,
     default=9808,
@@ -65,6 +71,7 @@ def cli(  # pylint: disable=too-many-arguments
     broker_transport_option,
     accept_content,
     retry_interval,
+    host,
     port,
     buckets,
     log_level,
