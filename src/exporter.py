@@ -251,6 +251,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             start_http_server(
                 self.registry,
                 connection,
+                click_params["host"],
                 click_params["port"],
                 self.track_queue_metrics,
             )

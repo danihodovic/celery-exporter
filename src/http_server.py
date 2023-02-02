@@ -51,7 +51,7 @@ def health():
     return f"Connected to the broker {conn.as_uri()}"
 
 
-def start_http_server(registry, celery_connection, port, metrics_puller):
+def start_http_server(registry, celery_connection, host, port, metrics_puller):
     app = Flask(__name__)
     app.config["registry"] = registry
     app.config["celery_connection"] = celery_connection
@@ -60,7 +60,7 @@ def start_http_server(registry, celery_connection, port, metrics_puller):
     Thread(
         target=serve,
         args=(app,),
-        kwargs=dict(host="0.0.0.0", port=port, _quiet=True),
+        kwargs=dict(host=host, port=port, _quiet=True),
         daemon=True,
     ).start()
-    logger.info("Started celery-exporter at port='{}'", port)
+    logger.info("Started celery-exporter at host='{}' on port='{}'", host, port)
