@@ -73,7 +73,16 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         }
         self.celery_worker_up = Gauge(
             "celery_worker_up",
-            "Indicates if a worker has recently sent a heartbeat.",
+            (
+                "DEPRECATED: Indicates if a worker has recently sent a heartbeat. "
+                "Not updated if worker dies abruptly, prefer celery_worker_last_heartbeat_timestamp"
+            ),
+            ["hostname"],
+            registry=self.registry,
+        )
+        self.celery_worker_last_heartbeat_timestamp = Gauge(
+            "celery_worker_last_heartbeat_timestamp",
+            "Unix timestamp of the last heartbeat a worker sent.",
             ["hostname"],
             registry=self.registry,
         )
@@ -192,12 +201,21 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         worker_state = self.state.event(event)[0][0]
         active = worker_state.active or 0
         up = 1 if worker_state.alive else 0
+        heartbeat_time = event["timestamp"]
         self.celery_worker_up.labels(hostname=hostname).set(up)
         self.worker_tasks_active.labels(hostname=hostname).set(active)
+        self.celery_worker_last_heartbeat_timestamp.labels(hostname=hostname).set(
+            heartbeat_time
+        )
         logger.debug(
             "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, active
         )
         logger.debug("Updated gauge='{}' value='{}'", self.celery_worker_up._name, up)
+        logger.debug(
+            "Updated gauge='{}' value='{}'",
+            self.celery_worker_last_heartbeat_timestamp._name,
+            heartbeat_time,
+        )
 
     def run(self, click_params):
         logger.remove()
