@@ -68,3 +68,23 @@ def test_worker_status(threaded_exporter, celery_app, hostname):
         )
         == 0.0
     )
+
+
+@pytest.mark.celery()
+def test_worker_heartbeat(threaded_exporter, celery_app, hostname):
+    before_start = time.time()
+    def get_heartbeat_sample():
+        return threaded_exporter.registry.get_sample_value(
+            "celery_worker_last_heartbeat_timestamp", labels={"hostname": hostname}
+        )
+    with start_worker(celery_app, without_heartbeat=False, heartbeat_interval=0.5):
+        time.sleep(2)
+        heartbeat_sample = get_heartbeat_sample()
+        assert heartbeat_sample is not None
+        assert heartbeat_sample > before_start
+        assert heartbeat_sample < time.time()
+
+    post_shutdown_heartbeat_sample = get_heartbeat_sample()
+    time.sleep(10)
+    post_sleep_heartbeat_sample = get_heartbeat_sample()
+    assert post_shutdown_heartbeat_sample == post_sleep_heartbeat_sample
