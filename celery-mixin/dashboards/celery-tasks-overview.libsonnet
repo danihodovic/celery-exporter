@@ -96,7 +96,7 @@ local paginateTable = {
         datasource='$datasource',
         reducerFunction='last',
       )
-      .addTarget(prometheus.target(tasksReceived1wQuery))
+      .addTarget(prometheus.target(tasksReceived1wQuery, interval='3h'))
       .addThresholds([
         { color: 'red', value: 0 },
         { color: 'green', value: 0.1 },
@@ -113,7 +113,7 @@ local paginateTable = {
         decimals='3',
         reducerFunction='last',
       )
-      .addTarget(prometheus.target(taskSuccessRate1wQuery))
+      .addTarget(prometheus.target(taskSuccessRate1wQuery, interval='3h'))
       .addThresholds([
         { color: 'red', value: 0 },
         { color: 'yellow', value: 0.95 },
@@ -146,7 +146,7 @@ local paginateTable = {
         unit='s',
         reducerFunction='last',
       )
-      .addTarget(prometheus.target(taskRuntime1wQuery))
+      .addTarget(prometheus.target(taskRuntime1wQuery, interval='3h'))
       .addThresholds([
         { color: 'red', value: 0 },
         { color: 'green', value: 0.1 },
