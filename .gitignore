@@ -143,3 +143,4 @@ dmypy.json
 
 .virtualenv
 celery-exporter
+.idea
