@@ -19,6 +19,24 @@ local paginateTable = {
         hide='',
       ),
 
+    local queueNameTemplate =
+      template.new(
+        name='queue_name',
+        label='Queue Name',
+        datasource='$datasource',
+        query='label_values(celery_task_received_total{name!~"%(celeryIgnoredQueues)s"}, queue_name)' % $._config,
+        hide='',
+        refresh=2,
+        multi=true,
+        includeAll=true,
+        sort=1
+      ),
+
+    local templates = [
+      prometheusTemplate,
+      queueNameTemplate,
+    ],
+
     local celeryWorkersQuery = |||
       count(
         celery_worker_up{
@@ -62,7 +80,8 @@ local paginateTable = {
         round(
           increase(
             celery_task_failed_total{
-              %(celerySelector)s
+              %(celerySelector)s,
+              queue_name=~"$queue_name"
             }[1w]
           )
         )
@@ -77,7 +96,7 @@ local paginateTable = {
         datasource='$datasource',
         reducerFunction='last',
       )
-      .addTarget(prometheus.target(tasksReceived1wQuery))
+      .addTarget(prometheus.target(tasksReceived1wQuery, interval='3h'))
       .addThresholds([
         { color: 'red', value: 0 },
         { color: 'green', value: 0.1 },
@@ -94,7 +113,7 @@ local paginateTable = {
         decimals='3',
         reducerFunction='last',
       )
-      .addTarget(prometheus.target(taskSuccessRate1wQuery))
+      .addTarget(prometheus.target(taskSuccessRate1wQuery, interval='3h'))
       .addThresholds([
         { color: 'red', value: 0 },
         { color: 'yellow', value: 0.95 },
@@ -105,7 +124,8 @@ local paginateTable = {
       sum(
         rate(
           celery_task_runtime_sum{
-            %(celerySelector)s
+            %(celerySelector)s,
+            queue_name=~"$queue_name"
           }[1w]
         )
       )
@@ -113,7 +133,8 @@ local paginateTable = {
       sum(
         rate(
           celery_task_runtime_count{
-            %(celerySelector)s
+            %(celerySelector)s,
+            queue_name=~"$queue_name"
           }[1w]
         )
       ) > 0
@@ -125,7 +146,7 @@ local paginateTable = {
         unit='s',
         reducerFunction='last',
       )
-      .addTarget(prometheus.target(taskRuntime1wQuery))
+      .addTarget(prometheus.target(taskRuntime1wQuery, interval='3h'))
       .addThresholds([
         { color: 'red', value: 0 },
         { color: 'green', value: 0.1 },
@@ -137,7 +158,8 @@ local paginateTable = {
         sum (
           increase(
             celery_task_failed_total{
-              %(celerySelector)s
+              %(celerySelector)s,
+              queue_name=~"$queue_name"
             }[1w]
           ) > 0
         )  by (name)
@@ -176,7 +198,8 @@ local paginateTable = {
         sum (
           increase(
             celery_task_failed_total{
-              %(celerySelector)s
+              %(celerySelector)s,
+              queue_name=~"$queue_name"
             }[1w]
           )
         ) by (exception) > 0
@@ -213,14 +236,17 @@ local paginateTable = {
       sum (
         rate(
           celery_task_runtime_sum{
-            %(celerySelector)s}[1w]
+            %(celerySelector)s,
+            queue_name=~"$queue_name"
+          }[1w]
         )
       ) by(name)
       /
       sum (
         rate(
           celery_task_runtime_count{
-            %(celerySelector)s
+            %(celerySelector)s,
+            queue_name=~"$queue_name"
           }[1w]
         )
       ) by (name) > 0
@@ -257,12 +283,42 @@ local paginateTable = {
         prometheus.target(topTaskRuntime1wQuery, format='table', instant=true)
       ) + paginateTable,
 
+    local celeryQueueLengthQuery = |||
+      sum (
+        celery_queue_length{
+          %(celerySelector)s,
+          queue_name=~"$queue_name"
+        }
+      ) by (job, queue_name)
+    ||| % $._config,
+
+    local celeryQueueLengthGraphPanel =
+      grafana.graphPanel.new(
+        'Queue Length' % $._config,
+        datasource='$datasource',
+        legend_show=true,
+        legend_values=true,
+        legend_alignAsTable=true,
+        legend_rightSide=true,
+        legend_max=true,
+        legend_current=true,
+        legend_hideZero=false,
+        legend_sort='current',
+        legend_sortDesc=true,
+        nullPointMode='null as zero'
+      )
+      .addTarget(prometheus.target(
+        celeryQueueLengthQuery,
+        legendFormat='{{ queue_name }}',
+      )),
+
     local taskFailedQuery = |||
       sum (
         round(
           increase(
             celery_task_failed_total{
               %(celerySelector)s,
+              queue_name=~"$queue_name"
             }[$__range]
           )
         )
@@ -377,6 +433,7 @@ local paginateTable = {
           increase(
             celery_task_failed_total{
               %(celerySelector)s,
+              queue_name=~"$queue_name"
             }[$__rate_interval]
           )
         )
@@ -438,7 +495,8 @@ local paginateTable = {
         sum(
           irate(
             celery_task_runtime_bucket{
-              %(celerySelector)s
+              %(celerySelector)s,
+              queue_name=~"$queue_name"
             }[$__rate_interval]
           ) > 0
         ) by (job, le)
@@ -492,6 +550,11 @@ local paginateTable = {
         title='Summary'
       ),
 
+    local queuesRow =
+      row.new(
+        title='Queues'
+      ),
+
     local tasksRow =
       row.new(
         title='Tasks'
@@ -541,20 +604,25 @@ local paginateTable = {
         tasksRuntime1wTable,
         gridPos={ h: 8, w: 8, x: 16, y: 5 }
       )
-      .addPanel(tasksRow, gridPos={ h: 1, w: 24, x: 0, y: 13 })
+      .addPanel(queuesRow, gridPos={ h: 1, w: 24, x: 0, y: 13 })
+      .addPanel(
+        celeryQueueLengthGraphPanel,
+        gridPos={ h: 6, w: 24, x: 0, y: 14 },
+      )
+      .addPanel(tasksRow, gridPos={ h: 1, w: 24, x: 0, y: 20 })
       .addPanel(
         tasksStatsTable,
-        gridPos={ h: 4, w: 24, x: 0, y: 14 }
+        gridPos={ h: 4, w: 24, x: 0, y: 21 }
       )
       .addPanel(
         tasksCompletedGraphPanel,
-        gridPos={ h: 10, w: 24, x: 0, y: 18 },
+        gridPos={ h: 10, w: 24, x: 0, y: 25 },
       )
       .addPanel(
         tasksRuntimeGraphPanel,
-        gridPos={ h: 8, w: 24, x: 0, y: 28 },
+        gridPos={ h: 8, w: 24, x: 0, y: 35 },
       ) +
-      { templating+: { list+: [prometheusTemplate] } } +
+      { templating+: { list+: templates } } +
       if $._config.annotation.enabled then
         {
           annotations: {

@@ -194,8 +194,9 @@
          "pluginVersion": "7",
          "targets": [
             {
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_received_total{\n        job=~\"celery|celery-exporter\"\n      }[1w]\n    )\n  )\n)\n",
+               "expr": "sum(\n  round(\n    increase(\n      celery_task_received_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[1w]\n    )\n  )\n)\n",
                "format": "time_series",
+               "interval": "3h",
                "intervalFactor": 2,
                "legendFormat": "",
                "refId": "A"
@@ -257,8 +258,9 @@
          "pluginVersion": "7",
          "targets": [
             {
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\"\n      }[1w]\n    )\n  )\n)\n/(sum(\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\"\n      }[1w]\n    )\n  )\n)\n+sum(\n  round(\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\"\n      }[1w]\n    )\n  )\n)\n)\n",
+               "expr": "sum(\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[1w]\n    )\n  )\n)\n/(sum(\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[1w]\n    )\n  )\n)\n+sum(\n  round(\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[1w]\n    )\n  )\n)\n)\n",
                "format": "time_series",
+               "interval": "3h",
                "intervalFactor": 2,
                "legendFormat": "",
                "refId": "A"
@@ -315,8 +317,9 @@
          "pluginVersion": "7",
          "targets": [
             {
-               "expr": "sum(\n  rate(\n    celery_task_runtime_sum{\n      job=~\"celery|celery-exporter\"\n    }[1w]\n  )\n)\n/\nsum(\n  rate(\n    celery_task_runtime_count{\n      job=~\"celery|celery-exporter\"\n    }[1w]\n  )\n) > 0\n",
+               "expr": "sum(\n  rate(\n    celery_task_runtime_sum{\n      job=~\"celery|celery-exporter\",\n      queue_name=~\"$queue_name\"\n    }[1w]\n  )\n)\n/\nsum(\n  rate(\n    celery_task_runtime_count{\n      job=~\"celery|celery-exporter\",\n      queue_name=~\"$queue_name\"\n    }[1w]\n  )\n) > 0\n",
                "format": "time_series",
+               "interval": "3h",
                "intervalFactor": 2,
                "legendFormat": "",
                "refId": "A"
@@ -357,7 +360,7 @@
          ],
          "targets": [
             {
-               "expr": "round(\n  sum (\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\"\n      }[1w]\n    ) > 0\n  )  by (name)\n)\n",
+               "expr": "round(\n  sum (\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[1w]\n    ) > 0\n  )  by (name)\n)\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -401,7 +404,7 @@
          ],
          "targets": [
             {
-               "expr": "round(\n  sum (\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\"\n      }[1w]\n    )\n  ) by (exception) > 0\n)\n",
+               "expr": "round(\n  sum (\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[1w]\n    )\n  ) by (exception) > 0\n)\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -451,7 +454,7 @@
          ],
          "targets": [
             {
-               "expr": "sum (\n  rate(\n    celery_task_runtime_sum{\n      job=~\"celery|celery-exporter\"}[1w]\n  )\n) by(name)\n/\nsum (\n  rate(\n    celery_task_runtime_count{\n      job=~\"celery|celery-exporter\"\n    }[1w]\n  )\n) by (name) > 0\n",
+               "expr": "sum (\n  rate(\n    celery_task_runtime_sum{\n      job=~\"celery|celery-exporter\",\n      queue_name=~\"$queue_name\"\n    }[1w]\n  )\n) by(name)\n/\nsum (\n  rate(\n    celery_task_runtime_count{\n      job=~\"celery|celery-exporter\",\n      queue_name=~\"$queue_name\"\n    }[1w]\n  )\n) by (name) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -479,6 +482,113 @@
          "repeatIteration": null,
          "repeatRowId": null,
          "showTitle": true,
+         "title": "Queues",
+         "titleSize": "h6",
+         "type": "row"
+      },
+      {
+         "aliasColors": { },
+         "bars": false,
+         "dashLength": 10,
+         "dashes": false,
+         "datasource": "$datasource",
+         "fill": 1,
+         "fillGradient": 0,
+         "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 14
+         },
+         "id": 12,
+         "legend": {
+            "alignAsTable": true,
+            "avg": false,
+            "current": true,
+            "hideZero": false,
+            "max": true,
+            "min": false,
+            "rightSide": true,
+            "show": true,
+            "sideWidth": null,
+            "sort": "current",
+            "sortDesc": true,
+            "total": false,
+            "values": true
+         },
+         "lines": true,
+         "linewidth": 1,
+         "links": [ ],
+         "nullPointMode": "null as zero",
+         "percentage": false,
+         "pointradius": 5,
+         "points": false,
+         "renderer": "flot",
+         "repeat": null,
+         "seriesOverrides": [ ],
+         "spaceLength": 10,
+         "stack": false,
+         "steppedLine": false,
+         "targets": [
+            {
+               "expr": "sum (\n  celery_queue_length{\n    job=~\"celery|celery-exporter\",\n    queue_name=~\"$queue_name\"\n  }\n) by (job, queue_name)\n",
+               "format": "time_series",
+               "intervalFactor": 2,
+               "legendFormat": "{{ queue_name }}",
+               "refId": "A"
+            }
+         ],
+         "thresholds": [ ],
+         "timeFrom": null,
+         "timeShift": null,
+         "title": "Queue Length",
+         "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+         },
+         "type": "graph",
+         "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": [ ]
+         },
+         "yaxes": [
+            {
+               "format": "short",
+               "label": null,
+               "logBase": 1,
+               "max": null,
+               "min": null,
+               "show": true
+            },
+            {
+               "format": "short",
+               "label": null,
+               "logBase": 1,
+               "max": null,
+               "min": null,
+               "show": true
+            }
+         ]
+      },
+      {
+         "collapse": false,
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 20
+         },
+         "id": 13,
+         "panels": [ ],
+         "repeat": null,
+         "repeatIteration": null,
+         "repeatRowId": null,
+         "showTitle": true,
          "title": "Tasks",
          "titleSize": "h6",
          "type": "row"
@@ -490,9 +600,9 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 14
+            "y": 21
          },
-         "id": 12,
+         "id": 14,
          "links": [ ],
          "sort": {
             "col": 2,
@@ -570,7 +680,7 @@
          ],
          "targets": [
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\",\n      }[$__range]\n    )\n  )\n) by (job)\n/(sum (\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\",\n      }[$__range]\n    )\n  )\n) by (job)\n+sum (\n  round(\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\",\n      }[$__range]\n    )\n  )\n) by (job)\n) > -1\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__range]\n    )\n  )\n) by (job)\n/(sum (\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__range]\n    )\n  )\n) by (job)\n+sum (\n  round(\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__range]\n    )\n  )\n) by (job)\n) > -1\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -578,7 +688,7 @@
                "refId": "A"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\",\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -586,7 +696,7 @@
                "refId": "B"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\",\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -594,7 +704,7 @@
                "refId": "C"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_sent_total{\n        job=~\"celery|celery-exporter\",\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_sent_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -602,7 +712,7 @@
                "refId": "D"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_received_total{\n        job=~\"celery|celery-exporter\",\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_received_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -610,7 +720,7 @@
                "refId": "E"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_rejected_total{\n        job=~\"celery|celery-exporter\",\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_rejected_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -618,7 +728,7 @@
                "refId": "F"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_retried_total{\n        job=~\"celery|celery-exporter\",\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_retried_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -626,7 +736,7 @@
                "refId": "G"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_revoked_total{\n        job=~\"celery|celery-exporter\",\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_revoked_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__range]\n    )\n  )\n) by (job) > 0\n",
                "format": "table",
                "instant": true,
                "intervalFactor": 2,
@@ -651,9 +761,9 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 18
+            "y": 25
          },
-         "id": 13,
+         "id": 15,
          "legend": {
             "alignAsTable": true,
             "avg": true,
@@ -684,49 +794,49 @@
          "steppedLine": false,
          "targets": [
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\",\n      }[$__rate_interval]\n    )\n  )\n)\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_succeeded_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    )\n  )\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Succeeded",
                "refId": "A"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\",\n      }[$__rate_interval]\n    )\n  )\n)\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_failed_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    )\n  )\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Failed",
                "refId": "B"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_sent_total{\n        job=~\"celery|celery-exporter\",\n      }[$__rate_interval]\n    )\n  )\n)\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_sent_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    )\n  )\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Sent",
                "refId": "C"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_received_total{\n        job=~\"celery|celery-exporter\",\n      }[$__rate_interval]\n    )\n  )\n)\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_received_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    )\n  )\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Received",
                "refId": "D"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_retried_total{\n        job=~\"celery|celery-exporter\",\n      }[$__rate_interval]\n    )\n  )\n)\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_retried_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    )\n  )\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Retried",
                "refId": "E"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_rejected_total{\n        job=~\"celery|celery-exporter\",\n      }[$__rate_interval]\n    )\n  )\n)\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_rejected_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    )\n  )\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Rejected",
                "refId": "F"
             },
             {
-               "expr": "sum (\n  round(\n    increase(\n      celery_task_revoked_total{\n        job=~\"celery|celery-exporter\",\n      }[$__rate_interval]\n    )\n  )\n)\n",
+               "expr": "sum (\n  round(\n    increase(\n      celery_task_revoked_total{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    )\n  )\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "Revoked",
@@ -781,9 +891,9 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 28
+            "y": 35
          },
-         "id": 14,
+         "id": 16,
          "legend": {
             "alignAsTable": true,
             "avg": true,
@@ -812,28 +922,28 @@
          "steppedLine": false,
          "targets": [
             {
-               "expr": "histogram_quantile(0.50,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        job=~\"celery|celery-exporter\"\n      }[$__rate_interval]\n    ) > 0\n  ) by (job, le)\n)\n",
+               "expr": "histogram_quantile(0.50,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    ) > 0\n  ) by (job, le)\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "50",
                "refId": "A"
             },
             {
-               "expr": "histogram_quantile(0.95,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        job=~\"celery|celery-exporter\"\n      }[$__rate_interval]\n    ) > 0\n  ) by (job, le)\n)\n",
+               "expr": "histogram_quantile(0.95,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    ) > 0\n  ) by (job, le)\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "95",
                "refId": "B"
             },
             {
-               "expr": "histogram_quantile(0.99,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        job=~\"celery|celery-exporter\"\n      }[$__rate_interval]\n    ) > 0\n  ) by (job, le)\n)\n",
+               "expr": "histogram_quantile(0.99,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    ) > 0\n  ) by (job, le)\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "99",
                "refId": "C"
             },
             {
-               "expr": "histogram_quantile(0.999,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        job=~\"celery|celery-exporter\"\n      }[$__rate_interval]\n    ) > 0\n  ) by (job, le)\n)\n",
+               "expr": "histogram_quantile(0.999,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    ) > 0\n  ) by (job, le)\n)\n",
                "format": "time_series",
                "intervalFactor": 2,
                "legendFormat": "99.9",
@@ -900,6 +1010,26 @@
             "refresh": 1,
             "regex": "",
             "type": "datasource"
+         },
+         {
+            "allValue": null,
+            "current": { },
+            "datasource": "$datasource",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Queue Name",
+            "multi": true,
+            "name": "queue_name",
+            "options": [ ],
+            "query": "label_values(celery_task_received_total{name!~\"None\"}, queue_name)",
+            "refresh": 2,
+            "regex": "",
+            "sort": 1,
+            "tagValuesQuery": "",
+            "tags": [ ],
+            "tagsQuery": "",
+            "type": "query",
+            "useTags": false
          }
       ]
    },

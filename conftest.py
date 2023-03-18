@@ -85,6 +85,7 @@ def find_free_port():
 @pytest.fixture()
 def exporter_instance(find_free_port, celery_config, log_level):
     cfg = {
+        "host": "0.0.0.0",
         "port": find_free_port(),
         "broker_url": celery_config["broker_url"],
         "broker_transport_option": ["visibility_timeout=7200"],

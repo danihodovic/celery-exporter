@@ -18,25 +18,46 @@ local paginateTable = {
         hide='',
       ),
 
+    local queueNameTemplate =
+      template.new(
+        name='queue_name',
+        label='Queue Name',
+        datasource='$datasource',
+        query='label_values(celery_task_received_total{name!~"%(celeryIgnoredQueues)s"}, queue_name)' % $._config,
+        hide='',
+        refresh=2,
+        multi=true,
+        includeAll=true,
+        allValues='.*|',  // Add custom | matching metrics without a queue. Deprecate and remove this down the road
+        sort=1
+      ),
+
     local taskTemplate =
       template.new(
         name='task',
         datasource='$datasource',
-        query='label_values(celery_task_sent_total{name!~"%(celeryIgnoredTasks)s"}, name)' % $._config,
+        query='label_values(celery_task_received_total{queue_name=~"$queue_name", name!~"%(celeryIgnoredTasks)s"}, name)' % $._config,
         hide='',
-        refresh=1,
+        refresh=2,
         multi=true,
         includeAll=false,
         sort=1
       ),
+
+    local templates = [
+      prometheusTemplate,
+      queueNameTemplate,
+      taskTemplate,
+    ],
 
     local taskExceptionsQuery = |||
       round(
         sum (
           increase(
             celery_task_failed_total{
+              %(celerySelector)s,
               name=~"$task",
-              %(celerySelector)s
+              queue_name=~"$queue_name"
             }[$__range]
           )
         ) by (name, exception) > 0
@@ -78,8 +99,9 @@ local paginateTable = {
         round(
           increase(
             celery_task_failed_total{
-              name=~"$task",
               %(celerySelector)s,
+              name=~"$task",
+              queue_name=~"$queue_name"
             }[$__range]
           )
         )
@@ -188,13 +210,48 @@ local paginateTable = {
       .addTarget(prometheus.target(taskRetriedQuery, format='table', instant=true))
       .addTarget(prometheus.target(taskRevokedQuery, format='table', instant=true)),
 
+    local taskFailedByExceptionIntervalQuery = |||
+      sum (
+        round(
+          increase(
+            celery_task_failed_total{
+              %(celerySelector)s,
+              name=~"$task",
+              queue_name=~"$queue_name"
+            }[$__rate_interval]
+          )
+        )
+      ) by (name, exception)
+    ||| % $._config,
+
+    local tasksFailedByExceptionGraphPanel =
+      grafana.graphPanel.new(
+        'Task Exceptions',
+        datasource='$datasource',
+        legend_show=true,
+        legend_values=true,
+        legend_alignAsTable=true,
+        legend_rightSide=true,
+        legend_avg=true,
+        legend_current=true,
+        legend_hideZero=true,
+        legend_sort='avg',
+        legend_sortDesc=true,
+        nullPointMode='null as zero'
+      )
+      .addTarget(prometheus.target(
+        taskFailedByExceptionIntervalQuery,
+        legendFormat='{{ name }} - {{ exception }}',
+      )),
+
     local taskFailedIntervalQuery = |||
       sum (
         round(
           increase(
             celery_task_failed_total{
-              name=~"$task",
               %(celerySelector)s,
+              name=~"$task",
+              queue_name=~"$queue_name"
             }[$__rate_interval]
           )
         )
@@ -256,8 +313,9 @@ local paginateTable = {
         sum(
           irate(
             celery_task_runtime_bucket{
+              %(celerySelector)s,
               name=~"$task",
-              %(celerySelector)s
+              queue_name=~"$queue_name"
             }[$__rate_interval]
           ) > 0
         ) by (name, job, le)
@@ -265,7 +323,6 @@ local paginateTable = {
     ||| % $._config,
     local tasksRuntimeP95Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.95'),
     local tasksRuntimeP99Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.99'),
-    local tasksRuntimeP999Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.999'),
 
     local tasksRuntimeGraphPanel =
       grafana.graphPanel.new(
@@ -297,12 +354,6 @@ local paginateTable = {
         prometheus.target(
           tasksRuntimeP99Query,
           legendFormat='99 - {{ name }}',
-        )
-      )
-      .addTarget(
-        prometheus.target(
-          tasksRuntimeP999Query,
-          legendFormat='99.9 - {{ name }}',
         )
       ),
 
@@ -336,11 +387,15 @@ local paginateTable = {
         gridPos={ h: 10, w: 24, x: 0, y: 9 }
       )
       .addPanel(
+        tasksFailedByExceptionGraphPanel,
+        gridPos={ h: 8, w: 24, x: 0, y: 19 }
+      )
+      .addPanel(
         tasksRuntimeGraphPanel,
-        gridPos={ h: 6, w: 24, x: 0, y: 19 }
+        gridPos={ h: 6, w: 24, x: 0, y: 27 }
       )
       +
-      { templating+: { list+: [prometheusTemplate, taskTemplate] } } +
+      { templating+: { list+: templates } } +
       if $._config.annotation.enabled then
         {
           annotations: {

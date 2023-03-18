@@ -29,56 +29,50 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             "task-sent": Counter(
                 "celery_task_sent",
                 "Sent when a task message is published.",
-                [
-                    "name",
-                    "hostname",
-                ],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-received": Counter(
                 "celery_task_received",
                 "Sent when the worker receives a task.",
-                ["name", "hostname"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-started": Counter(
                 "celery_task_started",
                 "Sent just before the worker executes the task.",
-                [
-                    "name",
-                    "hostname",
-                ],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-succeeded": Counter(
                 "celery_task_succeeded",
                 "Sent if the task executed successfully.",
-                ["name", "hostname"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-failed": Counter(
                 "celery_task_failed",
                 "Sent if the execution of the task failed.",
-                ["name", "hostname", "exception"],
+                ["name", "hostname", "exception", "queue_name"],
                 registry=self.registry,
             ),
             "task-rejected": Counter(
                 "celery_task_rejected",
                 # pylint: disable=line-too-long
                 "The task was rejected by the worker, possibly to be re-queued or moved to a dead letter queue.",
-                ["name", "hostname"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-revoked": Counter(
                 "celery_task_revoked",
                 "Sent if the task has been revoked.",
-                ["name", "hostname"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-retried": Counter(
                 "celery_task_retried",
                 "Sent if the task failed, but will be retried in the future.",
-                ["name", "hostname"],
+                ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
         }
@@ -97,7 +91,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.celery_task_runtime = Histogram(
             "celery_task_runtime",
             "Histogram of task runtime measurements.",
-            ["name", "hostname"],
+            ["name", "hostname", "queue_name"],
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
@@ -117,7 +111,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
     def track_queue_metrics(self):
         with self.app.connection() as connection:  # type: ignore
             transport = connection.info()["transport"]
-            acceptable_transports = ["redis", "amqp", "memory"]
+            acceptable_transports = ["redis", "rediss", "amqp", "memory", "sentinel"]
             if transport not in acceptable_transports:
                 logger.debug(
                     f"Queue length tracking is only implemented for {acceptable_transports}"
@@ -147,7 +141,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 queue_name=q
             ).set(l)
             for queue in self.queue_cache:
-                if transport == "redis":
+                if transport in ["redis", "rediss", "sentinel"]:
                     queue_length = redis_queue_length(connection, queue)
                     track_length(queue, queue_length)
                 elif transport in ["amqp", "memory"]:
@@ -167,7 +161,11 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         if event["type"] not in self.state_counters:
             logger.warning("No counter matches task state='{}'", task.state)
 
-        labels = {"name": task.name, "hostname": get_hostname(task.hostname)}
+        labels = {
+            "name": task.name,
+            "hostname": get_hostname(task.hostname),
+            "queue_name": getattr(task, "queue", "celery"),
+        }
 
         for counter_name, counter in self.state_counters.items():
             _labels = labels.copy()
@@ -269,6 +267,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             start_http_server(
                 self.registry,
                 connection,
+                click_params["host"],
                 click_params["port"],
                 self.track_queue_metrics,
             )

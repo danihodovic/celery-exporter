@@ -22,11 +22,11 @@ Prometheus in real-time.
 
 ## Features
 
+- Tested for both Redis and RabbitMQ
 - Uses the built in [real-time monitoring component in Celery](https://docs.celeryproject.org/en/latest/userguide/monitoring.html#real-time-processing) to expose Prometheus metrics
 - Tracks task status (task-started, task-succeeded, task-failed etc)
 - Tracks which workers are running and the number of active tasks
 - Follows the Prometheus exporter [best practises](https://prometheus.io/docs/instrumenting/writing_exporters/)
-- Works with both Redis and RabbitMQ
 - Deployed as a Docker image or Python single-file binary (via PyInstaller)
 - Exposes a health check endpoint at /health
 - Grafana dashboards provided by the Celery-mixin
