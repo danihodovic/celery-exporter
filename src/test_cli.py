@@ -14,6 +14,10 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
     def succeed():
         pass
 
+    @celery_app.task(priority=4)
+    def succeed_p4():
+        pass
+
     @celery_app.task
     def fail():
         raise HTTPError("Intentional error")
@@ -32,12 +36,14 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
 
     succeed.apply_async()
     succeed.apply_async()
+    succeed_p4.apply_async()
     fail.apply_async()
 
     # assert celery_queue_length when message in broker but no worker start
     res = requests.get(exporter_url, timeout=3)
     assert res.status_code == 200
     assert 'celery_queue_length{queue_name="celery"} 3.0' in res.text
+    assert 'celery_queue_length{queue_name="celery:4"} 1.0' in res.text
     if broker == "memory":
         assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
 
@@ -51,6 +57,10 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
     assert (
         f'celery_task_sent_total{{hostname="{hostname}",name="src.test_cli.succeed",queue_name="celery"}} 2.0'
         in res.text
+    )
+    assert (
+            f'celery_task_sent_total{{hostname="{hostname}",name="src.test_cli.succeed_p4",queue_name="celery"}} 1.0'
+            in res.text
     )
     assert (
         f'celery_task_sent_total{{hostname="{hostname}",name="src.test_cli.fail",queue_name="celery"}} 1.0'
@@ -85,6 +95,7 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
         in res.text
     )
     assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text
+    assert 'celery_queue_length{queue_name="celery:4"} 0.0' in res.text
 
     # TODO: Fix this...
     if broker == "memory":

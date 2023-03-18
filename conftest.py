@@ -41,6 +41,11 @@ def celery_config(broker):
     )
     if broker == "redis":
         config["broker_url"] = "redis://localhost:6379/"  # type: ignore
+        config["broker_transport_options"] = {
+            'priority_steps': list(range(10)),
+            'queue_order_strategy': 'priority',
+            'sep': ':'
+        }
     elif broker == "rabbitmq":
         config["broker_url"] = "amqp://guest:guest@localhost:5672"  # type: ignore
     elif broker == "memory":
@@ -70,7 +75,6 @@ def find_free_port():
     """
 
     def _find_free_port():
-
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(("0.0.0.0", 0))
@@ -88,7 +92,7 @@ def exporter_instance(find_free_port, celery_config, log_level):
         "host": "0.0.0.0",
         "port": find_free_port(),
         "broker_url": celery_config["broker_url"],
-        "broker_transport_option": ["visibility_timeout=7200"],
+        "broker_transport_option": ["visibility_timeout=7200", "sep=:", "priority_steps=[0,1,2,3,4,5,6,7,8,9]"],
         "broker_ssl_option": [],
         "retry_interval": 5,
         "log_level": log_level,

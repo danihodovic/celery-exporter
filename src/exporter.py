@@ -111,7 +111,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
     def track_queue_metrics(self):
         with self.app.connection() as connection:  # type: ignore
             transport = connection.info()["transport"]
-            acceptable_transports = ["redis", "rediss", "amqp", "memory", "sentinel"]
+            acceptable_transports = ["redis", "rediss", "amqp", "amqps", "memory", "sentinel"]
             if transport not in acceptable_transports:
                 logger.debug(
                     f"Queue length tracking is only implemented for {acceptable_transports}"
@@ -144,7 +144,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 if transport in ["redis", "rediss", "sentinel"]:
                     queue_length = redis_queue_length(connection, queue)
                     track_length(queue, queue_length)
-                elif transport in ["amqp", "memory"]:
+                elif transport in ["amqp", "amqps", "memory"]:
                     queue_length = rabbitmq_queue_length(connection, queue)
                     track_length(queue, queue_length)
 
