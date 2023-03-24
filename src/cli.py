@@ -66,6 +66,13 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     help="Buckets for runtime histogram",
 )
 @click.option("--log-level", default="INFO", show_default=True)
+@click.option(
+    "--worker-timeout",
+    default=5*60,
+    show_default=True,
+    help="If no heartbeat has been recieved for a worker in this many seconds, "
+         "that a worker will be considered dead.",
+)
 def cli(  # pylint: disable=too-many-arguments
     broker_url,
     broker_transport_option,
@@ -76,7 +83,8 @@ def cli(  # pylint: disable=too-many-arguments
     buckets,
     log_level,
     broker_ssl_option,
+    worker_timeout,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()
-    Exporter(formatted_buckets).run(ctx.params)
+    Exporter(formatted_buckets, worker_timeout).run(ctx.params)
