@@ -106,6 +106,11 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         )
 
     def scrape(self):
+        if self.worker_timeout_seconds > 0:
+            self.track_timed_out_workers()
+        self.track_queue_metrics()
+
+    def track_timed_out_workers(self):
         now = time.time()
         # Make a copy of the last seen dict so we can delete from the dict with no issues
         for hostname, last_seen in list(self.worker_last_seen.items()):
@@ -121,8 +126,6 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 logger.debug("Updated gauge='{}' value='{}'", self.celery_worker_up._name, 0)
 
                 del self.worker_last_seen[hostname]
-
-        self.track_queue_metrics()
 
     def track_queue_metrics(self):
         with self.app.connection() as connection:  # type: ignore
