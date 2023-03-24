@@ -17,9 +17,11 @@ from .http_server import start_http_server
 class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branches
     state: State = None
 
-    def __init__(self, buckets=None):
+    def __init__(self, buckets=None, worker_timeout_seconds=5*60):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set()
+        self.worker_last_seen = {}
+        self.worker_timeout_seconds = worker_timeout_seconds
         self.state_counters = {
             "task-sent": Counter(
                 "celery_task_sent",
@@ -103,6 +105,25 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
         )
 
+    def scrape(self):
+        now = time.time()
+        # Make a copy of the last seen dict so we can delete from the dict with no issues
+        for hostname, last_seen in list(self.worker_last_seen.items()):
+            since = now - last_seen
+            if since > self.worker_timeout_seconds:
+                logger.info(
+                    f"Have not seen {hostname} for {since:0.2f} seconds. "
+                    "Removing from metrics"
+                )
+                self.celery_worker_up.labels(hostname=hostname).set(0)
+                self.worker_tasks_active.labels(hostname=hostname).set(0)
+                logger.debug("Updated gauge='{}' value='{}'", self.worker_tasks_active._name, 0)
+                logger.debug("Updated gauge='{}' value='{}'", self.celery_worker_up._name, 0)
+
+                del self.worker_last_seen[hostname]
+
+        self.track_queue_metrics()
+
     def track_queue_metrics(self):
         with self.app.connection() as connection:  # type: ignore
             transport = connection.info()["transport"]
@@ -185,10 +206,17 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         logger.debug("Received event='{}' for hostname='{}'", event_name, hostname)
         self.celery_worker_up.labels(hostname=hostname).set(value)
 
+        if is_online:
+            self.worker_last_seen[hostname] = event['timestamp']
+        else:
+            del self.worker_last_seen[hostname]
+            self.worker_tasks_active.labels(hostname=hostname).set(0)
+
     def track_worker_heartbeat(self, event):
         hostname = get_hostname(event["hostname"])
         logger.debug("Received event='{}' for worker='{}'", event["type"], hostname)
 
+        self.worker_last_seen[hostname] = event['timestamp']
         worker_state = self.state.event(event)[0][0]
         active = worker_state.active or 0
         up = 1 if worker_state.alive else 0
@@ -253,7 +281,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 connection,
                 click_params["host"],
                 click_params["port"],
-                self.track_queue_metrics,
+                self.scrape,
             )
             while True:
                 try:
