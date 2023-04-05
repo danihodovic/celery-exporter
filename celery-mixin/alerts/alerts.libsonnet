@@ -17,15 +17,27 @@
                 )
               )  by (job, namespace, queue_name, name)
               /
-              sum(
-                increase(
-                  celery_task_succeeded_total{
-                    %(celerySelector)s,
-                    queue_name!~"%(celeryIgnoredQueues)s",
-                    name!~"%(celeryIgnoredTasks)s"
-                  }[%(celeryTaskFailedInterval)s]
-                )
-              )  by (job, namespace, queue_name, name)
+              (
+                sum(
+                  increase(
+                    celery_task_failed_total{
+                      %(celerySelector)s,
+                      queue_name!~"%(celeryIgnoredQueues)s",
+                      name!~"%(celeryIgnoredTasks)s"
+                    }[%(celeryTaskFailedInterval)s]
+                  )
+                )  by (job, namespace, queue_name, name)
+                +
+                sum(
+                  increase(
+                    celery_task_succeeded_total{
+                      %(celerySelector)s,
+                      queue_name!~"%(celeryIgnoredQueues)s",
+                      name!~"%(celeryIgnoredTasks)s"
+                    }[%(celeryTaskFailedInterval)s]
+                  )
+                )  by (job, namespace, queue_name, name)
+              )
               * 100 > %(celeryTaskFailedThreshold)s
             ||| % $._config,
             annotations: {

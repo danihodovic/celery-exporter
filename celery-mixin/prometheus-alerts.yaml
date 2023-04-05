@@ -17,15 +17,27 @@
         )
       )  by (job, namespace, queue_name, name)
       /
-      sum(
-        increase(
-          celery_task_succeeded_total{
-            job=~"celery|celery-exporter",
-            queue_name!~"None",
-            name!~"None"
-          }[10m]
-        )
-      )  by (job, namespace, queue_name, name)
+      (
+        sum(
+          increase(
+            celery_task_failed_total{
+              job=~"celery|celery-exporter",
+              queue_name!~"None",
+              name!~"None"
+            }[10m]
+          )
+        )  by (job, namespace, queue_name, name)
+        +
+        sum(
+          increase(
+            celery_task_succeeded_total{
+              job=~"celery|celery-exporter",
+              queue_name!~"None",
+              name!~"None"
+            }[10m]
+          )
+        )  by (job, namespace, queue_name, name)
+      )
       * 100 > 5
     "labels":
       "severity": "warning"
