@@ -68,11 +68,11 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
 @click.option("--log-level", default="INFO", show_default=True)
 @click.option(
     "--worker-timeout",
-    default=5*60,
+    default=5 * 60,
     show_default=True,
     help="If no heartbeat has been recieved from a worker in this many seconds, "
-         "that a worker will be considered dead. If set to 0, workers will never "
-         "be timed out",
+    "that a worker will be considered dead. If set to 0, workers will never be "
+    "timed out",
 )
 def cli(  # pylint: disable=too-many-arguments
     broker_url,

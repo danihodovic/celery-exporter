@@ -17,7 +17,7 @@ from .http_server import start_http_server
 class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branches
     state: State = None
 
-    def __init__(self, buckets=None, worker_timeout_seconds=5*60):
+    def __init__(self, buckets=None, worker_timeout_seconds=5 * 60):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set()
         self.worker_last_seen = {}
@@ -122,8 +122,12 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 )
                 self.celery_worker_up.labels(hostname=hostname).set(0)
                 self.worker_tasks_active.labels(hostname=hostname).set(0)
-                logger.debug("Updated gauge='{}' value='{}'", self.worker_tasks_active._name, 0)
-                logger.debug("Updated gauge='{}' value='{}'", self.celery_worker_up._name, 0)
+                logger.debug(
+                    "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, 0
+                )
+                logger.debug(
+                    "Updated gauge='{}' value='{}'", self.celery_worker_up._name, 0
+                )
 
                 del self.worker_last_seen[hostname]
 
@@ -210,7 +214,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.celery_worker_up.labels(hostname=hostname).set(value)
 
         if is_online:
-            self.worker_last_seen[hostname] = event['timestamp']
+            self.worker_last_seen[hostname] = event["timestamp"]
         else:
             del self.worker_last_seen[hostname]
             self.worker_tasks_active.labels(hostname=hostname).set(0)
@@ -219,7 +223,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         hostname = get_hostname(event["hostname"])
         logger.debug("Received event='{}' for worker='{}'", event["type"], hostname)
 
-        self.worker_last_seen[hostname] = event['timestamp']
+        self.worker_last_seen[hostname] = event["timestamp"]
         worker_state = self.state.event(event)[0][0]
         active = worker_state.active or 0
         up = 1 if worker_state.alive else 0
