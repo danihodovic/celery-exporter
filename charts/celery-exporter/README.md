@@ -55,4 +55,11 @@ Prometheus exporter for Celery
 | serviceMonitor.scrapeInterval | string | `"30s"` |  |
 | serviceMonitor.targetLabels | list | `[]` |  |
 | tolerations | list | `[]` |  |
-
+| livenessProbe.timeoutSeconds | object | `5` |  |
+| livenessProbe.failureThreshold | object | `5` |  |
+| livenessProbe.periodSeconds | object | `10` |  |
+| livenessProbe.successThreshold | object | `1` |  |
+| readinessProbe.timeoutSeconds | object | `5` |  |
+| readinessProbe.failureThreshold | object | `5` |  |
+| readinessProbe.periodSeconds | object | `10` |  |
+| readinessProbe.namespaceSelector | object | `1` |  |
