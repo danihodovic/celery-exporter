@@ -68,3 +68,24 @@ def test_worker_status(threaded_exporter, celery_app, hostname):
         )
         == 0.0
     )
+
+
+def test_worker_timeout_status(threaded_exporter, hostname):
+    ts = time.time()
+    threaded_exporter.track_worker_status({"hostname": hostname, "timestamp": ts}, True)
+    assert (
+        threaded_exporter.registry.get_sample_value(
+            "celery_worker_up", labels={"hostname": hostname}
+        )
+        == 1.0
+    )
+    assert threaded_exporter.worker_last_seen[hostname] == ts
+
+    time.sleep(5)
+    threaded_exporter.scrape()
+    assert (
+        threaded_exporter.registry.get_sample_value(
+            "celery_worker_up", labels={"hostname": hostname}
+        )
+        == 0.0
+    )
