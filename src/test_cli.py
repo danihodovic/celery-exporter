@@ -21,14 +21,17 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
     # start worker first so the exporter can fetch and cache queue information
     with start_worker(celery_app, without_heartbeat=False):
         time.sleep(5)
-        res = requests.get(exporter_url, timeout=3)
+        res = requests.get(exporter_url, timeout=5)
         assert res.status_code == 200
         assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text, res.text
+
         # TODO: Fix this...
         if broker == "memory":
             assert (
                 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
             ), res.text
+        assert 'celery_active_worker_count{queue_name="celery"} 1.0' in res.text
+        assert 'celery_active_process_count{queue_name="celery"} 1.0' in res.text
 
     succeed.apply_async()
     succeed.apply_async()
@@ -38,8 +41,11 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
     res = requests.get(exporter_url, timeout=3)
     assert res.status_code == 200
     assert 'celery_queue_length{queue_name="celery"} 3.0' in res.text
+
     if broker == "memory":
         assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
+    assert 'celery_active_worker_count{queue_name="celery"} 0.0' in res.text
+    assert 'celery_active_process_count{queue_name="celery"} 0.0' in res.text
 
     # start worker and consume message in broker
     with start_worker(celery_app, without_heartbeat=False):
@@ -89,3 +95,5 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
     # TODO: Fix this...
     if broker == "memory":
         assert 'celery_active_consumer_count{queue_name="celery"} 0.0' in res.text
+    assert 'celery_active_worker_count{queue_name="celery"} 0.0' in res.text
+    assert 'celery_active_process_count{queue_name="celery"} 0.0' in res.text

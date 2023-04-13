@@ -4,6 +4,9 @@ import re
 import sys
 import time
 
+from collections import defaultdict
+from typing import Optional
+
 from celery import Celery
 from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
@@ -114,6 +117,18 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             ["queue_name"],
             registry=self.registry,
         )
+        self.celery_active_worker_count = Gauge(
+            "celery_active_worker_count",
+            "The number of active workers in broker queue.",
+            ["queue_name"],
+            registry=self.registry,
+        )
+        self.celery_active_process_count = Gauge(
+            "celery_active_process_count",
+            "The number of active processes in broker queue. Each worker may have multiple processes.",
+            ["queue_name"],
+            registry=self.registry,
+        )
 
     def scrape(self):
         if (
@@ -199,29 +214,41 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 )
                 return
 
+            inspect = self.app.control.inspect()
+            concurrency_per_worker = {
+                worker: len(stats["pool"]["processes"])
+                for worker, stats in (inspect.stats() or {}).items()
+            }
+            processes_per_queue = defaultdict(int)
+            workers_per_queue = defaultdict(int)
+
             # request workers to response active queues
             # we need to cache queue info in exporter in case all workers are offline
             # so that no worker response to exporter will make active_queues return None
-            queues = self.app.control.inspect().active_queues() or {}
-            for info_list in queues.values():
+            queues = inspect.active_queues() or {}
+            for worker, info_list in queues.items():
                 for queue_info in info_list:
-                    self.queue_cache.add(queue_info["name"])
+                    name = queue_info["name"]
+                    self.queue_cache.add(name)
+                    workers_per_queue[name] += 1
+                    processes_per_queue[name] += concurrency_per_worker.get(worker, 0)
 
-            track_length = lambda q, l: self.celery_queue_length.labels(
-                queue_name=q
-            ).set(l)
             for queue in self.queue_cache:
-                if transport in ["redis", "rediss", "sentinel"]:
-                    queue_length = redis_queue_length(connection, queue)
-                    track_length(queue, queue_length)
-                elif transport in ["amqp", "amqps", "memory"]:
-                    queue_length = rabbitmq_queue_length(connection, queue)
-                    track_length(queue, queue_length)
-
+                if transport in ["amqp", "amqps", "memory"]:
                     consumer_count = rabbitmq_queue_consumer_count(connection, queue)
                     self.celery_active_consumer_count.labels(queue_name=queue).set(
                         consumer_count
                     )
+
+                self.celery_active_process_count.labels(queue_name=queue).set(
+                    processes_per_queue[queue]
+                )
+                self.celery_active_worker_count.labels(queue_name=queue).set(
+                    workers_per_queue[queue]
+                )
+                length = queue_length(transport, connection, queue)
+                if length is not None:
+                    self.celery_queue_length.labels(queue_name=queue).set(length)
 
     def track_task_event(self, event):
         self.state.event(event)
@@ -424,6 +451,15 @@ def redis_queue_length(connection, queue: str) -> int:
 
 def rabbitmq_queue_length(connection, queue: str) -> int:
     return rabbitmq_queue_info(connection, queue).message_count
+
+
+def queue_length(transport, connection, queue: str) -> Optional[int]:
+    if transport in ["redis", "rediss", "sentinel"]:
+        return redis_queue_length(connection, queue)
+    elif transport in ["amqp", "memory"]:
+        return rabbitmq_queue_length(connection, queue)
+    else:
+        return None
 
 
 def rabbitmq_queue_consumer_count(connection, queue: str) -> int:
