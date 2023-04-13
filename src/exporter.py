@@ -110,6 +110,19 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             self.track_timed_out_workers()
         self.track_queue_metrics()
 
+    def forget_worker(self, hostname):
+        if hostname in self.worker_last_seen:
+            self.celery_worker_up.labels(hostname=hostname).set(0)
+            self.worker_tasks_active.labels(hostname=hostname).set(0)
+            logger.debug(
+                "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, 0
+            )
+            logger.debug(
+                "Updated gauge='{}' value='{}'", self.celery_worker_up._name, 0
+            )
+
+            del self.worker_last_seen[hostname]
+
     def track_timed_out_workers(self):
         now = time.time()
         # Make a copy of the last seen dict so we can delete from the dict with no issues
@@ -120,16 +133,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                     f"Have not seen {hostname} for {since:0.2f} seconds. "
                     "Removing from metrics"
                 )
-                self.celery_worker_up.labels(hostname=hostname).set(0)
-                self.worker_tasks_active.labels(hostname=hostname).set(0)
-                logger.debug(
-                    "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, 0
-                )
-                logger.debug(
-                    "Updated gauge='{}' value='{}'", self.celery_worker_up._name, 0
-                )
-
-                del self.worker_last_seen[hostname]
+                self.forget_worker(hostname)
 
     def track_queue_metrics(self):
         with self.app.connection() as connection:  # type: ignore
@@ -216,8 +220,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         if is_online:
             self.worker_last_seen[hostname] = event["timestamp"]
         else:
-            del self.worker_last_seen[hostname]
-            self.worker_tasks_active.labels(hostname=hostname).set(0)
+            self.forget_worker(hostname)
 
     def track_worker_heartbeat(self, event):
         hostname = get_hostname(event["hostname"])
