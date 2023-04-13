@@ -14,7 +14,7 @@ description = ""
 authors = ["Dani Hodovic <dani.hodovic@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.12"
 celery = "^5.0"
 prometheus-client = "^0.13.1"
 click = "^8.0.4"
@@ -36,7 +36,7 @@ pylint = "^2.7.1"
 pytest-cov = "^3.0.0"
 ptpython = "^3.0.13"
 pytest-mock = "^3.5.1"
-pyinstaller = "v4.0"
+pyinstaller = "^5"
 mypy = "^0.931"
 types-requests = "^2.27.11"
 types-waitress = "^2.0.6"
