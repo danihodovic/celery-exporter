@@ -93,8 +93,9 @@ def exporter_instance(find_free_port, celery_config, log_level):
         "retry_interval": 5,
         "log_level": log_level,
         "accept_content": None,
+        "worker_timeout": 1,
     }
-    exporter = Exporter()
+    exporter = Exporter(worker_timeout_seconds=cfg["worker_timeout"])
     setattr(exporter, "cfg", cfg)
     yield exporter
 
