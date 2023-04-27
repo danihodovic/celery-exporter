@@ -39,18 +39,18 @@ spec:
             httpGet:
               path: /health
               port: http
-              timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default "5" }}
-              failureThreshold: {{ .Values.livenessProbe.failureThreshold | default "5" }}
-              periodSeconds: {{ .Values.livenessProbe.periodSeconds | default "10" }}
-              successThreshold: {{ .Values.livenessProbe.successThreshold | default "1" }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default "5" }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default "5" }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds | default "10" }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold | default "1" }}
           livenessProbe:
             httpGet:
               path: /health
               port: http
-              timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default "5" }}
-              failureThreshold: {{ .Values.livenessProbe.failureThreshold | default "5" }}
-              periodSeconds: {{ .Values.livenessProbe.periodSeconds | default "10" }}
-              successThreshold: {{ .Values.livenessProbe.successThreshold | default "1" }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default "5" }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default "5" }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds | default "10" }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold | default "1" }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.env }}
