@@ -138,7 +138,9 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
     def track_queue_metrics(self):
         with self.app.connection() as connection:  # type: ignore
             transport = connection.info()["transport"]
-            acceptable_transports = ["redis", "rediss", "amqp", "amqps", "memory", "sentinel"]
+            acceptable_transports = [
+                "redis", "rediss", "amqp", "amqps", "memory", "sentinel",
+            ]
             if transport not in acceptable_transports:
                 logger.debug(
                     f"Queue length tracking is only implemented for {acceptable_transports}"
