@@ -39,6 +39,7 @@
         )  by (job, namespace, queue_name, name)
       )
       * 100 > 5
+    "for": "1m"
     "labels":
       "severity": "warning"
   - "alert": "CeleryHighQueueLength"

@@ -45,6 +45,7 @@
               description: 'More than %(celeryTaskFailedThreshold)s%% tasks failed for the task {{ $labels.queue_name }}/{{ $labels.name }} the past %(celeryTaskFailedInterval)s.' % $._config,
               dashboard_url: $._config.celeryTasksByTaskUrl + '?&var-queue_name={{ $labels.queue_name }}&var-task={{ $labels.name }}',
             },
+            'for': '1m',
             labels: {
               severity: 'warning',
             },
@@ -74,7 +75,7 @@
             expr: |||
               celery_worker_up{%(celerySelector)s} == 0
             ||| % $._config,
-            'for': '15m',
+            'for': $._config.celeryWorkerDownInterval,
             labels: {
               severity: 'warning',
             },
