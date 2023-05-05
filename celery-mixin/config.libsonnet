@@ -27,6 +27,7 @@ local annotation = grafana.annotation;
     celeryTaskFailedThreshold: '5',  // percent
     celeryHighQueueLengthInterval: '20m',
     celeryHighQueueLengthThreshold: '100',
+    celeryWorkerDownInterval: '15m',
 
     // Custom annotations to display in graphs
     annotation: {
