@@ -67,7 +67,8 @@ disable=
         redefined-outer-name,
         missing-class-docstring,
         fixme,
-        unnecessary-lambda-assignment
+        unnecessary-lambda-assignment,
+        use-dict-literal
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -513,5 +514,5 @@ valid-metaclass-classmethod-first-arg=cls
 
 # Exceptions that will emit a warning when being caught. Defaults to
 # "BaseException, Exception".
-overgeneral-exceptions=BaseException,
-                       Exception
+overgeneral-exceptions=builtins.BaseException,
+                       builtins.Exception
