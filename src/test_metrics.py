@@ -89,3 +89,28 @@ def test_worker_timeout_status(threaded_exporter, hostname):
         )
         == 0.0
     )
+
+
+def test_worker_generic_task_sent_hostname(threaded_exporter, celery_app):
+    threaded_exporter.generic_hostname_task_sent_metric = True
+    time.sleep(5)
+
+    @celery_app.task
+    def succeed():
+        pass
+
+    succeed.apply_async()
+
+    with start_worker(celery_app, without_heartbeat=False):
+        time.sleep(5)
+        assert (
+            threaded_exporter.registry.get_sample_value(
+                "celery_task_sent_total",
+                labels={
+                    "hostname": "generic",
+                    "name": "src.test_metrics.succeed",
+                    "queue_name": "celery",
+                },
+            )
+            == 1.0
+        )
