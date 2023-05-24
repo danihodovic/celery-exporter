@@ -17,11 +17,17 @@ from .http_server import start_http_server
 class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branches
     state: State = None
 
-    def __init__(self, buckets=None, worker_timeout_seconds=5 * 60):
+    def __init__(
+        self,
+        buckets=None,
+        worker_timeout_seconds=5 * 60,
+        generic_hostname_task_sent_metric=False,
+    ):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set()
         self.worker_last_seen = {}
         self.worker_timeout_seconds = worker_timeout_seconds
+        self.generic_hostname_task_sent_metric = generic_hostname_task_sent_metric
         self.state_counters = {
             "task-sent": Counter(
                 "celery_task_sent",
@@ -189,6 +195,8 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             "hostname": get_hostname(task.hostname),
             "queue_name": getattr(task, "queue", "celery"),
         }
+        if event["type"] == "task-sent" and self.generic_hostname_task_sent_metric:
+            labels["hostname"] = "generic"
 
         for counter_name, counter in self.state_counters.items():
             _labels = labels.copy()

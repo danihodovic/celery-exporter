@@ -74,6 +74,16 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     "that a worker will be considered dead. If set to 0, workers will never be "
     "timed out",
 )
+@click.option(
+    "--generic-hostname-task-sent-metric",
+    default=False,
+    is_flag=True,
+    help="The metric celery_task_sent_total will be labeled with a generic hostname. "
+    "This option helps with label cardinality when using a dynamic number of clients "
+    "which create tasks. The default behavior is to label the metric with the client's hostname. "
+    "Knowing which client sent a task might not be useful for many use cases as for example in "
+    "Kubernetes environments where the client's hostname is a random string.",
+)
 def cli(  # pylint: disable=too-many-arguments
     broker_url,
     broker_transport_option,
@@ -85,7 +95,10 @@ def cli(  # pylint: disable=too-many-arguments
     log_level,
     broker_ssl_option,
     worker_timeout,
+    generic_hostname_task_sent_metric,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()
-    Exporter(formatted_buckets, worker_timeout).run(ctx.params)
+    Exporter(formatted_buckets, worker_timeout, generic_hostname_task_sent_metric).run(
+        ctx.params
+    )
