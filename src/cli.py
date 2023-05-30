@@ -75,6 +75,15 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     "timed out",
 )
 @click.option(
+    "--purge-offline-worker-metrics",
+    default=10 * 60,
+    show_default=True,
+    help="If no heartbeat has been recieved from a worker in this many seconds, "
+    "that a worker will be considered dead. Metrics will be purged for this worker "
+    "after this many seconds. If set to 0, metrics will never be purged. Helps "
+    "with keeping the cardinality of the metrics low.",
+)
+@click.option(
     "--generic-hostname-task-sent-metric",
     default=False,
     is_flag=True,
@@ -95,10 +104,14 @@ def cli(  # pylint: disable=too-many-arguments
     log_level,
     broker_ssl_option,
     worker_timeout,
+    purge_offline_worker_metrics,
     generic_hostname_task_sent_metric,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()
-    Exporter(formatted_buckets, worker_timeout, generic_hostname_task_sent_metric).run(
-        ctx.params
-    )
+    Exporter(
+        formatted_buckets,
+        worker_timeout,
+        purge_offline_worker_metrics,
+        generic_hostname_task_sent_metric,
+    ).run(ctx.params)

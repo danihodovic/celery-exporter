@@ -94,8 +94,12 @@ def exporter_instance(find_free_port, celery_config, log_level):
         "log_level": log_level,
         "accept_content": None,
         "worker_timeout": 1,
+        "purge_offline_worker_metrics": 5,
     }
-    exporter = Exporter(worker_timeout_seconds=cfg["worker_timeout"])
+    exporter = Exporter(
+        worker_timeout_seconds=cfg["worker_timeout"],
+        purge_offline_worker_metrics_seconds=cfg["purge_offline_worker_metrics"],
+    )
     setattr(exporter, "cfg", cfg)
     yield exporter
 
