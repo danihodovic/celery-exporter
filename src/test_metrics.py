@@ -131,7 +131,7 @@ def test_purge_offline_worker_metrics(threaded_exporter, hostname):
 
     assert threaded_exporter.worker_last_seen[hostname] == ts
 
-    time.sleep(8)
+    time.sleep(15)
     threaded_exporter.scrape()
     assert (
         threaded_exporter.registry.get_sample_value(

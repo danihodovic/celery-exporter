@@ -94,7 +94,7 @@ def exporter_instance(find_free_port, celery_config, log_level):
         "log_level": log_level,
         "accept_content": None,
         "worker_timeout": 1,
-        "purge_offline_worker_metrics": 5,
+        "purge_offline_worker_metrics": 10,
     }
     exporter = Exporter(
         worker_timeout_seconds=cfg["worker_timeout"],
