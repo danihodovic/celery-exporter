@@ -21,12 +21,16 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self,
         buckets=None,
         worker_timeout_seconds=5 * 60,
+        purge_offline_worker_metrics_seconds=10 * 60,
         generic_hostname_task_sent_metric=False,
     ):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set()
         self.worker_last_seen = {}
         self.worker_timeout_seconds = worker_timeout_seconds
+        self.purge_offline_worker_metrics_after_seconds = (
+            purge_offline_worker_metrics_seconds
+        )
         self.generic_hostname_task_sent_metric = generic_hostname_task_sent_metric
         self.state_counters = {
             "task-sent": Counter(
@@ -129,6 +133,26 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
 
             del self.worker_last_seen[hostname]
 
+    def purge_worker_metrics(self, hostname):
+        # Prometheus stores a copy of the metrics in memory, so we need to remove them
+        # The key of the metrics is a string sequence e.g ('celery(queue_name)', 'host-1(hostname)')
+        for label_seq in list(self.worker_tasks_active._metrics.keys()):
+            if hostname in label_seq:
+                self.worker_tasks_active.remove(*label_seq)
+
+        for label_seq in list(self.celery_worker_up._metrics.keys()):
+            if hostname in label_seq:
+                self.celery_worker_up.remove(*label_seq)
+
+        for counter in self.state_counters.values():
+            for label_seq in list(counter._metrics.keys()):
+                if hostname in label_seq:
+                    counter.remove(*label_seq)
+
+        for label_seq in list(self.celery_task_runtime._metrics.keys()):
+            if hostname in label_seq:
+                self.celery_task_runtime.remove(*label_seq)
+
     def track_timed_out_workers(self):
         now = time.time()
         # Make a copy of the last seen dict so we can delete from the dict with no issues
@@ -140,6 +164,13 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                     "Removing from metrics"
                 )
                 self.forget_worker(hostname)
+            if self.purge_offline_worker_metrics_after_seconds > 0:
+                if since > self.purge_offline_worker_metrics_after_seconds:
+                    logger.info(
+                        f"Have not seen {hostname} for {since:0.2f} seconds. "
+                        "Purging worker metrics"
+                    )
+                    self.purge_worker_metrics(hostname)
 
     def track_queue_metrics(self):
         with self.app.connection() as connection:  # type: ignore
