@@ -79,7 +79,10 @@ def test_worker_timeout_status(threaded_exporter, hostname):
         )
         == 1.0
     )
-    assert threaded_exporter.worker_last_seen[hostname] == ts
+    assert threaded_exporter.worker_last_seen[hostname] == {
+        "forgotten": False,
+        "ts": ts,
+    }
 
     time.sleep(5)
     threaded_exporter.scrape()
@@ -129,7 +132,10 @@ def test_purge_offline_worker_metrics(threaded_exporter, hostname):
         == 1.0
     )
 
-    assert threaded_exporter.worker_last_seen[hostname] == ts
+    assert threaded_exporter.worker_last_seen[hostname] == {
+        "forgotten": False,
+        "ts": ts,
+    }
 
     time.sleep(15)
     threaded_exporter.scrape()

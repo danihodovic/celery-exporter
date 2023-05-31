@@ -116,7 +116,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         )
 
     def scrape(self):
-        if self.worker_timeout_seconds > 0:
+        if (
+            self.worker_timeout_seconds > 0
+            or self.purge_offline_worker_metrics_after_seconds > 0
+        ):
             self.track_timed_out_workers()
         self.track_queue_metrics()
 
@@ -130,8 +133,12 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             logger.debug(
                 "Updated gauge='{}' value='{}'", self.celery_worker_up._name, 0
             )
+            self.worker_last_seen[hostname]["forgotten"] = True
 
-            del self.worker_last_seen[hostname]
+            # If purging of metrics is enabled we should keep the last seen so that we can
+            # use the timestamp to purge the metrics later
+            if self.purge_offline_worker_metrics_after_seconds == 0:
+                del self.worker_last_seen[hostname]
 
     def purge_worker_metrics(self, hostname):
         # Prometheus stores a copy of the metrics in memory, so we need to remove them
@@ -153,17 +160,20 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             if hostname in label_seq:
                 self.celery_task_runtime.remove(*label_seq)
 
+        del self.worker_last_seen[hostname]
+
     def track_timed_out_workers(self):
         now = time.time()
         # Make a copy of the last seen dict so we can delete from the dict with no issues
-        for hostname, last_seen in list(self.worker_last_seen.items()):
-            since = now - last_seen
-            if since > self.worker_timeout_seconds:
+        for hostname, worker_status in list(self.worker_last_seen.items()):
+            since = now - worker_status["ts"]
+            if since > self.worker_timeout_seconds and not worker_status["forgotten"]:
                 logger.info(
                     f"Have not seen {hostname} for {since:0.2f} seconds. "
                     "Removing from metrics"
                 )
                 self.forget_worker(hostname)
+
             if self.purge_offline_worker_metrics_after_seconds > 0:
                 if since > self.purge_offline_worker_metrics_after_seconds:
                     logger.info(
@@ -266,7 +276,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.celery_worker_up.labels(hostname=hostname).set(value)
 
         if is_online:
-            self.worker_last_seen[hostname] = event["timestamp"]
+            self.worker_last_seen[hostname] = {
+                "ts": event["timestamp"],
+                "forgotten": False,
+            }
         else:
             self.forget_worker(hostname)
 
@@ -274,7 +287,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         hostname = get_hostname(event["hostname"])
         logger.debug("Received event='{}' for worker='{}'", event["type"], hostname)
 
-        self.worker_last_seen[hostname] = event["timestamp"]
+        self.worker_last_seen[hostname] = {"ts": event["timestamp"], "forgotten": False}
         worker_state = self.state.event(event)[0][0]
         active = worker_state.active or 0
         up = 1 if worker_state.alive else 0
