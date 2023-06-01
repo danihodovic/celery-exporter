@@ -125,7 +125,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         )
         self.celery_active_process_count = Gauge(
             "celery_active_process_count",
-            "The number of active processes in broker queue. Each worker may have multiple processes.",
+            "The number of active processes in broker queue.",
             ["queue_name"],
             registry=self.registry,
         )
@@ -214,10 +214,9 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 )
                 return
 
-            inspect = self.app.control.inspect()
             concurrency_per_worker = {
                 worker: len(stats["pool"]["processes"])
-                for worker, stats in (inspect.stats() or {}).items()
+                for worker, stats in (self.app.control.inspect().stats() or {}).items()
             }
             processes_per_queue = defaultdict(int)
             workers_per_queue = defaultdict(int)
@@ -225,7 +224,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             # request workers to response active queues
             # we need to cache queue info in exporter in case all workers are offline
             # so that no worker response to exporter will make active_queues return None
-            queues = inspect.active_queues() or {}
+            queues = self.app.control.inspect().active_queues() or {}
             for worker, info_list in queues.items():
                 for queue_info in info_list:
                     name = queue_info["name"]
@@ -456,10 +455,11 @@ def rabbitmq_queue_length(connection, queue: str) -> int:
 def queue_length(transport, connection, queue: str) -> Optional[int]:
     if transport in ["redis", "rediss", "sentinel"]:
         return redis_queue_length(connection, queue)
-    elif transport in ["amqp", "memory"]:
+
+    if transport in ["amqp", "amqps", "memory"]:
         return rabbitmq_queue_length(connection, queue)
-    else:
-        return None
+
+    return None
 
 
 def rabbitmq_queue_consumer_count(connection, queue: str) -> int:
