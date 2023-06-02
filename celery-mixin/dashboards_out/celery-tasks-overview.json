@@ -941,13 +941,6 @@
                "intervalFactor": 2,
                "legendFormat": "99",
                "refId": "C"
-            },
-            {
-               "expr": "histogram_quantile(0.999,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        job=~\"celery|celery-exporter\",\n        queue_name=~\"$queue_name\"\n      }[$__rate_interval]\n    ) > 0\n  ) by (job, le)\n)\n",
-               "format": "time_series",
-               "intervalFactor": 2,
-               "legendFormat": "99.9",
-               "refId": "D"
             }
          ],
          "thresholds": [ ],

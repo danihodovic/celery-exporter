@@ -504,7 +504,6 @@ local paginateTable = {
     ||| % $._config,
     local tasksRuntimeP95Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.95'),
     local tasksRuntimeP99Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.99'),
-    local tasksRuntimeP999Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.999'),
 
     local tasksRuntimeGraphPanel =
       grafana.graphPanel.new(
@@ -536,12 +535,6 @@ local paginateTable = {
         prometheus.target(
           tasksRuntimeP99Query,
           legendFormat='99',
-        )
-      )
-      .addTarget(
-        prometheus.target(
-          tasksRuntimeP999Query,
-          legendFormat='99.9',
         )
       ),
 
