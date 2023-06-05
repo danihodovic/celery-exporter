@@ -212,7 +212,7 @@ local paginateTable = {
             link: true,
             linkTargetBlank: true,
             linkTooltip: 'Go To View',
-            linkUrl: $._config.celeryTasksByTaskUrl + '?var-job=$job&var-view=${__cell}',
+            linkUrl: $._config.celeryTasksByTaskUrl + '?var-job=$job&var-task=${__cell}',
           },
         ]
       )
@@ -308,7 +308,7 @@ local paginateTable = {
             link: true,
             linkTargetBlank: true,
             linkTooltip: 'Go To View',
-            linkUrl: $._config.celeryTasksByTaskUrl + '?var-job=$job&var-view=${__cell}',
+            linkUrl: $._config.celeryTasksByTaskUrl + '?var-job=$job&var-task=${__cell}',
           },
           {
             alias: 'Runtime',
