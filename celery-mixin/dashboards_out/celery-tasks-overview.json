@@ -362,7 +362,7 @@
                "link": true,
                "linkTargetBlank": true,
                "linkTooltip": "Go To View",
-               "linkUrl": "https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?var-job=$job&var-view=${__cell}",
+               "linkUrl": "https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?var-job=$job&var-task=${__cell}",
                "pattern": "name"
             }
          ],
@@ -458,7 +458,7 @@
                "link": true,
                "linkTargetBlank": true,
                "linkTooltip": "Go To View",
-               "linkUrl": "https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?var-job=$job&var-view=${__cell}",
+               "linkUrl": "https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?var-job=$job&var-task=${__cell}",
                "pattern": "name"
             },
             {
