@@ -215,7 +215,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 return
 
             concurrency_per_worker = {
-                worker: len(stats["pool"]["processes"])
+                worker: len(stats["pool"].get("processes", []))
                 for worker, stats in (self.app.control.inspect().stats() or {}).items()
             }
             processes_per_queue = defaultdict(int)
