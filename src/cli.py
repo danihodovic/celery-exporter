@@ -14,6 +14,12 @@ click.core._verify_python3_env = lambda: None  # type: ignore
 default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
 
 
+def _comma_seperated_argument(_ctx, _param, value):
+    if value is not None:
+        return value.split(",")
+    return []
+
+
 @click.command(help=cmd_help)
 @click.option(
     "--broker-url",
@@ -93,7 +99,17 @@ default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
     "Knowing which client sent a task might not be useful for many use cases as for example in "
     "Kubernetes environments where the client's hostname is a random string.",
 )
-def cli(  # pylint: disable=too-many-arguments
+@click.option(
+    "-Q",
+    "--queues",
+    default=None,
+    show_default=False,
+    callback=_comma_seperated_argument,
+    help="A comma seperated list of queues to force metrics to appear for. "
+    "Queues not included in this setting will not appear in metrics until at least one worker has "
+    "been seen to follow that queue.",
+)
+def cli(  # pylint: disable=too-many-arguments,too-many-locals
     broker_url,
     broker_transport_option,
     accept_content,
@@ -106,6 +122,7 @@ def cli(  # pylint: disable=too-many-arguments
     worker_timeout,
     purge_offline_worker_metrics,
     generic_hostname_task_sent_metric,
+    queues,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()
@@ -114,4 +131,5 @@ def cli(  # pylint: disable=too-many-arguments
         worker_timeout,
         purge_offline_worker_metrics,
         generic_hostname_task_sent_metric,
+        queues,
     ).run(ctx.params)

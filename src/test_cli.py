@@ -18,6 +18,24 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
     def fail():
         raise HTTPError("Intentional error")
 
+    time.sleep(1)
+    # Before the first worker starts, make sure queues that the exporter is initialized
+    # with are available anyway. Queues to be detected from workers should not be there yet
+    res = requests.get(exporter_url, timeout=5)
+    assert res.status_code == 200
+    assert 'celery_queue_length{queue_name="queue_from_command_line"} 0.0' in res.text
+    assert (
+        'celery_active_worker_count{queue_name="queue_from_command_line"} 0.0'
+        in res.text
+    )
+    assert (
+        'celery_active_process_count{queue_name="queue_from_command_line"} 0.0'
+        in res.text
+    )
+    assert 'celery_queue_length{queue_name="celery"}' not in res.text
+    assert 'celery_active_worker_count{queue_name="celery"}' not in res.text
+    assert 'celery_active_process_count{queue_name="celery"}' not in res.text
+
     # start worker first so the exporter can fetch and cache queue information
     with start_worker(celery_app, without_heartbeat=False):
         time.sleep(5)
