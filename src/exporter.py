@@ -451,7 +451,9 @@ def redis_queue_length(connection, queue: str) -> int:
 
 
 def rabbitmq_queue_length(connection, queue: str) -> int:
-    return rabbitmq_queue_info(connection, queue).message_count
+    if queue_info := rabbitmq_queue_info(connection, queue):
+        return queue_info.message_count
+    return 0
 
 
 def queue_length(transport, connection, queue: str) -> Optional[int]:
@@ -465,7 +467,9 @@ def queue_length(transport, connection, queue: str) -> Optional[int]:
 
 
 def rabbitmq_queue_consumer_count(connection, queue: str) -> int:
-    return rabbitmq_queue_info(connection, queue).consumer_count
+    if queue_info := rabbitmq_queue_info(connection, queue):
+        return queue_info.consumer_count
+    return 0
 
 
 def rabbitmq_queue_info(connection, queue: str):
@@ -475,5 +479,5 @@ def rabbitmq_queue_info(connection, queue: str):
     except ChannelError as ex:
         if "NOT_FOUND" in ex.message:
             logger.debug(f"Queue '{queue}' not found")
-            return 0
+            return None
         raise ex
