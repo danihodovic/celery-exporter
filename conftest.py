@@ -70,7 +70,6 @@ def find_free_port():
     """
 
     def _find_free_port():
-
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(("0.0.0.0", 0))
@@ -95,7 +94,7 @@ def exporter_instance(find_free_port, celery_config, log_level):
         "accept_content": None,
         "worker_timeout": 1,
         "purge_offline_worker_metrics": 10,
-        "initial_queues": ['queue_from_command_line'],
+        "initial_queues": ["queue_from_command_line"],
     }
     exporter = Exporter(
         worker_timeout_seconds=cfg["worker_timeout"],
