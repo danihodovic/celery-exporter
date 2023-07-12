@@ -20,15 +20,17 @@ from .http_server import start_http_server
 class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branches
     state: State = None
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         buckets=None,
         worker_timeout_seconds=5 * 60,
         purge_offline_worker_metrics_seconds=10 * 60,
         generic_hostname_task_sent_metric=False,
+        initial_queues=None,
     ):
         self.registry = CollectorRegistry(auto_describe=True)
-        self.queue_cache = set()
+        self.queue_cache = set(initial_queues or [])
         self.worker_last_seen = {}
         self.worker_timeout_seconds = worker_timeout_seconds
         self.purge_offline_worker_metrics_after_seconds = (
