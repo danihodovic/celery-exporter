@@ -55,10 +55,9 @@ local paginateTable = {
       count(
         celery_worker_up{
           job="$job",
-          %(celerySelector)s
         } == 1
       )
-    ||| % $._config,
+    |||,
     local celeryWorkersStatPanel =
       statPanel.new(
         'Workers',
@@ -75,10 +74,9 @@ local paginateTable = {
       sum(
         celery_worker_tasks_active{
           job="$job",
-          %(celerySelector)s
         }
       )
-    ||| % $._config,
+    |||,
     local celeryWorkersActiveStatPanel =
       statPanel.new(
         'Tasks Active',
@@ -97,13 +95,12 @@ local paginateTable = {
           increase(
             celery_task_failed_total{
               job="$job",
-              %(celerySelector)s,
               queue_name=~"$queue_name"
             }[1w]
           )
         )
       )
-    ||| % $._config,
+    |||,
     local taskSucceeded1wQuery = std.strReplace(taskFailed1wQuery, 'failed', 'succeeded'),
 
     local tasksReceived1wQuery = std.strReplace(taskFailed1wQuery, 'failed', 'received'),
@@ -142,7 +139,6 @@ local paginateTable = {
         rate(
           celery_task_runtime_sum{
             job="$job",
-            %(celerySelector)s,
             queue_name=~"$queue_name"
           }[1w]
         )
@@ -152,12 +148,11 @@ local paginateTable = {
         rate(
           celery_task_runtime_count{
             job="$job",
-            %(celerySelector)s,
             queue_name=~"$queue_name"
           }[1w]
         )
       ) > 0
-    ||| % $._config,
+    |||,
     local taskRuntime1wStatPanel =
       statPanel.new(
         'Average Runtime for Tasks [1w]',
@@ -178,13 +173,12 @@ local paginateTable = {
           increase(
             celery_task_failed_total{
               job="$job",
-              %(celerySelector)s,
               queue_name=~"$queue_name"
             }[1w]
           ) > 0
         )  by (name)
       )
-    ||| % $._config,
+    |||,
 
     local tasksFailed1wTable =
       grafana.tablePanel.new(
@@ -227,13 +221,12 @@ local paginateTable = {
           increase(
             celery_task_failed_total{
               job="$job",
-              %(celerySelector)s,
               queue_name=~"$queue_name"
             }[1w]
           )
         ) by (exception) > 0
       )
-    ||| % $._config,
+    |||,
 
     local taskExceptions1wTable =
       grafana.tablePanel.new(
@@ -266,7 +259,6 @@ local paginateTable = {
         rate(
           celery_task_runtime_sum{
             job="$job",
-            %(celerySelector)s,
             queue_name=~"$queue_name"
           }[1w]
         )
@@ -276,12 +268,11 @@ local paginateTable = {
         rate(
           celery_task_runtime_count{
             job="$job",
-            %(celerySelector)s,
             queue_name=~"$queue_name"
           }[1w]
         )
       ) by (name) > 0
-    ||| % $._config,
+    |||,
     local tasksRuntime1wTable =
       grafana.tablePanel.new(
         'Top Average Task Runtime [1w]',
@@ -326,11 +317,10 @@ local paginateTable = {
       sum (
         celery_queue_length{
           job="$job",
-          %(celerySelector)s,
           queue_name=~"$queue_name"
         }
       ) by (job, queue_name)
-    ||| % $._config,
+    |||,
 
     local celeryQueueLengthGraphPanel =
       grafana.graphPanel.new(
@@ -358,13 +348,12 @@ local paginateTable = {
           increase(
             celery_task_failed_total{
               job="$job",
-              %(celerySelector)s,
               queue_name=~"$queue_name"
             }[$__range]
           )
         )
       ) by (job) > 0
-    ||| % $._config,
+    |||,
     local taskSucceededQuery = std.strReplace(taskFailedQuery, 'failed', 'succeeded'),
     local taskSentQuery = std.strReplace(taskFailedQuery, 'failed', 'sent'),
     local taskReceivedQuery = std.strReplace(taskFailedQuery, 'failed', 'received'),
@@ -474,13 +463,12 @@ local paginateTable = {
           increase(
             celery_task_failed_total{
               job="$job",
-              %(celerySelector)s,
               queue_name=~"$queue_name"
             }[$__rate_interval]
           )
         )
       )
-    ||| % $._config,
+    |||,
     local taskSucceededIntervalQuery = std.strReplace(taskFailedIntervalQuery, 'failed', 'succeeded'),
     local taskSentIntervalQuery = std.strReplace(taskFailedIntervalQuery, 'failed', 'sent'),
     local taskReceivedIntervalQuery = std.strReplace(taskFailedIntervalQuery, 'failed', 'received'),
@@ -538,13 +526,12 @@ local paginateTable = {
           irate(
             celery_task_runtime_bucket{
               job="$job",
-              %(celerySelector)s,
               queue_name=~"$queue_name"
             }[$__rate_interval]
           ) > 0
         ) by (job, le)
       )
-    ||| % $._config,
+    |||,
     local tasksRuntimeP95Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.95'),
     local tasksRuntimeP99Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.99'),
 
