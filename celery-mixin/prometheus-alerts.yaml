@@ -4,7 +4,7 @@
   - "alert": "CeleryTaskHighFailRate"
     "annotations":
       "dashboard_url": "https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?var-job={{ $labels.job }}&var-queue_name={{ $labels.queue_name }}&var-task={{ $labels.name }}"
-      "description": "More than 5% tasks failed for the task {{ $labels.queue_name }}/{{ $labels.name }} the past 10m."
+      "description": "More than 5% tasks failed for the task {{ $labels.job }}/{{ $labels.queue_name }}/{{ $labels.name }} the past 10m."
       "summary": "Celery high task fail rate."
     "expr": |
       sum(
@@ -45,7 +45,7 @@
   - "alert": "CeleryHighQueueLength"
     "annotations":
       "dashboard_url": "https://grafana.com/d/celery-tasks-overview-32s3/celery-tasks-overview?&var-job={{ $labels.job }}&var-queue_name={{ $labels.queue_name }}"
-      "description": "More than 100 tasks in the queue {{ $labels.queue_name }} the past 20m."
+      "description": "More than 100 tasks in the queue {{{ $labels.job }}/{ $labels.queue_name }} the past 20m."
       "summary": "Celery high queue length."
     "expr": |
       sum(
@@ -60,7 +60,8 @@
       "severity": "warning"
   - "alert": "CeleryWorkerDown"
     "annotations":
-      "description": "The Celery worker {{ $labels.hostname }} is offline."
+      "dashboard_url": "https://grafana.com/d/celery-tasks-overview-32s3/celery-tasks-overview?&var-job={{ $labels.job }}&var-queue_name={{ $labels.queue_name }}"
+      "description": "The Celery worker {{ $labels.job }}/{{ $labels.hostname }} is offline."
       "summary": "A Celery worker is offline."
     "expr": |
       celery_worker_up{job=~"celery|celery-exporter"} == 0
