@@ -42,7 +42,7 @@
             ||| % $._config,
             annotations: {
               summary: 'Celery high task fail rate.',
-              description: 'More than %(celeryTaskFailedThreshold)s%% tasks failed for the task {{ $labels.queue_name }}/{{ $labels.name }} the past %(celeryTaskFailedInterval)s.' % $._config,
+              description: 'More than %(celeryTaskFailedThreshold)s%% tasks failed for the task {{ $labels.job }}/{{ $labels.queue_name }}/{{ $labels.name }} the past %(celeryTaskFailedInterval)s.' % $._config,
               dashboard_url: $._config.celeryTasksByTaskUrl + '?var-job={{ $labels.job }}&var-queue_name={{ $labels.queue_name }}&var-task={{ $labels.name }}',
             },
             'for': '1m',
@@ -67,7 +67,7 @@
             },
             annotations: {
               summary: 'Celery high queue length.',
-              description: 'More than %(celeryHighQueueLengthThreshold)s tasks in the queue {{ $labels.queue_name }} the past %(celeryHighQueueLengthInterval)s.' % $._config,
+              description: 'More than %(celeryHighQueueLengthThreshold)s tasks in the queue {{{ $labels.job }}/{ $labels.queue_name }} the past %(celeryHighQueueLengthInterval)s.' % $._config,
               dashboard_url: $._config.celeryTasksOverviewUrl + '?&var-job={{ $labels.job }}&var-queue_name={{ $labels.queue_name }}',
             },
           },
@@ -82,7 +82,8 @@
             },
             annotations: {
               summary: 'A Celery worker is offline.',
-              description: 'The Celery worker {{ $labels.hostname }} is offline.',
+              description: 'The Celery worker {{ $labels.job }}/{{ $labels.hostname }} is offline.',
+              dashboard_url: $._config.celeryTasksOverviewUrl + '?&var-job={{ $labels.job }}&var-queue_name={{ $labels.queue_name }}',
             },
           },
         ]),
