@@ -7,9 +7,9 @@ tests:
   - interval: 5m
     input_series:
       - series: 'celery_task_failed_total{job="celery-exporter", namespace="staging", queue_name="celery", name="test-task"}'
-        values: '1+10x10'
+        values: "1+10x10"
       - series: 'celery_task_succeeded_total{job="celery-exporter", namespace="staging", queue_name="celery", name="test-task"}'
-        values: '1+10x10'
+        values: "1+10x10"
     alert_rule_test:
       - eval_time: 15m
         alertname: CeleryTaskHighFailRate
@@ -21,15 +21,15 @@ tests:
               queue_name: celery
               name: test-task
             exp_annotations:
-              summary: 'Celery high task fail rate.'
-              description: 'More than 5% tasks failed for the task celery/test-task the past 10m.'
-              dashboard_url: 'https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?&var-queue_name=celery&var-task=test-task'
+              summary: "Celery high task fail rate."
+              description: "More than 5% tasks failed for the task celery-exporter/celery/test-task the past 10m."
+              dashboard_url: "https://grafana.com/d/celery-tasks-by-task-32s3/celery-tasks-by-task?var-job=celery-exporter&var-queue_name=celery&var-task=test-task"
   - interval: 1m
     input_series:
       - series: 'celery_queue_length{job="celery-exporter", namespace="staging", queue_name="celery-low-queue"}'
-        values: '1+0x50'
+        values: "1+0x50"
       - series: 'celery_queue_length{job="celery-exporter", namespace="staging", queue_name="celery-high-queue"}'
-        values: '1000+200x50'
+        values: "1000+200x50"
     alert_rule_test:
       - eval_time: 40m
         alertname: CeleryHighQueueLength
@@ -40,14 +40,15 @@ tests:
               namespace: staging
               queue_name: celery-high-queue
             exp_annotations:
-              summary: 'Celery high queue length.'
-              description: 'More than 100 tasks in the queue celery-high-queue the past 20m.'
+              summary: "Celery high queue length."
+              description: "More than 100 tasks in the queue celery-exporter/celery-high-queue the past 20m."
+              dashboard_url: https://grafana.com/d/celery-tasks-overview-32s3/celery-tasks-overview?&var-job=celery-exporter&var-queue_name=celery-high-queue
   - interval: 1m
     input_series:
       - series: 'celery_worker_up{job="celery-exporter", namespace="staging", hostname="down"}'
-        values: '0+0x20'
+        values: "0+0x20"
       - series: 'celery_worker_up{job="celery-exporter", namespace="staging", hostname="up"}'
-        values: '1+0x20'
+        values: "1+0x20"
     alert_rule_test:
       - eval_time: 20m
         alertname: CeleryWorkerDown
@@ -58,5 +59,6 @@ tests:
               namespace: staging
               hostname: down
             exp_annotations:
-              summary: 'A Celery worker is offline.'
-              description: 'The Celery worker down is offline.'
+              summary: "A Celery worker is offline."
+              description: "The Celery worker celery-exporter/down is offline."
+              dashboard_url: "https://grafana.com/d/celery-tasks-overview-32s3/celery-tasks-overview?&var-job=celery-exporter"

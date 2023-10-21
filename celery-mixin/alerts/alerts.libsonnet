@@ -67,7 +67,7 @@
             },
             annotations: {
               summary: 'Celery high queue length.',
-              description: 'More than %(celeryHighQueueLengthThreshold)s tasks in the queue {{{ $labels.job }}/{ $labels.queue_name }} the past %(celeryHighQueueLengthInterval)s.' % $._config,
+              description: 'More than %(celeryHighQueueLengthThreshold)s tasks in the queue {{ $labels.job }}/{{ $labels.queue_name }} the past %(celeryHighQueueLengthInterval)s.' % $._config,
               dashboard_url: $._config.celeryTasksOverviewUrl + '?&var-job={{ $labels.job }}&var-queue_name={{ $labels.queue_name }}',
             },
           },
@@ -83,7 +83,7 @@
             annotations: {
               summary: 'A Celery worker is offline.',
               description: 'The Celery worker {{ $labels.job }}/{{ $labels.hostname }} is offline.',
-              dashboard_url: $._config.celeryTasksOverviewUrl + '?&var-job={{ $labels.job }}&var-queue_name={{ $labels.queue_name }}',
+              dashboard_url: $._config.celeryTasksOverviewUrl + '?&var-job={{ $labels.job }}',
             },
           },
         ]),
