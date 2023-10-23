@@ -109,6 +109,12 @@ def _comma_seperated_argument(_ctx, _param, value):
     "Queues not included in this setting will not appear in metrics until at least one worker has "
     "been seen to follow that queue.",
 )
+@click.option(
+    "--metric-prefix",
+    default="celery_",
+    help="Prefix all metrics with a string. "
+    "This option replaces the 'celery_*' part with a custom prefix. ",
+)
 def cli(  # pylint: disable=too-many-arguments,too-many-locals
     broker_url,
     broker_transport_option,
@@ -123,6 +129,7 @@ def cli(  # pylint: disable=too-many-arguments,too-many-locals
     purge_offline_worker_metrics,
     generic_hostname_task_sent_metric,
     queues,
+    metric_prefix,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()
@@ -132,4 +139,5 @@ def cli(  # pylint: disable=too-many-arguments,too-many-locals
         purge_offline_worker_metrics,
         generic_hostname_task_sent_metric,
         queues,
+        metric_prefix,
     ).run(ctx.params)

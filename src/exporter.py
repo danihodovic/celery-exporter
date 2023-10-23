@@ -28,6 +28,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         purge_offline_worker_metrics_seconds=10 * 60,
         generic_hostname_task_sent_metric=False,
         initial_queues=None,
+        metric_prefix="celery_",
     ):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set(initial_queues or [])
@@ -39,94 +40,94 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.generic_hostname_task_sent_metric = generic_hostname_task_sent_metric
         self.state_counters = {
             "task-sent": Counter(
-                "celery_task_sent",
+                f"{metric_prefix}task_sent",
                 "Sent when a task message is published.",
                 ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-received": Counter(
-                "celery_task_received",
+                f"{metric_prefix}task_received",
                 "Sent when the worker receives a task.",
                 ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-started": Counter(
-                "celery_task_started",
+                f"{metric_prefix}task_started",
                 "Sent just before the worker executes the task.",
                 ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-succeeded": Counter(
-                "celery_task_succeeded",
+                f"{metric_prefix}task_succeeded",
                 "Sent if the task executed successfully.",
                 ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-failed": Counter(
-                "celery_task_failed",
+                f"{metric_prefix}task_failed",
                 "Sent if the execution of the task failed.",
                 ["name", "hostname", "exception", "queue_name"],
                 registry=self.registry,
             ),
             "task-rejected": Counter(
-                "celery_task_rejected",
+                f"{metric_prefix}task_rejected",
                 # pylint: disable=line-too-long
                 "The task was rejected by the worker, possibly to be re-queued or moved to a dead letter queue.",
                 ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-revoked": Counter(
-                "celery_task_revoked",
+                f"{metric_prefix}task_revoked",
                 "Sent if the task has been revoked.",
                 ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
             "task-retried": Counter(
-                "celery_task_retried",
+                f"{metric_prefix}task_retried",
                 "Sent if the task failed, but will be retried in the future.",
                 ["name", "hostname", "queue_name"],
                 registry=self.registry,
             ),
         }
         self.celery_worker_up = Gauge(
-            "celery_worker_up",
+            f"{metric_prefix}worker_up",
             "Indicates if a worker has recently sent a heartbeat.",
             ["hostname"],
             registry=self.registry,
         )
         self.worker_tasks_active = Gauge(
-            "celery_worker_tasks_active",
+            f"{metric_prefix}worker_tasks_active",
             "The number of tasks the worker is currently processing",
             ["hostname"],
             registry=self.registry,
         )
         self.celery_task_runtime = Histogram(
-            "celery_task_runtime",
+            f"{metric_prefix}task_runtime",
             "Histogram of task runtime measurements.",
             ["name", "hostname", "queue_name"],
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
         self.celery_queue_length = Gauge(
-            "celery_queue_length",
+            f"{metric_prefix}queue_length",
             "The number of message in broker queue.",
             ["queue_name"],
             registry=self.registry,
         )
         self.celery_active_consumer_count = Gauge(
-            "celery_active_consumer_count",
+            f"{metric_prefix}active_consumer_count",
             "The number of active consumer in broker queue.",
             ["queue_name"],
             registry=self.registry,
         )
         self.celery_active_worker_count = Gauge(
-            "celery_active_worker_count",
+            f"{metric_prefix}active_worker_count",
             "The number of active workers in broker queue.",
             ["queue_name"],
             registry=self.registry,
         )
         self.celery_active_process_count = Gauge(
-            "celery_active_process_count",
+            f"{metric_prefix}active_process_count",
             "The number of active processes in broker queue.",
             ["queue_name"],
             registry=self.registry,
