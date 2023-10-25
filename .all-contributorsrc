@@ -1,0 +1,15 @@
+{
+  "projectName": "celery-exporter",
+  "projectOwner": "danihodovic",
+  "repoType": "github",
+  "repoHost": "https://github.com/danihodovic/celery-exporter",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 50,
+  "commit": true,
+  "commitConvention": "none",
+  "contributors": [],
+  "contributorsPerLine": 7,
+  "linkToUsage": true
+}
