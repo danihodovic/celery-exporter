@@ -186,6 +186,24 @@ pytest --broker=memory      --log-level=DEBUG
 pytest --broker=redis       --log-level=DEBUG
 pytest --broker=rabbitmq    --log-level=DEBUG
 ```
+Local setup for macos:
+```shell
+# Install tools
+brew install poetry
+brew install pre-commit
+# Install dependencies and pre-commit hooks
+rm poetry.lock
+poetry install
+pre-commit install
+
+# Test everything works fine
+pre-commit run --all-files
+docker-compose up -d
+
+poetry run python -m pytest --broker=memory       --log-level=DEBUG
+poetry run python -m pytest --broker=redis       --log-level=DEBUG
+poetry run python -m pytest --broker=rabbitmq       --log-level=DEBUG
+```
 
 ## Contributors
 
