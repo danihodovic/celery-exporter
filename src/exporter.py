@@ -279,13 +279,14 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
 
             if counter_name == event["type"]:
                 counter.labels(**_labels).inc()
+                logger.debug(
+                    "Incremented metric='{}' labels='{}'", counter._name, labels
+                )
             elif (
                 event["type"] != "task-sent"
             ):  # task-sent is sent by various hosts (webservers, task creators etc.) which cause label cardinality # pylint: disable=line-too-long
                 # increase unaffected counters by zero in order to make them visible
                 counter.labels(**_labels).inc(0)
-
-            logger.debug("Incremented metric='{}' labels='{}'", counter._name, labels)
 
         # observe task runtime
         if event["type"] == "task-succeeded":
