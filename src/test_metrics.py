@@ -1,8 +1,11 @@
 import logging
 import time
+from unittest.mock import ANY
 
 import pytest
 from celery.contrib.testing.worker import start_worker  # type: ignore
+
+from conftest import timeout_task, failing_task
 
 
 @pytest.fixture
@@ -190,3 +193,106 @@ def test_worker_generic_task_sent_hostname(threaded_exporter, celery_app):
             )
             == 1.0
         )
+
+
+@pytest.mark.celery
+def test_time_in_queue(threaded_exporter, celery_app):
+    with start_worker(celery_app, perform_ping_check=False):
+        timeout_task.delay().get(timeout=10)
+
+        # this is necessary otherwise asserts do not match expectation
+        time.sleep(2)
+
+        tasks_in_queue = threaded_exporter.registry.get_sample_value(
+            "celery_time_in_queue_count", labels={"queue_name": "celery"}
+        )
+        time_in_queue_sum = threaded_exporter.registry.get_sample_value(
+            "celery_time_in_queue_sum", labels={"queue_name": "celery"}
+        )
+
+        assert tasks_in_queue == 1
+        assert 0 < time_in_queue_sum < 1.0
+
+
+@pytest.mark.celery
+def test_time_in_queue_ignores_eta(threaded_exporter, celery_app):
+    with start_worker(celery_app, perform_ping_check=False):
+        timeout_task.apply_async(countdown=0).get(timeout=10)
+
+        # this is necessary otherwise asserts do not match expectation
+        time.sleep(2)
+
+        tasks_started = threaded_exporter.registry.get_sample_value(
+            "celery_task_started_total", labels=ANY
+        )
+        assert tasks_started == 1
+        assert "celery_time_in_queue_count" not in threaded_exporter.registry.collect()
+
+
+@pytest.mark.celery
+def test_time_in_queue_retries(threaded_exporter, celery_app):
+    with start_worker(celery_app, perform_ping_check=False):
+        failing_task.delay(fail_n_times=3, countdown=0.1).get(timeout=10)
+
+        # this is necessary otherwise asserts do not match expectation
+        time.sleep(2)
+
+        tasks_started = threaded_exporter.registry.get_sample_value(
+            "celery_task_started_total", labels=ANY
+        )
+        tasks_trough_queue = threaded_exporter.registry.get_sample_value(
+            "celery_time_in_queue_count", labels={"queue_name": "celery"}
+        )
+
+        # Only the first execution goes through the queue, the rest is executed with ETA
+        # with event task-retried
+        assert tasks_started == 1
+        assert tasks_trough_queue == 1
+
+
+@pytest.mark.celery
+def test_time_in_queue_expires(threaded_exporter, celery_app):
+    with start_worker(celery_app, perform_ping_check=False):
+        result = timeout_task.delay(3)
+        timeout_task.apply_async(expires=1)
+        result.get(timeout=10)
+
+        # this is necessary otherwise asserts do not match expectation
+        time.sleep(2)
+        threaded_exporter.scrape()
+
+        tasks_started = threaded_exporter.registry.get_sample_value(
+            "celery_task_received_total", labels=ANY
+        )
+        tasks_trough_queue = threaded_exporter.registry.get_sample_value(
+            "celery_time_in_queue_count", labels={"queue_name": "celery"}
+        )
+        assert tasks_started == 1
+        assert tasks_trough_queue == 2
+
+
+@pytest.mark.xfail(
+    reason="Sometimes the task is started before the revoke command is processed"
+)
+@pytest.mark.celery
+def test_time_in_queue_revoke(threaded_exporter, celery_app):
+    with start_worker(celery_app, perform_ping_check=False):
+        first_result = timeout_task.delay(5)
+        revoked_result = timeout_task.delay()
+        revoked_result.revoke(terminate=True)
+        first_result.get(timeout=10)
+
+        # this is necessary otherwise asserts do not match expectation
+        time.sleep(5)
+        threaded_exporter.scrape()
+
+        tasks_started = threaded_exporter.registry.get_sample_value(
+            "celery_task_started_total", labels=ANY
+        )
+        tasks_trough_queue = threaded_exporter.registry.get_sample_value(
+            "celery_time_in_queue_count", labels={"queue_name": "celery"}
+        )
+        # Only the first task gets started,
+        # the second is revoked before being picked-up by the worker
+        assert tasks_started == 1
+        assert tasks_trough_queue == 2

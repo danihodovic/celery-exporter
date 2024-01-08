@@ -1,7 +1,9 @@
 import socket
 import threading
+import time
 
 import pytest
+from celery import shared_task
 
 from src.exporter import Exporter
 
@@ -117,3 +119,19 @@ def threaded_exporter(exporter_instance):
 @pytest.fixture()
 def hostname():
     return socket.gethostname()
+
+
+@pytest.fixture(autouse=True)
+def _purge(celery_app):
+    celery_app.control.purge()
+
+
+@shared_task(ignore_result=True)
+def timeout_task(timeout=0):
+    time.sleep(timeout)
+
+
+@shared_task(bind=True, ignore_result=True)
+def failing_task(self, fail_n_times: int, countdown=None):
+    if fail_n_times > self.request.retries:
+        self.retry(countdown=countdown)

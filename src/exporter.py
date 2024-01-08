@@ -3,16 +3,15 @@ import json
 import re
 import sys
 import time
-
 from collections import defaultdict
 from typing import Optional
 
-from celery import Celery
+from celery import Celery, states
 from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
-from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, Summary
 
 from .http_server import start_http_server
 
@@ -129,6 +128,12 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.celery_active_process_count = Gauge(
             f"{metric_prefix}active_process_count",
             "The number of active processes in broker queue.",
+            ["queue_name"],
+            registry=self.registry,
+        )
+        self.celery_time_in_queue = Summary(
+            f"{metric_prefix}time_in_queue",
+            "The time task spends in broker queue.",
             ["queue_name"],
             registry=self.registry,
         )
@@ -253,6 +258,9 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                     self.celery_queue_length.labels(queue_name=queue).set(length)
 
     def track_task_event(self, event):
+        previous_task_state = getattr(
+            self.state.tasks.get(event["uuid"]), "state", None
+        )
         self.state.event(event)
         task = self.state.tasks.get(event["uuid"])
         logger.debug("Received event='{}' for task='{}'", event["type"], task.name)
@@ -260,10 +268,11 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         if event["type"] not in self.state_counters:
             logger.warning("No counter matches task state='{}'", task.state)
 
+        queue_name = getattr(task, "queue", "celery")
         labels = {
             "name": task.name,
             "hostname": get_hostname(task.hostname),
-            "queue_name": getattr(task, "queue", "celery"),
+            "queue_name": queue_name,
         }
         if event["type"] == "task-sent" and self.generic_hostname_task_sent_metric:
             labels["hostname"] = "generic"
@@ -296,6 +305,23 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 labels,
                 task.runtime,
             )
+        elif event["type"] in ("task-received", "task-revoked"):
+            was_terminated = event.get("terminated", False)
+
+            if all(
+                [
+                    # tasks with ETA do not go through the queue => skip them
+                    task.eta is None,
+                    task.sent is not None,
+                    # terminated tasks were already processed during "receive" => ignore them
+                    was_terminated is False,
+                    # `task-revoked` can be sent multiple times; track only the first one
+                    # https://docs.celeryq.dev/en/stable/userguide/monitoring.html#task-revoked
+                    previous_task_state != states.REVOKED,
+                ]
+            ):
+                time_in_queue = event["timestamp"] - task.sent
+                self.celery_time_in_queue.labels(queue_name).observe(time_in_queue)
 
     def track_worker_status(self, event, is_online):
         value = 1 if is_online else 0
