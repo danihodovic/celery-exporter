@@ -115,6 +115,12 @@ def _comma_seperated_argument(_ctx, _param, value):
     help="Prefix all metrics with a string. "
     "This option replaces the 'celery_*' part with a custom prefix. ",
 )
+@click.option(
+    "--http-username", default=None, help="Basic auth username for /metrics endpoint."
+)
+@click.option(
+    "--http-password", default=None, help="Basic auth password for /metrics endpoint."
+)
 def cli(  # pylint: disable=too-many-arguments,too-many-locals
     broker_url,
     broker_transport_option,
@@ -130,6 +136,8 @@ def cli(  # pylint: disable=too-many-arguments,too-many-locals
     generic_hostname_task_sent_metric,
     queues,
     metric_prefix,
+    http_username,
+    http_password,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()
@@ -140,4 +148,6 @@ def cli(  # pylint: disable=too-many-arguments,too-many-locals
         generic_hostname_task_sent_metric,
         queues,
         metric_prefix,
+        http_username,
+        http_password,
     ).run(ctx.params)

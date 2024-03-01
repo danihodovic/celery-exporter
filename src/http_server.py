@@ -1,12 +1,14 @@
 from threading import Thread
 
 import kombu.exceptions
-from flask import Blueprint, Flask, current_app, request
+from flask import Blueprint, Flask, current_app, request, abort
+from flask_httpauth import HTTPBasicAuth
 from loguru import logger
 from prometheus_client.exposition import choose_encoder
 from waitress import serve
 
 blueprint = Blueprint("celery_exporter", __name__)
+auth = HTTPBasicAuth()
 
 
 @blueprint.route("/")
@@ -28,6 +30,7 @@ def index():
 
 
 @blueprint.route("/metrics")
+@auth.login_required(optional=False)
 def metrics():
     current_app.config["metrics_puller"]()
     encoder, content_type = choose_encoder(request.headers.get("accept"))
@@ -36,6 +39,7 @@ def metrics():
 
 
 @blueprint.route("/health")
+@auth.login_required(optional=False)
 def health():
     conn = current_app.config["celery_connection"]
     uri = conn.as_uri()
@@ -51,11 +55,29 @@ def health():
     return f"Connected to the broker {conn.as_uri()}"
 
 
-def start_http_server(registry, celery_connection, host, port, metrics_puller):
+# pylint: disable=too-many-arguments
+def start_http_server(
+    registry,
+    celery_connection,
+    host,
+    port,
+    metrics_puller,
+    http_username=None,
+    http_password=None,
+):
     app = Flask(__name__)
     app.config["registry"] = registry
     app.config["celery_connection"] = celery_connection
     app.config["metrics_puller"] = metrics_puller
+
+    @auth.verify_password
+    def verify_password(username, password):
+        if not http_username or not http_password:
+            return "anonymous"
+        if http_username == username and http_password == password:
+            return "authenticated"
+        abort(401)
+
     app.register_blueprint(blueprint)
     Thread(
         target=serve,

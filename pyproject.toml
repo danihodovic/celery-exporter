@@ -23,6 +23,8 @@ loguru = "^0.7.2"
 redis = "^5.0.1"
 Flask = "^3.0.0"
 waitress = "^2.1.2"
+flask-httpauth = "^4.8.0"
+flask-httpauth-stubs = "^0.1.6"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"

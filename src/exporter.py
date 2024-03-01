@@ -29,6 +29,8 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         generic_hostname_task_sent_metric=False,
         initial_queues=None,
         metric_prefix="celery_",
+        http_username=None,
+        http_password=None,
     ):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set(initial_queues or [])
@@ -132,6 +134,8 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             ["queue_name"],
             registry=self.registry,
         )
+        self.http_username = http_username
+        self.http_password = http_password
 
     def scrape(self):
         if (
@@ -383,6 +387,8 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 click_params["host"],
                 click_params["port"],
                 self.scrape,
+                self.http_username,
+                self.http_password,
             )
             while True:
                 try:
