@@ -1,10 +1,25 @@
 ---
-version: '2.4'
+version: "3.9"
 services:
-  redis:
-    image: 'redis:6'
-    ports: ['6379:6379']
-
+  celery-exporter:
+    container_name: celery-exporter
+    build: .
+    env_file:
+      - .env-file
+    ports:
+      - "9808:9808"
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
   rabbitmq:
+    container_name: rabbitmq
     image: rabbitmq:3
-    ports: ['5672:5672']
+    ports:
+      - "5672:5672"
+    restart: unless-stopped
+  redis:
+    container_name: redis
+    image: redis:6
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
