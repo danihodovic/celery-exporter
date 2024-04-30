@@ -34,12 +34,6 @@ local tbQueryOptions = tablePanel.queryOptions;
 local tbPanelOptions = tablePanel.panelOptions;
 local tbOverride = tbStandardOptions.override;
 
-local enablePagination = {
-  options+: {
-    enablePagination: true,
-  },
-};
-
 {
   grafanaDashboards+:: {
 
@@ -53,7 +47,7 @@ local enablePagination = {
     local namespaceVariable =
       query.new(
         'namespace',
-        'label_values(django_http_responses_total_by_status_view_method_total{}, namespace)'
+        'label_values(celery_worker_up{}, namespace)'
       ) +
       query.withDatasourceFromVariable(datasourceVariable) +
       query.withSort(1) +
@@ -67,7 +61,7 @@ local enablePagination = {
     local jobVariable =
       query.new(
         'job',
-        'label_values(celery_worker_up, job)'
+        'label_values(celery_worker_up{namespace="$namespace"}, job)'
       ) +
       query.withDatasourceFromVariable(datasourceVariable) +
       query.withSort(1) +
@@ -80,7 +74,7 @@ local enablePagination = {
     local queueNameVariable =
       query.new(
         'queue_name',
-        'label_values(celery_task_received_total{job="$job", name!~"%(celeryIgnoredQueues)s"}, queue_name)'
+        'label_values(celery_task_received_total{namespace="$namespace", job="$job", name!~"%(celeryIgnoredQueues)s"}, queue_name)' % $._config
       ) +
       query.withDatasourceFromVariable(datasourceVariable) +
       query.withSort(1) +
@@ -266,7 +260,7 @@ local enablePagination = {
         tbOptions.sortBy.withDisplayName('Value') +
         tbOptions.sortBy.withDesc(true)
       ) +
-      enablePagination +
+      tbOptions.footer.TableFooterOptions.withEnablePagination(true) +
       tbQueryOptions.withTargets(
         prometheus.new(
           '$datasource',
@@ -331,7 +325,7 @@ local enablePagination = {
         tbOptions.sortBy.withDisplayName('Value') +
         tbOptions.sortBy.withDesc(true)
       ) +
-      enablePagination +
+      tbOptions.footer.TableFooterOptions.withEnablePagination(true) +
       tbQueryOptions.withTargets(
         prometheus.new(
           '$datasource',
@@ -389,7 +383,7 @@ local enablePagination = {
         tbOptions.sortBy.withDisplayName('Runtime') +
         tbOptions.sortBy.withDesc(true)
       ) +
-      enablePagination +
+      tbOptions.footer.TableFooterOptions.withEnablePagination(true) +
       tbQueryOptions.withTargets(
         prometheus.new(
           '$datasource',
