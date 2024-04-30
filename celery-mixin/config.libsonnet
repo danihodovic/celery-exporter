@@ -1,5 +1,5 @@
-local grafana = import 'github.com/grafana/grafonnet-lib/grafonnet/grafana.libsonnet';
-local annotation = grafana.annotation;
+local g = import 'github.com/grafana/grafonnet/gen/grafonnet-latest/main.libsonnet';
+local annotation = g.dashboard.annotation;
 
 {
   _config+:: {
@@ -32,22 +32,20 @@ local annotation = grafana.annotation;
     // Custom annotations to display in graphs
     annotation: {
       enabled: false,
-      name: 'Deploys',
+      name: 'Custom Annotation',
       datasource: '-- Grafana --',
+      iconColor: 'green',
       tags: [],
     },
 
     customAnnotation:: if $._config.annotation.enabled then
-      annotation.datasource(
-        $._config.annotation.name,
-        datasource=$._config.annotation.datasource,
-        hide=false,
-      ) + {
-        target: {
-          matchAny: true,
-          tags: $._config.annotation.tags,
-          type: 'tags',
-        },
-      } else {},
+      annotation.withName($._config.annotation.name) +
+      annotation.withIconColor($._config.annotation.iconColor) +
+      annotation.withHide(false) +
+      annotation.datasource.withUid($._config.annotation.datasource) +
+      annotation.target.withMatchAny(true) +
+      annotation.target.withTags($._config.annotation.tags) +
+      annotation.target.withType('tags')
+    else {},
   },
 }

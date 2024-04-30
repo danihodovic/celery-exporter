@@ -1,54 +1,100 @@
-local grafana = import 'github.com/grafana/grafonnet-lib/grafonnet/grafana.libsonnet';
-local template = grafana.template;
-local statPanel = grafana.statPanel;
-local row = grafana.row;
-local prometheus = grafana.prometheus;
+local g = import 'github.com/grafana/grafonnet/gen/grafonnet-latest/main.libsonnet';
 
-local paginateTable = {
-  pageSize: 6,
+local dashboard = g.dashboard;
+local row = g.panel.row;
+local grid = g.util.grid;
+
+local variable = dashboard.variable;
+local datasource = variable.datasource;
+local query = variable.query;
+local prometheus = g.query.prometheus;
+
+local statPanel = g.panel.stat;
+local timeSeriesPanel = g.panel.timeSeries;
+local tablePanel = g.panel.table;
+
+// Stat
+local stOptions = statPanel.options;
+local stStandardOptions = statPanel.standardOptions;
+local stQueryOptions = statPanel.queryOptions;
+
+// Timeseries
+local tsOptions = timeSeriesPanel.options;
+local tsStandardOptions = timeSeriesPanel.standardOptions;
+local tsQueryOptions = timeSeriesPanel.queryOptions;
+local tsFieldConfig = timeSeriesPanel.fieldConfig;
+local tsCustom = tsFieldConfig.defaults.custom;
+local tsLegend = tsOptions.legend;
+local tsOverride = tsStandardOptions.override;
+
+// Table
+local tbOptions = tablePanel.options;
+local tbStandardOptions = tablePanel.standardOptions;
+local tbQueryOptions = tablePanel.queryOptions;
+local tbPanelOptions = tablePanel.panelOptions;
+local tbOverride = tbStandardOptions.override;
+
+local enablePagination = {
+  options+: {
+    enablePagination: true,
+  },
 };
 
 {
   grafanaDashboards+:: {
 
-    local prometheusTemplate =
-      template.datasource(
+    local datasourceVariable =
+      datasource.new(
         'datasource',
         'prometheus',
-        'Prometheus',
-        hide='',
-      ),
+      ) +
+      datasource.generalOptions.withLabel('Data source'),
 
-    local jobTemplate =
-      template.new(
-        name='job',
-        label='Job',
-        datasource='$datasource',
-        query='label_values(celery_worker_up, job)',
-        hide='',
-        refresh=2,
-        multi=false,
-        includeAll=false,
-        sort=1,
-      ),
+    local namespaceVariable =
+      query.new(
+        'namespace',
+        'label_values(django_http_responses_total_by_status_view_method_total{}, namespace)'
+      ) +
+      query.withDatasourceFromVariable(datasourceVariable) +
+      query.withSort(1) +
+      query.generalOptions.withLabel('Namespace') +
+      query.selectionOptions.withMulti(false) +
+      query.selectionOptions.withIncludeAll(false) +
+      query.refresh.onLoad() +
+      query.refresh.onTime(),
 
-    local queueNameTemplate =
-      template.new(
-        name='queue_name',
-        label='Queue Name',
-        datasource='$datasource',
-        query='label_values(celery_task_received_total{job="$job", name!~"%(celeryIgnoredQueues)s"}, queue_name)' % $._config,
-        hide='',
-        refresh=2,
-        multi=true,
-        includeAll=true,
-        sort=1
-      ),
 
-    local templates = [
-      prometheusTemplate,
-      jobTemplate,
-      queueNameTemplate,
+    local jobVariable =
+      query.new(
+        'job',
+        'label_values(celery_worker_up, job)'
+      ) +
+      query.withDatasourceFromVariable(datasourceVariable) +
+      query.withSort(1) +
+      query.generalOptions.withLabel('Job') +
+      query.selectionOptions.withMulti(false) +
+      query.selectionOptions.withIncludeAll(false) +
+      query.refresh.onLoad() +
+      query.refresh.onTime(),
+
+    local queueNameVariable =
+      query.new(
+        'queue_name',
+        'label_values(celery_task_received_total{job="$job", name!~"%(celeryIgnoredQueues)s"}, queue_name)'
+      ) +
+      query.withDatasourceFromVariable(datasourceVariable) +
+      query.withSort(1) +
+      query.generalOptions.withLabel('Queue Name') +
+      query.selectionOptions.withMulti(false) +
+      query.selectionOptions.withIncludeAll(false) +
+      query.refresh.onLoad() +
+      query.refresh.onTime(),
+
+    local variables = [
+      datasourceVariable,
+      namespaceVariable,
+      jobVariable,
+      queueNameVariable,
     ],
 
     local celeryWorkersQuery = |||
@@ -61,13 +107,20 @@ local paginateTable = {
     local celeryWorkersStatPanel =
       statPanel.new(
         'Workers',
-        datasource='$datasource',
-        reducerFunction='last',
-      )
-      .addTarget(prometheus.target(celeryWorkersQuery))
-      .addThresholds([
-        { color: 'red', value: 0 },
-        { color: 'green', value: 0.1 },
+      ) +
+      stQueryOptions.withTargets(
+        prometheus.new(
+          '$datasource',
+          celeryWorkersQuery,
+        )
+      ) +
+      stStandardOptions.withUnit('short') +
+      stOptions.reduceOptions.withCalcs(['lastNotNull']) +
+      stStandardOptions.thresholds.withSteps([
+        stStandardOptions.threshold.step.withValue(0) +
+        stStandardOptions.threshold.step.withColor('red'),
+        stStandardOptions.threshold.step.withValue(0.1) +
+        stStandardOptions.threshold.step.withColor('green'),
       ]),
 
     local celeryWorkersActiveQuery = |||
@@ -80,13 +133,20 @@ local paginateTable = {
     local celeryWorkersActiveStatPanel =
       statPanel.new(
         'Tasks Active',
-        datasource='$datasource',
-        reducerFunction='last',
-      )
-      .addTarget(prometheus.target(celeryWorkersActiveQuery))
-      .addThresholds([
-        { color: 'red', value: 0 },
-        { color: 'green', value: 0.1 },
+      ) +
+      stQueryOptions.withTargets(
+        prometheus.new(
+          '$datasource',
+          celeryWorkersActiveQuery,
+        )
+      ) +
+      stStandardOptions.withUnit('short') +
+      stOptions.reduceOptions.withCalcs(['lastNotNull']) +
+      stStandardOptions.thresholds.withSteps([
+        stStandardOptions.threshold.step.withValue(0) +
+        stStandardOptions.threshold.step.withColor('red'),
+        stStandardOptions.threshold.step.withValue(0.1) +
+        stStandardOptions.threshold.step.withColor('green'),
       ]),
 
     local taskFailed1wQuery = |||
@@ -107,13 +167,20 @@ local paginateTable = {
     local tasksReceivedByWorkers24hStatPanel =
       statPanel.new(
         'Tasks received by workers [1w]',
-        datasource='$datasource',
-        reducerFunction='last',
-      )
-      .addTarget(prometheus.target(tasksReceived1wQuery, interval='3h'))
-      .addThresholds([
-        { color: 'red', value: 0 },
-        { color: 'green', value: 0.1 },
+      ) +
+      stQueryOptions.withTargets(
+        prometheus.new(
+          '$datasource',
+          tasksReceived1wQuery,
+        )
+      ) +
+      stStandardOptions.withUnit('short') +
+      stOptions.reduceOptions.withCalcs(['lastNotNull']) +
+      stStandardOptions.thresholds.withSteps([
+        stStandardOptions.threshold.step.withValue(0) +
+        stStandardOptions.threshold.step.withColor('red'),
+        stStandardOptions.threshold.step.withValue(0.1) +
+        stStandardOptions.threshold.step.withColor('green'),
       ]),
 
     local taskSuccessRate1wQuery = |||
@@ -122,16 +189,22 @@ local paginateTable = {
     local taskSuccessRate1wStatPanel =
       statPanel.new(
         'Tasks Success Rate [1w]',
-        datasource='$datasource',
-        unit='percentunit',
-        decimals='3',
-        reducerFunction='last',
-      )
-      .addTarget(prometheus.target(taskSuccessRate1wQuery, interval='3h'))
-      .addThresholds([
-        { color: 'red', value: 0 },
-        { color: 'yellow', value: 0.95 },
-        { color: 'green', value: 0.99 },
+      ) +
+      stQueryOptions.withTargets(
+        prometheus.new(
+          '$datasource',
+          taskSuccessRate1wQuery,
+        )
+      ) +
+      stStandardOptions.withUnit('percentunit') +
+      stOptions.reduceOptions.withCalcs(['lastNotNull']) +
+      stStandardOptions.thresholds.withSteps([
+        stStandardOptions.threshold.step.withValue(0) +
+        stStandardOptions.threshold.step.withColor('red'),
+        stStandardOptions.threshold.step.withValue(0.95) +
+        stStandardOptions.threshold.step.withColor('yellow'),
+        stStandardOptions.threshold.step.withValue(0.99) +
+        stStandardOptions.threshold.step.withColor('green'),
       ]),
 
     local taskRuntime1wQuery = |||
@@ -156,16 +229,21 @@ local paginateTable = {
     local taskRuntime1wStatPanel =
       statPanel.new(
         'Average Runtime for Tasks [1w]',
-        datasource='$datasource',
-        unit='s',
-        reducerFunction='last',
-      )
-      .addTarget(prometheus.target(taskRuntime1wQuery, interval='3h'))
-      .addThresholds([
-        { color: 'red', value: 0 },
-        { color: 'green', value: 0.1 },
+      ) +
+      stQueryOptions.withTargets(
+        prometheus.new(
+          '$datasource',
+          taskRuntime1wQuery,
+        )
+      ) +
+      stStandardOptions.withUnit('s') +
+      stOptions.reduceOptions.withCalcs(['lastNotNull']) +
+      stStandardOptions.thresholds.withSteps([
+        stStandardOptions.threshold.step.withValue(0) +
+        stStandardOptions.threshold.step.withColor('red'),
+        stStandardOptions.threshold.step.withValue(0.1) +
+        stStandardOptions.threshold.step.withColor('green'),
       ]),
-
 
     local tasksFailed1wQuery = |||
       round(
@@ -176,44 +254,60 @@ local paginateTable = {
               queue_name=~"$queue_name"
             }[1w]
           ) > 0
-        )  by (name)
+        )  by (job, name)
       )
     |||,
-
     local tasksFailed1wTable =
-      grafana.tablePanel.new(
+      tablePanel.new(
         'Top Failed Tasks [1w]',
-        datasource='$datasource',
-        span='4',
-        sort={
-          col: 2,
-          desc: true,
-        },
-        styles=[
+      ) +
+      tbStandardOptions.withUnit('short') +
+      tbOptions.withSortBy(
+        tbOptions.sortBy.withDisplayName('Value') +
+        tbOptions.sortBy.withDesc(true)
+      ) +
+      enablePagination +
+      tbQueryOptions.withTargets(
+        prometheus.new(
+          '$datasource',
+          tasksFailed1wQuery,
+        ) +
+        prometheus.withFormat('table') +
+        prometheus.withInstant(true)
+      ) +
+      tbQueryOptions.withTransformations([
+        tbQueryOptions.transformation.withId(
+          'organize'
+        ) +
+        tbQueryOptions.transformation.withOptions(
           {
-            alias: 'Time',
-            dateFormat: 'YYYY-MM-DD HH:mm:ss',
-            type: 'hidden',
-            pattern: 'Time',
-          },
-          {
-            alias: 'Queue',
-            pattern: 'queue_name',
-          },
-          {
-            alias: 'Task',
-            pattern: 'name',
-            link: true,
-            linkTargetBlank: true,
-            linkTooltip: 'Go To View',
-            linkUrl: $._config.celeryTasksByTaskUrl + '?var-job=$job&var-task=${__cell}',
-          },
-        ]
-      )
-      .addTarget(
-        prometheus.target(tasksFailed1wQuery, format='table', instant=true)
-      ) + paginateTable,
-
+            renameByName: {
+              name: 'Task',
+            },
+            indexByName: {
+              name: 0,
+              Value: 1,
+            },
+            excludeByName: {
+              Time: true,
+              job: true,
+            },
+          }
+        ),
+      ]) +
+      tbStandardOptions.withOverrides([
+        tbOverride.byName.new('Task') +
+        tbOverride.byName.withPropertiesFromOptions(
+          tbStandardOptions.withLinks(
+            tbPanelOptions.link.withTitle('Go To View') +
+            tbPanelOptions.link.withType('dashboard') +
+            tbPanelOptions.link.withUrl(
+              '/d/%s/celery-tasks-by-task?var-task=${__data.fields.Task}' % $._config.celeryTasksByTaskUid
+            ) +
+            tbPanelOptions.link.withTargetBlank(true)
+          )
+        ),
+      ]),
 
     local topTaskExceptions1wQuery = |||
       round(
@@ -224,35 +318,48 @@ local paginateTable = {
               queue_name=~"$queue_name"
             }[1w]
           )
-        ) by (exception) > 0
+        ) by (job, exception) > 0
       )
     |||,
 
     local taskExceptions1wTable =
-      grafana.tablePanel.new(
+      tablePanel.new(
         'Top Task Exceptions [1w]',
-        datasource='$datasource',
-        span='4',
-        sort={
-          col: 2,
-          desc: true,
-        },
-        styles=[
+      ) +
+      tbStandardOptions.withUnit('short') +
+      tbOptions.withSortBy(
+        tbOptions.sortBy.withDisplayName('Value') +
+        tbOptions.sortBy.withDesc(true)
+      ) +
+      enablePagination +
+      tbQueryOptions.withTargets(
+        prometheus.new(
+          '$datasource',
+          topTaskExceptions1wQuery,
+        ) +
+        prometheus.withFormat('table') +
+        prometheus.withInstant(true)
+      ) +
+      tbQueryOptions.withTransformations([
+        tbQueryOptions.transformation.withId(
+          'organize'
+        ) +
+        tbQueryOptions.transformation.withOptions(
           {
-            alias: 'Time',
-            dateFormat: 'YYYY-MM-DD HH:mm:ss',
-            type: 'hidden',
-            pattern: 'Time',
-          },
-          {
-            alias: 'Exception',
-            pattern: 'exception',
-          },
-        ]
-      )
-      .addTarget(
-        prometheus.target(topTaskExceptions1wQuery, format='table', instant=true)
-      ) + paginateTable,
+            renameByName: {
+              exception: 'Exception',
+            },
+            indexByName: {
+              exception: 0,
+              Value: 1,
+            },
+            excludeByName: {
+              Time: true,
+              job: true,
+            },
+          }
+        ),
+      ]),
 
     local topTaskRuntime1wQuery = |||
       sum (
@@ -274,44 +381,56 @@ local paginateTable = {
       ) by (name) > 0
     |||,
     local tasksRuntime1wTable =
-      grafana.tablePanel.new(
+      tablePanel.new(
         'Top Average Task Runtime [1w]',
-        datasource='$datasource',
-        span='4',
-        sort={
-          col: 2,
-          desc: true,
-        },
-        styles=[
+      ) +
+      tbStandardOptions.withUnit('s') +
+      tbOptions.withSortBy(
+        tbOptions.sortBy.withDisplayName('Runtime') +
+        tbOptions.sortBy.withDesc(true)
+      ) +
+      enablePagination +
+      tbQueryOptions.withTargets(
+        prometheus.new(
+          '$datasource',
+          topTaskRuntime1wQuery,
+        ) +
+        prometheus.withFormat('table') +
+        prometheus.withInstant(true)
+      ) +
+      tbQueryOptions.withTransformations([
+        tbQueryOptions.transformation.withId(
+          'organize'
+        ) +
+        tbQueryOptions.transformation.withOptions(
           {
-            alias: 'Time',
-            dateFormat: 'YYYY-MM-DD HH:mm:ss',
-            type: 'hidden',
-            pattern: 'Time',
-          },
-          {
-            alias: 'Queue',
-            pattern: 'queue_name',
-          },
-          {
-            alias: 'Task',
-            pattern: 'name',
-            link: true,
-            linkTargetBlank: true,
-            linkTooltip: 'Go To View',
-            linkUrl: $._config.celeryTasksByTaskUrl + '?var-job=$job&var-task=${__cell}',
-          },
-          {
-            alias: 'Runtime',
-            pattern: 'Value',
-            type: 'number',
-            unit: 's',
-          },
-        ]
-      )
-      .addTarget(
-        prometheus.target(topTaskRuntime1wQuery, format='table', instant=true)
-      ) + paginateTable,
+            renameByName: {
+              name: 'Task',
+              Value: 'Runtime',
+            },
+            indexByName: {
+              name: 0,
+              Value: 1,
+            },
+            excludeByName: {
+              Time: true,
+            },
+          }
+        ),
+      ]) +
+      tbStandardOptions.withOverrides([
+        tbOverride.byName.new('Task') +
+        tbOverride.byName.withPropertiesFromOptions(
+          tbStandardOptions.withLinks(
+            tbPanelOptions.link.withTitle('Go To Task') +
+            tbPanelOptions.link.withType('dashboard') +
+            tbPanelOptions.link.withUrl(
+              '/d/%s/celery-tasks-by-task?var-task=${__data.fields.Task}' % $._config.celeryTasksByTaskUid
+            ) +
+            tbPanelOptions.link.withTargetBlank(true)
+          )
+        ),
+      ]),
 
     local celeryQueueLengthQuery = |||
       sum (
@@ -322,25 +441,32 @@ local paginateTable = {
       ) by (job, queue_name)
     |||,
 
-    local celeryQueueLengthGraphPanel =
-      grafana.graphPanel.new(
-        'Queue Length' % $._config,
-        datasource='$datasource',
-        legend_show=true,
-        legend_values=true,
-        legend_alignAsTable=true,
-        legend_rightSide=true,
-        legend_max=true,
-        legend_current=true,
-        legend_hideZero=false,
-        legend_sort='current',
-        legend_sortDesc=true,
-        nullPointMode='null as zero'
-      )
-      .addTarget(prometheus.target(
-        celeryQueueLengthQuery,
-        legendFormat='{{ queue_name }}',
-      )),
+
+    local celeryQueueLengthTimeSeriesPanel =
+      timeSeriesPanel.new(
+        'Queue Length',
+      ) +
+      tsQueryOptions.withTargets(
+        [
+          prometheus.new(
+            '$datasource',
+            celeryQueueLengthQuery,
+          ) +
+          prometheus.withLegendFormat(
+            '{{ job }}/{{ queue_name }}'
+          ),
+        ]
+      ) +
+      tsStandardOptions.withUnit('short') +
+      tsOptions.tooltip.withMode('multi') +
+      tsOptions.tooltip.withSort('desc') +
+      tsLegend.withShowLegend(true) +
+      tsLegend.withDisplayMode('table') +
+      tsLegend.withPlacement('right') +
+      tsLegend.withCalcs(['mean', 'max']) +
+      tsLegend.withSortBy('Mean') +
+      tsLegend.withSortDesc(true) +
+      tsCustom.withSpanNulls(false),
 
     local taskFailedQuery = |||
       sum (
@@ -370,92 +496,110 @@ local paginateTable = {
     ],  // Add > -1 to remove NaN results
 
     local tasksStatsTable =
-      grafana.tablePanel.new(
+      tablePanel.new(
         'Task Stats',
-        datasource='$datasource',
-        span='6',
-        sort={
-          col: 2,
-          desc: false,
-        },
-        styles=[
-          {
-            alias: 'Time',
-            dateFormat: 'YYYY-MM-DD HH:mm:ss',
-            type: 'hidden',
-            pattern: 'Time',
-          },
-          {
-            alias: 'Job',
-            type: 'hidden',
-            pattern: 'job',
-          },
-          {
-            alias: 'Success Rate',
-            pattern: 'Value #A',
-            type: 'number',
-            unit: 'percentunit',
-            decimals: '3',
-          },
-          {
-            alias: 'Suceeded',
-            pattern: 'Value #B',
-            type: 'number',
-            unit: 'short',
-            decimals: '0',
-          },
-          {
-            alias: 'Failed',
-            pattern: 'Value #C',
-            type: 'number',
-            unit: 'short',
-            decimals: '0',
-          },
-          {
-            alias: 'Sent',
-            pattern: 'Value #D',
-            type: 'number',
-            unit: 'short',
-            decimals: '0',
-          },
-          {
-            alias: 'Received',
-            pattern: 'Value #E',
-            type: 'number',
-            unit: 'short',
-            decimals: '0',
-          },
-          {
-            alias: 'Rejected',
-            pattern: 'Value #F',
-            type: 'number',
-            unit: 'short',
-            decimals: '0',
-          },
-          {
-            alias: 'Retried',
-            pattern: 'Value #G',
-            type: 'number',
-            unit: 'short',
-            decimals: '0',
-          },
-          {
-            alias: 'Revoked',
-            pattern: 'Value #H',
-            type: 'number',
-            unit: 'short',
-            decimals: '0',
-          },
+      ) +
+      tbStandardOptions.withUnit('short') +
+      tbStandardOptions.withNoValue(0) +
+      tbOptions.withSortBy(
+        tbOptions.sortBy.withDisplayName('Success Rate') +
+        tbOptions.sortBy.withDesc(true)
+      ) +
+      tbQueryOptions.withTargets(
+        [
+          prometheus.new(
+            '$datasource',
+            taskSuccessRateQuery,
+          ) +
+          prometheus.withFormat('table') +
+          prometheus.withInstant(true),
+          prometheus.new(
+            '$datasource',
+            taskSucceededQuery,
+          ) +
+          prometheus.withFormat('table') +
+          prometheus.withInstant(true),
+          prometheus.new(
+            '$datasource',
+            taskFailedQuery,
+          ) +
+          prometheus.withFormat('table') +
+          prometheus.withInstant(true),
+          prometheus.new(
+            '$datasource',
+            taskSentQuery,
+          ) +
+          prometheus.withFormat('table') +
+          prometheus.withInstant(true),
+          prometheus.new(
+            '$datasource',
+            taskReceivedQuery,
+          ) +
+          prometheus.withFormat('table') +
+          prometheus.withInstant(true),
+          prometheus.new(
+            '$datasource',
+            taskRejectedQuery,
+          ) +
+          prometheus.withFormat('table') +
+          prometheus.withInstant(true),
+          prometheus.new(
+            '$datasource',
+            taskRetriedQuery,
+          ) +
+          prometheus.withFormat('table') +
+          prometheus.withInstant(true),
+          prometheus.new(
+            '$datasource',
+            taskRevokedQuery,
+          ) +
+          prometheus.withFormat('table') +
+          prometheus.withInstant(true),
         ]
-      )
-      .addTarget(prometheus.target(taskSuccessRateQuery, format='table', instant=true))
-      .addTarget(prometheus.target(taskSucceededQuery, format='table', instant=true))
-      .addTarget(prometheus.target(taskFailedQuery, format='table', instant=true))
-      .addTarget(prometheus.target(taskSentQuery, format='table', instant=true))
-      .addTarget(prometheus.target(taskReceivedQuery, format='table', instant=true))
-      .addTarget(prometheus.target(taskRejectedQuery, format='table', instant=true))
-      .addTarget(prometheus.target(taskRetriedQuery, format='table', instant=true))
-      .addTarget(prometheus.target(taskRevokedQuery, format='table', instant=true)),
+      ) +
+      tbQueryOptions.withTransformations([
+        tbQueryOptions.transformation.withId(
+          'merge'
+        ),
+        tbQueryOptions.transformation.withId(
+          'organize'
+        ) +
+        tbQueryOptions.transformation.withOptions(
+          {
+            renameByName: {
+              job: 'Job',
+              'Value #A': 'Success Rate',
+              'Value #B': 'Succeeded',
+              'Value #C': 'Failed',
+              'Value #D': 'Sent',
+              'Value #E': 'Received',
+              'Value #F': 'Rejected',
+              'Value #G': 'Retried',
+              'Value #H': 'Revoked',
+            },
+            indexByName: {
+              job: 0,
+              'Value #A': 1,
+              'Value #B': 2,
+              'Value #C': 3,
+              'Value #D': 4,
+              'Value #E': 5,
+              'Value #F': 6,
+              'Value #G': 7,
+              'Value #H': 8,
+            },
+            excludeByName: {
+              Time: true,
+            },
+          }
+        ),
+      ]) +
+      tbStandardOptions.withOverrides([
+        tbOverride.byName.new('Success Rate') +
+        tbOverride.byName.withPropertiesFromOptions(
+          tbStandardOptions.withUnit('percentunit')
+        ),
+      ]),
 
     local taskFailedIntervalQuery = |||
       sum (
@@ -476,49 +620,73 @@ local paginateTable = {
     local taskRevokedIntervalQuery = std.strReplace(taskFailedIntervalQuery, 'failed', 'revoked'),
     local taskRejectedIntervalQuery = std.strReplace(taskFailedIntervalQuery, 'failed', 'rejected'),
 
-    local tasksCompletedGraphPanel =
-      grafana.graphPanel.new(
-        'Tasks completed' % $._config,
-        datasource='$datasource',
-        legend_show=true,
-        legend_values=true,
-        legend_alignAsTable=true,
-        legend_rightSide=true,
-        legend_avg=true,
-        legend_current=true,
-        legend_hideZero=true,
-        legend_sort='avg',
-        legend_sortDesc=true,
-        nullPointMode='null as zero'
-      )
-      .addTarget(prometheus.target(
-        taskSucceededIntervalQuery,
-        legendFormat='Succeeded',
-      ))
-      .addTarget(prometheus.target(
-        taskFailedIntervalQuery,
-        legendFormat='Failed',
-      ))
-      .addTarget(prometheus.target(
-        taskSentIntervalQuery,
-        legendFormat='Sent',
-      ))
-      .addTarget(prometheus.target(
-        taskReceivedIntervalQuery,
-        legendFormat='Received',
-      ))
-      .addTarget(prometheus.target(
-        taskRetriedIntervalQuery,
-        legendFormat='Retried',
-      ))
-      .addTarget(prometheus.target(
-        taskRejectedIntervalQuery,
-        legendFormat='Rejected',
-      ))
-      .addTarget(prometheus.target(
-        taskRevokedIntervalQuery,
-        legendFormat='Revoked',
-      )),
+    local tasksCompletedTimeSeriesPanel =
+      timeSeriesPanel.new(
+        'Tasks Completed',
+      ) +
+      tsQueryOptions.withTargets(
+        [
+          prometheus.new(
+            '$datasource',
+            taskSucceededIntervalQuery,
+          ) +
+          prometheus.withLegendFormat(
+            'Succeeded'
+          ),
+          prometheus.new(
+            '$datasource',
+            taskFailedIntervalQuery,
+          ) +
+          prometheus.withLegendFormat(
+            'Failed'
+          ),
+          prometheus.new(
+            '$datasource',
+            taskSentIntervalQuery,
+          ) +
+          prometheus.withLegendFormat(
+            'Sent'
+          ),
+          prometheus.new(
+            '$datasource',
+            taskReceivedIntervalQuery,
+          ) +
+          prometheus.withLegendFormat(
+            'Received'
+          ),
+          prometheus.new(
+            '$datasource',
+            taskRetriedIntervalQuery,
+          ) +
+          prometheus.withLegendFormat(
+            'Retried'
+          ),
+          prometheus.new(
+            '$datasource',
+            taskRevokedIntervalQuery,
+          ) +
+          prometheus.withLegendFormat(
+            'Revoked'
+          ),
+          prometheus.new(
+            '$datasource',
+            taskRejectedIntervalQuery,
+          ) +
+          prometheus.withLegendFormat(
+            'Rejected'
+          ),
+        ]
+      ) +
+      tsStandardOptions.withUnit('short') +
+      tsOptions.tooltip.withMode('multi') +
+      tsOptions.tooltip.withSort('desc') +
+      tsLegend.withShowLegend(true) +
+      tsLegend.withDisplayMode('table') +
+      tsLegend.withPlacement('right') +
+      tsLegend.withCalcs(['mean', 'max']) +
+      tsLegend.withSortBy('Mean') +
+      tsLegend.withSortDesc(true) +
+      tsCustom.withSpanNulls(false),
 
     local tasksRuntimeP50Query = |||
       histogram_quantile(0.50,
@@ -535,38 +703,62 @@ local paginateTable = {
     local tasksRuntimeP95Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.95'),
     local tasksRuntimeP99Query = std.strReplace(tasksRuntimeP50Query, '0.50', '0.99'),
 
-    local tasksRuntimeGraphPanel =
-      grafana.graphPanel.new(
+    local tasksRuntimeTimeSeriesPanel =
+      timeSeriesPanel.new(
         'Tasks Runtime',
-        datasource='$datasource',
-        format='s',
-        legend_show=true,
-        legend_values=true,
-        legend_alignAsTable=true,
-        legend_rightSide=true,
-        legend_avg=true,
-        legend_current=true,
-        legend_hideZero=true,
-        nullPointMode='null as zero'
-      )
-      .addTarget(
-        prometheus.target(
-          tasksRuntimeP50Query,
-          legendFormat='50',
-        )
-      )
-      .addTarget(
-        prometheus.target(
-          tasksRuntimeP95Query,
-          legendFormat='95',
-        )
-      )
-      .addTarget(
-        prometheus.target(
-          tasksRuntimeP99Query,
-          legendFormat='99',
-        )
-      ),
+      ) +
+      tsQueryOptions.withTargets(
+        [
+          prometheus.new(
+            '$datasource',
+            tasksRuntimeP50Query,
+          ) +
+          prometheus.withLegendFormat(
+            'P50'
+          ),
+          prometheus.new(
+            '$datasource',
+            tasksRuntimeP95Query,
+          ) +
+          prometheus.withLegendFormat(
+            'P95'
+          ),
+          prometheus.new(
+            '$datasource',
+            tasksRuntimeP99Query,
+          ) +
+          prometheus.withLegendFormat(
+            'P99'
+          ),
+        ]
+      ) +
+      tsStandardOptions.withUnit('s') +
+      tsOptions.tooltip.withMode('multi') +
+      tsOptions.tooltip.withSort('desc') +
+      tsStandardOptions.withOverrides([
+        tsOverride.byName.new('P50') +
+        tsOverride.byName.withPropertiesFromOptions(
+          tsStandardOptions.color.withMode('fixed') +
+          tsStandardOptions.color.withFixedColor('green')
+        ),
+        tsOverride.byName.new('P95') +
+        tsOverride.byName.withPropertiesFromOptions(
+          tsStandardOptions.color.withMode('fixed') +
+          tsStandardOptions.color.withFixedColor('yellow')
+        ),
+        tsOverride.byName.new('P99') +
+        tsOverride.byName.withPropertiesFromOptions(
+          tsStandardOptions.color.withMode('fixed') +
+          tsStandardOptions.color.withFixedColor('red')
+        ),
+      ]) +
+      tsLegend.withShowLegend(true) +
+      tsLegend.withDisplayMode('table') +
+      tsLegend.withPlacement('right') +
+      tsLegend.withCalcs(['mean', 'max']) +
+      tsLegend.withSortBy('Mean') +
+      tsLegend.withSortDesc(true) +
+      tsCustom.withSpanNulls(false),
 
     local summaryRow =
       row.new(
@@ -583,77 +775,91 @@ local paginateTable = {
         title='Tasks'
       ),
 
+
     'celery-tasks-overview.json':
-      grafana.dashboard.new(
+      dashboard.new(
         'Celery / Tasks / Overview',
-        description='A dashboard that monitors Celery. It is created using the Celery-mixin for the the (Celery-exporter)[https://github.com/danihodovic/celery-exporter]',
-        editable=true,
-        uid=$._config.celeryTasksOverviewUid,
-        tags=$._config.tags,
-        time_from='now-2d',
-        time_to='now',
-        timezone='utc'
-      )
-      .addPanel(summaryRow, gridPos={ h: 1, w: 24, x: 0, y: 0 })
-      .addPanel(
-        celeryWorkersStatPanel,
-        gridPos={ h: 4, w: 4, x: 0, y: 1 }
-      )
-      .addPanel(
-        celeryWorkersActiveStatPanel,
-        gridPos={ h: 4, w: 5, x: 4, y: 1 }
-      )
-      .addPanel(
-        tasksReceivedByWorkers24hStatPanel,
-        gridPos={ h: 4, w: 5, x: 9, y: 1 }
-      )
-      .addPanel(
-        taskSuccessRate1wStatPanel,
-        gridPos={ h: 4, w: 5, x: 14, y: 1 }
-      )
-      .addPanel(
-        taskRuntime1wStatPanel,
-        gridPos={ h: 4, w: 5, x: 19, y: 1 }
-      )
-      .addPanel(
-        tasksFailed1wTable,
-        gridPos={ h: 8, w: 8, x: 0, y: 5 }
-      )
-      .addPanel(
-        taskExceptions1wTable,
-        gridPos={ h: 8, w: 8, x: 8, y: 5 }
-      )
-      .addPanel(
-        tasksRuntime1wTable,
-        gridPos={ h: 8, w: 8, x: 16, y: 5 }
-      )
-      .addPanel(queuesRow, gridPos={ h: 1, w: 24, x: 0, y: 13 })
-      .addPanel(
-        celeryQueueLengthGraphPanel,
-        gridPos={ h: 6, w: 24, x: 0, y: 14 },
-      )
-      .addPanel(tasksRow, gridPos={ h: 1, w: 24, x: 0, y: 20 })
-      .addPanel(
-        tasksStatsTable,
-        gridPos={ h: 4, w: 24, x: 0, y: 21 }
-      )
-      .addPanel(
-        tasksCompletedGraphPanel,
-        gridPos={ h: 10, w: 24, x: 0, y: 25 },
-      )
-      .addPanel(
-        tasksRuntimeGraphPanel,
-        gridPos={ h: 8, w: 24, x: 0, y: 35 },
       ) +
-      { templating+: { list+: templates } } +
+      dashboard.withDescription(
+        'A dashboard that monitors Celery. It is created using the Celery-mixin for the the (Celery-exporter)[https://github.com/danihodovic/celery-exporter].'
+      ) +
+      dashboard.withUid($._config.celeryTasksOverviewUid) +
+      dashboard.withTags($._config.tags) +
+      dashboard.withTimezone('utc') +
+      dashboard.withEditable(true) +
+      dashboard.time.withFrom('now-2d') +
+      dashboard.time.withTo('now') +
+      dashboard.withVariables(variables) +
+      dashboard.withLinks(
+        [
+          dashboard.link.dashboards.new('Celery Dashboards', $._config.tags) +
+          dashboard.link.link.options.withTargetBlank(true),
+        ]
+      ) +
+      dashboard.withPanels(
+        [
+          summaryRow +
+          row.gridPos.withX(0) +
+          row.gridPos.withY(0) +
+          row.gridPos.withW(24) +
+          row.gridPos.withH(1),
+        ] +
+        grid.makeGrid(
+          [celeryWorkersStatPanel, celeryWorkersActiveStatPanel, tasksReceivedByWorkers24hStatPanel, taskSuccessRate1wStatPanel],
+          panelWidth=5,
+          panelHeight=4,
+          startY=1
+        ) +
+        [
+          taskRuntime1wStatPanel +
+          timeSeriesPanel.gridPos.withX(20) +
+          timeSeriesPanel.gridPos.withY(1) +
+          timeSeriesPanel.gridPos.withW(4) +
+          timeSeriesPanel.gridPos.withH(4),
+        ] +
+        grid.makeGrid(
+          [tasksFailed1wTable, taskExceptions1wTable, tasksRuntime1wTable],
+          panelWidth=8,
+          panelHeight=8,
+          startY=5
+        ) +
+        [
+          queuesRow +
+          row.gridPos.withX(0) +
+          row.gridPos.withY(13) +
+          row.gridPos.withW(24) +
+          row.gridPos.withH(1),
+          celeryQueueLengthTimeSeriesPanel +
+          timeSeriesPanel.gridPos.withX(0) +
+          timeSeriesPanel.gridPos.withY(14) +
+          timeSeriesPanel.gridPos.withW(24) +
+          timeSeriesPanel.gridPos.withH(6),
+        ] +
+        [
+          tasksRow +
+          row.gridPos.withX(0) +
+          row.gridPos.withY(20) +
+          row.gridPos.withW(24) +
+          row.gridPos.withH(1),
+          tasksStatsTable +
+          tablePanel.gridPos.withX(0) +
+          tablePanel.gridPos.withY(21) +
+          tablePanel.gridPos.withW(24) +
+          tablePanel.gridPos.withH(4),
+          tasksCompletedTimeSeriesPanel +
+          timeSeriesPanel.gridPos.withX(0) +
+          timeSeriesPanel.gridPos.withY(25) +
+          timeSeriesPanel.gridPos.withW(24) +
+          timeSeriesPanel.gridPos.withH(10),
+          tasksRuntimeTimeSeriesPanel +
+          timeSeriesPanel.gridPos.withX(0) +
+          timeSeriesPanel.gridPos.withY(35) +
+          timeSeriesPanel.gridPos.withW(24) +
+          timeSeriesPanel.gridPos.withH(10),
+        ]
+      ) +
       if $._config.annotation.enabled then
-        {
-          annotations: {
-            list: [
-              $._config.customAnnotation,
-            ],
-          },
-        }
+        dashboard.withAnnotations($._config.customAnnotation)
       else {},
   },
 }
