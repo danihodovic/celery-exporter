@@ -187,7 +187,7 @@ local tbOverride = tbStandardOptions.override;
       tbStandardOptions.withUnit('short') +
       tbStandardOptions.withNoValue(0) +
       tbOptions.withSortBy(
-        tbOptions.sortBy.withDisplayName('Success Rate') +
+        tbOptions.sortBy.withDisplayName('Succeeded') +
         tbOptions.sortBy.withDesc(true)
       ) +
       tbOptions.footer.TableFooterOptions.withEnablePagination(true) +
@@ -298,7 +298,7 @@ local tbOverride = tbStandardOptions.override;
             }[$__rate_interval]
           )
         )
-      ) by (name, exception)
+      ) by (name, exception) > 0
     |||,
 
     local tasksFailedByExceptionTimeSeriesPanel =
@@ -338,7 +338,7 @@ local tbOverride = tbStandardOptions.override;
             }[$__rate_interval]
           )
         )
-      ) by (name)
+      ) by (name) > 0
     |||,
     local taskSucceededIntervalQuery = std.strReplace(taskFailedIntervalQuery, 'failed', 'succeeded'),
     local taskSentIntervalQuery = std.strReplace(taskFailedIntervalQuery, 'failed', 'sent'),

@@ -496,7 +496,7 @@ local tbOverride = tbStandardOptions.override;
       tbStandardOptions.withUnit('short') +
       tbStandardOptions.withNoValue(0) +
       tbOptions.withSortBy(
-        tbOptions.sortBy.withDisplayName('Success Rate') +
+        tbOptions.sortBy.withDisplayName('Succeeded') +
         tbOptions.sortBy.withDesc(true)
       ) +
       tbQueryOptions.withTargets(
