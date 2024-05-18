@@ -37,6 +37,25 @@ files = [
 ]
 
 [[package]]
+name = "arrow"
+version = "1.3.0"
+description = "Better dates & times for Python"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "arrow-1.3.0-py3-none-any.whl", hash = "sha256:c728b120ebc00eb84e01882a6f5e7927a53960aa990ce7dd2b10f39005a67f80"},
+    {file = "arrow-1.3.0.tar.gz", hash = "sha256:d4540617648cb5f895730f1ad8c82a65f2dad0166f57b75f3ca54759c4d67a85"},
+]
+
+[package.dependencies]
+python-dateutil = ">=2.7.0"
+types-python-dateutil = ">=2.8.10"
+
+[package.extras]
+doc = ["doc8", "sphinx (>=7.0.0)", "sphinx-autobuild", "sphinx-autodoc-typehints", "sphinx_rtd_theme (>=1.3.0)"]
+test = ["dateparser (==1.*)", "pre-commit", "pytest", "pytest-cov", "pytest-mock", "pytz (==2021.1)", "simplejson (==3.*)"]
+
+[[package]]
 name = "astroid"
 version = "3.0.3"
 description = "An abstract syntax tree for Python with inference support."
@@ -131,13 +150,13 @@ files = [
 
 [[package]]
 name = "celery"
-version = "5.3.6"
+version = "5.4.0"
 description = "Distributed Task Queue."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "celery-5.3.6-py3-none-any.whl", hash = "sha256:9da4ea0118d232ce97dff5ed4974587fb1c0ff5c10042eb15278487cdd27d1af"},
-    {file = "celery-5.3.6.tar.gz", hash = "sha256:870cc71d737c0200c397290d730344cc991d13a057534353d124c9380267aab9"},
+    {file = "celery-5.4.0-py3-none-any.whl", hash = "sha256:369631eb580cf8c51a82721ec538684994f8277637edde2dfc0dacd73ed97f64"},
+    {file = "celery-5.4.0.tar.gz", hash = "sha256:504a19140e8d3029d5acad88330c541d4c3f64c789d85f94756762d8bca7e706"},
 ]
 
 [package.dependencies]
@@ -153,7 +172,7 @@ vine = ">=5.1.0,<6.0"
 
 [package.extras]
 arangodb = ["pyArango (>=2.0.2)"]
-auth = ["cryptography (==41.0.5)"]
+auth = ["cryptography (==42.0.5)"]
 azureblockblob = ["azure-storage-blob (>=12.15.0)"]
 brotli = ["brotli (>=1.0.0)", "brotlipy (>=0.7.0)"]
 cassandra = ["cassandra-driver (>=3.25.0,<4)"]
@@ -163,22 +182,23 @@ couchbase = ["couchbase (>=3.0.0)"]
 couchdb = ["pycouchdb (==1.14.2)"]
 django = ["Django (>=2.2.28)"]
 dynamodb = ["boto3 (>=1.26.143)"]
-elasticsearch = ["elastic-transport (<=8.10.0)", "elasticsearch (<=8.11.0)"]
+elasticsearch = ["elastic-transport (<=8.13.0)", "elasticsearch (<=8.13.0)"]
 eventlet = ["eventlet (>=0.32.0)"]
+gcs = ["google-cloud-storage (>=2.10.0)"]
 gevent = ["gevent (>=1.5.0)"]
 librabbitmq = ["librabbitmq (>=2.0.0)"]
 memcache = ["pylibmc (==1.6.3)"]
 mongodb = ["pymongo[srv] (>=4.0.2)"]
-msgpack = ["msgpack (==1.0.7)"]
-pymemcache = ["python-memcached (==1.59)"]
+msgpack = ["msgpack (==1.0.8)"]
+pymemcache = ["python-memcached (>=1.61)"]
 pyro = ["pyro4 (==4.82)"]
-pytest = ["pytest-celery (==0.0.0)"]
+pytest = ["pytest-celery[all] (>=1.0.0)"]
 redis = ["redis (>=4.5.2,!=4.5.5,<6.0.0)"]
 s3 = ["boto3 (>=1.26.143)"]
 slmq = ["softlayer-messaging (>=1.0.3)"]
 solar = ["ephem (==4.1.5)"]
 sqlalchemy = ["sqlalchemy (>=1.4.48,<2.1)"]
-sqs = ["boto3 (>=1.26.143)", "kombu[sqs] (>=5.3.0)", "pycurl (>=7.43.0.5)", "urllib3 (>=1.26.16)"]
+sqs = ["boto3 (>=1.26.143)", "kombu[sqs] (>=5.3.4)", "pycurl (>=7.43.0.5)", "urllib3 (>=1.26.16)"]
 tblib = ["tblib (>=1.3.0)", "tblib (>=1.5.0)"]
 yaml = ["PyYAML (>=3.10)"]
 zookeeper = ["kazoo (>=1.3.1)"]
@@ -515,13 +535,13 @@ typing = ["typing-extensions (>=4.8)"]
 
 [[package]]
 name = "flask"
-version = "3.0.2"
+version = "3.0.3"
 description = "A simple framework for building complex web applications."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "flask-3.0.2-py3-none-any.whl", hash = "sha256:3232e0e9c850d781933cf0207523d1ece087eb8d87b23777ae38456e2fbe7c6e"},
-    {file = "flask-3.0.2.tar.gz", hash = "sha256:822c03f4b799204250a7ee84b1eddc40665395333973dfb9deebfe425fefcb7d"},
+    {file = "flask-3.0.3-py3-none-any.whl", hash = "sha256:34e815dfaa43340d1d15a5c3a02b8476004037eb4840b34910c6e21679d288f3"},
+    {file = "flask-3.0.3.tar.gz", hash = "sha256:ceb27b0af3823ea2737928a4d99d125a06175b8512c445cbd9a9ce200ef76842"},
 ]
 
 [package.dependencies]
@@ -981,13 +1001,13 @@ colorama = "*"
 
 [[package]]
 name = "prometheus-client"
-version = "0.19.0"
+version = "0.20.0"
 description = "Python client for the Prometheus monitoring system."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "prometheus_client-0.19.0-py3-none-any.whl", hash = "sha256:c88b1e6ecf6b41cd8fb5731c7ae919bf66df6ec6fafa555cd6c0e16ca169ae92"},
-    {file = "prometheus_client-0.19.0.tar.gz", hash = "sha256:4585b0d1223148c27a225b10dbec5ae9bc4c81a99a3fa80774fa6209935324e1"},
+    {file = "prometheus_client-0.20.0-py3-none-any.whl", hash = "sha256:cde524a85bce83ca359cc837f28b8c0db5cac7aa653a588fd7e84ba061c329e7"},
+    {file = "prometheus_client-0.20.0.tar.gz", hash = "sha256:287629d00b147a32dcb2be0b9df905da599b2d82f80377083ec8463309a4bb89"},
 ]
 
 [package.extras]
@@ -1293,17 +1313,17 @@ files = [
 
 [[package]]
 name = "redis"
-version = "5.0.1"
+version = "5.0.4"
 description = "Python client for Redis database and key-value store"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "redis-5.0.1-py3-none-any.whl", hash = "sha256:ed4802971884ae19d640775ba3b03aa2e7bd5e8fb8dfaed2decce4d0fc48391f"},
-    {file = "redis-5.0.1.tar.gz", hash = "sha256:0dab495cd5753069d3bc650a0dde8a8f9edde16fc5691b689a566eda58100d0f"},
+    {file = "redis-5.0.4-py3-none-any.whl", hash = "sha256:7adc2835c7a9b5033b7ad8f8918d09b7344188228809c98df07af226d39dec91"},
+    {file = "redis-5.0.4.tar.gz", hash = "sha256:ec31f2ed9675cc54c21ba854cfe0462e6faf1d83c8ce5944709db8a4700b9c61"},
 ]
 
 [package.dependencies]
-async-timeout = {version = ">=4.0.2", markers = "python_full_version <= \"3.11.2\""}
+async-timeout = {version = ">=4.0.3", markers = "python_full_version < \"3.11.3\""}
 
 [package.extras]
 hiredis = ["hiredis (>=1.0.0)"]
@@ -1358,6 +1378,17 @@ files = [
 ]
 
 [[package]]
+name = "timy"
+version = "0.4.2"
+description = "Minimalist measurement of python code time"
+optional = false
+python-versions = "*"
+files = [
+    {file = "timy-0.4.2-py3-none-any.whl", hash = "sha256:afd090509248dc638cd46e29a1d721ed8a079175269f5961eab576a429495b2e"},
+    {file = "timy-0.4.2.tar.gz", hash = "sha256:2d4cb1206cc012349c17cb496df0b70782c62862f494519cc82f1806125d84ab"},
+]
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -1377,6 +1408,17 @@ python-versions = ">=3.7"
 files = [
     {file = "tomlkit-0.12.3-py3-none-any.whl", hash = "sha256:b0a645a9156dc7cb5d3a1f0d4bab66db287fcb8e0430bdd4664a095ea16414ba"},
     {file = "tomlkit-0.12.3.tar.gz", hash = "sha256:75baf5012d06501f07bee5bf8e801b9f343e7aac5a92581f20f80ce632e6b5a4"},
+]
+
+[[package]]
+name = "types-python-dateutil"
+version = "2.9.0.20240316"
+description = "Typing stubs for python-dateutil"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "types-python-dateutil-2.9.0.20240316.tar.gz", hash = "sha256:5d2f2e240b86905e40944dd787db6da9263f0deabef1076ddaed797351ec0202"},
+    {file = "types_python_dateutil-2.9.0.20240316-py3-none-any.whl", hash = "sha256:6b8cb66d960771ce5ff974e9dd45e38facb81718cc1e208b10b1baccbfdbee3b"},
 ]
 
 [[package]]
@@ -1555,18 +1597,18 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 
 [[package]]
 name = "waitress"
-version = "2.1.2"
+version = "3.0.0"
 description = "Waitress WSGI server"
 optional = false
-python-versions = ">=3.7.0"
+python-versions = ">=3.8.0"
 files = [
-    {file = "waitress-2.1.2-py3-none-any.whl", hash = "sha256:7500c9625927c8ec60f54377d590f67b30c8e70ef4b8894214ac6e4cad233d2a"},
-    {file = "waitress-2.1.2.tar.gz", hash = "sha256:780a4082c5fbc0fde6a2fcfe5e26e6efc1e8f425730863c04085769781f51eba"},
+    {file = "waitress-3.0.0-py3-none-any.whl", hash = "sha256:2a06f242f4ba0cc563444ca3d1998959447477363a2d7e9b8b4d75d35cfd1669"},
+    {file = "waitress-3.0.0.tar.gz", hash = "sha256:005da479b04134cdd9dd602d1ee7c49d79de0537610d653674cc6cbde222b8a1"},
 ]
 
 [package.extras]
 docs = ["Sphinx (>=1.8.1)", "docutils", "pylons-sphinx-themes (>=1.0.9)"]
-testing = ["coverage (>=5.0)", "pytest", "pytest-cover"]
+testing = ["coverage (>=5.0)", "pytest", "pytest-cov"]
 
 [[package]]
 name = "wcwidth"
@@ -1628,4 +1670,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.12"
-content-hash = "eb3ef774a620acd86a79ce385e8013b75edec2b51966dae486972182467195a2"
+content-hash = "656fdfa0ed53d749739903c10e77c7f6a6aa81df0fb1baae9a6feb49438c6f06"
