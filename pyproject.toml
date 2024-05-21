@@ -1,3 +1,17 @@
+[tool.poetry]
+name = "celeryexporter"
+version = "0.10.5"
+description = ""
+authors = [
+	"Dani Hodovic <dani.hodovic@gmail.com>",
+	"Adin Hodovic <adin@email.com>",
+]
+license = "MIT"
+packages = [
+    { include = "src" },
+]
+readme = "README.md"
+
 [tool.black]
 skip_numeric_underscore_normalization = true
 exclude = ".*(venv|virtualenv|.poetry|migrations|node_modules)"
@@ -6,12 +20,6 @@ exclude = ".*(venv|virtualenv|.poetry|migrations|node_modules)"
 profile = "black"
 multi_line_output = 3
 skip = '.virtualenv,.venv,.poetry,.poetry-cache'
-
-[tool.poetry]
-name = "celery-exporter"
-version = "0.10.5"
-description = ""
-authors = ["Dani Hodovic <dani.hodovic@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
