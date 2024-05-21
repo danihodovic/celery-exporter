@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prometheus-exporter-celery"
-version = "0.10.5"
+version = "0.10.6"
 description = ""
 authors = [
 	"Dani Hodovic <dani.hodovic@gmail.com>",
@@ -11,6 +11,16 @@ packages = [
     { include = "src" },
 ]
 readme = "README.md"
+repository = "https://github.com/danihodovic/celery-exporter"
+documentation = "https://github.com/danihodovic/celery-exporter"
+keywords = ["celery", "task-processing", "prometheus", "grafana", "monitoring"]
+classifiers = [
+	"Topic :: System :: Monitoring",
+	"Topic :: System :: Systems Administration",
+	"Topic :: System :: Distributed Computing",
+	"Framework :: Celery",
+	"Framework :: Django",
+]
 
 [tool.black]
 skip_numeric_underscore_normalization = true
