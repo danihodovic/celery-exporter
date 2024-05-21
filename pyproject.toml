@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "celeryexporter"
+name = "prometheus-exporter-celery"
 version = "0.10.5"
 description = ""
 authors = [
