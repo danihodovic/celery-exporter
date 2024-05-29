@@ -15,7 +15,10 @@ RUN apt-get update && \
     && poetry config virtualenvs.create false \
     && poetry install --no-interaction \
     && rm -rf /root/.cache \
-    && apt remove -y build-essential
+    && apt remove -y build-essential \
+    && adduser --disabled-login exporter
+
+USER exporter
 
 COPY . /app/
 
