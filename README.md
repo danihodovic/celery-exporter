@@ -89,6 +89,11 @@ Using Docker:
 docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.service.consul/1
 ```
 
+Using Docker Compose:
+```sh
+docker-compose build && docker-compose -p celery-exporter up -d
+```
+
 Using the Python binary (for-non Docker environments):
 ```sh
 curl -L https://github.com/danihodovic/celery-exporter/releases/download/latest/celery-exporter -o ./celery-exporter
