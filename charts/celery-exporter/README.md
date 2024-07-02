@@ -11,7 +11,7 @@ Prometheus exporter for Celery
 Add the helm repository:
 
 ```bash
-helm repo add danihodovic https://danihodovic.github.io/helm-charts
+helm repo add danihodovic https://danihodovic.github.io/celery-exporter/
 ```
 
 Install the chart:
@@ -21,12 +21,12 @@ helm install celery-exporter danihodovic/celery-exporter
 ```
 
 
-You'll need to set the enviroment variable `CELERY_BROKER_URL` to the broker url of your celery instance.
+You'll need to set the enviroment variable `CE_BROKER_URL` to the broker url of your celery instance.
 
 For example:
 
 ```bash
-helm install celery-exporter danihodovic/celery-exporter --set env[0].name=CELERY_BROKER_URL,env[0].value=redis://redis:6379/0
+helm install celery-exporter danihodovic/celery-exporter --set env[0].name=CE_BROKER_URL,env[0].value=redis://redis:6379/0
 ```
 
 ## Maintainers
