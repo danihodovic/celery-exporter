@@ -68,7 +68,7 @@
                }
             ]
          },
-         "pluginVersion": "v10.4.0",
+         "pluginVersion": "v11.0.0",
          "targets": [
             {
                "datasource": {
@@ -209,7 +209,7 @@
                }
             ]
          },
-         "pluginVersion": "v10.4.0",
+         "pluginVersion": "v11.0.0",
          "targets": [
             {
                "datasource": {
@@ -281,7 +281,7 @@
                "sort": "desc"
             }
          },
-         "pluginVersion": "v10.4.0",
+         "pluginVersion": "v11.0.0",
          "targets": [
             {
                "datasource": {
@@ -380,7 +380,7 @@
                "sort": "desc"
             }
          },
-         "pluginVersion": "v10.4.0",
+         "pluginVersion": "v11.0.0",
          "targets": [
             {
                "datasource": {
@@ -478,7 +478,7 @@
                "sort": "desc"
             }
          },
-         "pluginVersion": "v10.4.0",
+         "pluginVersion": "v11.0.0",
          "targets": [
             {
                "datasource": {
@@ -509,7 +509,7 @@
          "type": "timeseries"
       }
    ],
-   "schemaVersion": 36,
+   "schemaVersion": 39,
    "tags": [
       "celery",
       "celery-mixin"

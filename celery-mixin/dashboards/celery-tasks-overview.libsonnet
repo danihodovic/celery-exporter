@@ -260,7 +260,7 @@ local tbOverride = tbStandardOptions.override;
         tbOptions.sortBy.withDisplayName('Value') +
         tbOptions.sortBy.withDesc(true)
       ) +
-      tbOptions.footer.TableFooterOptions.withEnablePagination(true) +
+      tbOptions.footer.withEnablePagination(true) +
       tbQueryOptions.withTargets(
         prometheus.new(
           '$datasource',
@@ -325,7 +325,7 @@ local tbOverride = tbStandardOptions.override;
         tbOptions.sortBy.withDisplayName('Value') +
         tbOptions.sortBy.withDesc(true)
       ) +
-      tbOptions.footer.TableFooterOptions.withEnablePagination(true) +
+      tbOptions.footer.withEnablePagination(true) +
       tbQueryOptions.withTargets(
         prometheus.new(
           '$datasource',
@@ -383,7 +383,7 @@ local tbOverride = tbStandardOptions.override;
         tbOptions.sortBy.withDisplayName('Runtime') +
         tbOptions.sortBy.withDesc(true)
       ) +
-      tbOptions.footer.TableFooterOptions.withEnablePagination(true) +
+      tbOptions.footer.withEnablePagination(true) +
       tbQueryOptions.withTargets(
         prometheus.new(
           '$datasource',
