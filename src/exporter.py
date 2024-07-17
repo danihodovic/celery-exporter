@@ -5,11 +5,12 @@ import sys
 import time
 
 from collections import defaultdict
-from typing import Optional
+from typing import Callable, Optional
 
 from celery import Celery
 from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
+from celery.utils.time import utcoffset  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
@@ -307,7 +308,9 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
 
         if is_online:
             self.worker_last_seen[hostname] = {
-                "ts": event["timestamp"],
+                "ts": reverse_adjust_timestamp(
+                    event["timestamp"], event.get("utcoffset")
+                ),
                 "forgotten": False,
             }
         else:
@@ -317,7 +320,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         hostname = get_hostname(event["hostname"])
         logger.debug("Received event='{}' for worker='{}'", event["type"], hostname)
 
-        self.worker_last_seen[hostname] = {"ts": event["timestamp"], "forgotten": False}
+        self.worker_last_seen[hostname] = {
+            "ts": reverse_adjust_timestamp(event["timestamp"], event.get("utcoffset")),
+            "forgotten": False,
+        }
         worker_state = self.state.event(event)[0][0]
         active = worker_state.active or 0
         up = 1 if worker_state.alive else 0
@@ -405,6 +411,13 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
 
 
 exception_pattern = re.compile(r"^(\w+)\(")
+
+
+def reverse_adjust_timestamp(
+    ts: float, offset: Optional[int] = None, here: Callable[..., float] = utcoffset
+) -> float:
+    """Adjust timestamp in reverse of celery, based on provided utcoffset."""
+    return ts + ((offset or 0) - here()) * 3600
 
 
 def get_exception_class_name(exception_name: str):
