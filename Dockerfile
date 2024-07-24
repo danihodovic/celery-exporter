@@ -1,4 +1,4 @@
-FROM python:3.10-slim-bullseye
+FROM 3.12-slim-bookworm
 
 EXPOSE 9808
 ENV PYTHONUNBUFFERED 1
