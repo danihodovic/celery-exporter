@@ -32,7 +32,7 @@ multi_line_output = 3
 skip = '.virtualenv,.venv,.poetry,.poetry-cache'
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.12"
+python = ">=3.11,<3.13"
 celery = "^5.4.0"
 prometheus-client = "^0.20.0"
 click = "^8.1.7"
