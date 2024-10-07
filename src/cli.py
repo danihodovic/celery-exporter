@@ -115,7 +115,7 @@ def _comma_seperated_argument(_ctx, _param, value):
     help="Prefix all metrics with a string. "
     "This option replaces the 'celery_*' part with a custom prefix. ",
 )
-def cli(  # pylint: disable=too-many-arguments,too-many-locals
+def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     broker_url,
     broker_transport_option,
     accept_content,
