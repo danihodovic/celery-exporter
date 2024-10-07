@@ -3,7 +3,6 @@ import json
 import re
 import sys
 import time
-
 from collections import defaultdict
 from typing import Callable, Optional
 
@@ -21,7 +20,7 @@ from .http_server import start_http_server
 class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branches
     state: State = None
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(
         self,
         buckets=None,
