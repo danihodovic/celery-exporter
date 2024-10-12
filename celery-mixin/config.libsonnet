@@ -4,7 +4,7 @@ local annotation = g.dashboard.annotation;
 {
   _config+:: {
     // Selectors are inserted between {} in Prometheus queries.
-    celerySelector: 'job=~"celery|celery-exporter"',
+    celerySelector: 'job=~".*celery.*"',
 
     grafanaUrl: 'https://grafana.com',
 
