@@ -35,3 +35,38 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: false
           tags: ${{ steps.metadata.outputs.tags }}
+
+  helm-chart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set Up Helm
+        uses: azure/setup-helm@v4.2.0
+        with:
+          version: v3.14.4
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          check-latest: true
+      - name: Set Up Chart-Testing
+        uses: helm/chart-testing-action@v2.6.1
+      - name: Run Chart-Testing (List-Changed)
+        id: list-changed
+        run: |
+          changed=$(ct list-changed --target-branch ${{ github.event.repository.default_branch }})
+          if [[ -n "$changed" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run Chart-Testing (Lint)
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct lint --target-branch ${{ github.event.repository.default_branch }}
+      - name: Create Kind Cluster
+        if: steps.list-changed.outputs.changed == 'true'
+        uses: helm/kind-action@v1.10.0
+      - name: Run Chart-Testing (Install)
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct install --target-branch ${{ github.event.repository.default_branch }}
