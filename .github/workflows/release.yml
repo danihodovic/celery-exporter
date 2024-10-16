@@ -26,6 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE: danihodovic/celery-exporter
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,7 +36,9 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE }}
+          images: |
+            ${{ env.IMAGE }}
+            ghcr.io/${{ env.IMAGE }}
       - name: Set Up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set Up Docker Buildx
@@ -43,6 +48,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build, tag, and push image to Docker Hub
         uses: docker/build-push-action@v6
         with:
