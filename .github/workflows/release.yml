@@ -60,9 +60,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           context: .
-          labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           push: true
+          annotations: ${{ steps.metadata.outputs.annotations }}
+          labels: ${{ steps.metadata.outputs.labels }}
           tags: ${{ steps.metadata.outputs.tags }}
       - name: Update Description On Docker Hub Description
         uses: peter-evans/dockerhub-description@v4

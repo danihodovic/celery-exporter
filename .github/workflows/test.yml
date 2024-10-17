@@ -31,9 +31,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           context: .
-          labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           push: false
+          annotations: ${{ steps.metadata.outputs.annotations }}
+          labels: ${{ steps.metadata.outputs.labels }}
           tags: ${{ steps.metadata.outputs.tags }}
 
   helm-chart:
