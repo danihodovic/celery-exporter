@@ -89,8 +89,15 @@ jobs:
         uses: azure/setup-helm@v4.2.0
         with:
           version: v3.14.4
-      - name: Run Chart-Releaser
-        uses: helm/chart-releaser-action@v1.6.0
+      - name: Get Chart Version
+        id: chart-version
+        run: echo "::set-output name=version::$(grep 'version:' ./charts/celery-exporter/Chart.yaml | cut -d ' ' -f 2)"
+      - name: Package Helm chart
+        run: helm package ./charts/celery-exporter --app-version=${{ github.ref_name }}
+      - name: Upload To Github Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            celery-exporter-${{ steps.chart-version.outputs.version }}.tgz
         env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          CR_RELEASE_NAME_TEMPLATE: "{{ .Name }}-chart-{{ .Version }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
