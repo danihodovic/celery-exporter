@@ -32,6 +32,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
     ):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set(initial_queues or [])
+        self.queue_mapping = {}
         self.worker_last_seen = {}
         self.worker_timeout_seconds = worker_timeout_seconds
         self.purge_offline_worker_metrics_after_seconds = (
@@ -132,6 +133,19 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             ["queue_name"],
             registry=self.registry,
         )
+        self.celery_working_process_count = Gauge(
+            f"{metric_prefix}working_process_count",
+            "The number of actual working processes in broker queue.",
+            ["queue_name"],
+            registry=self.registry,
+        )
+        self.celery_idle_process_count = Gauge(
+            f"{metric_prefix}idle_process_count",
+            "The number of idle processes in broker queue.",
+            ["queue_name"],
+            registry=self.registry,
+        )
+
 
     def scrape(self):
         if (
@@ -224,6 +238,12 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             processes_per_queue = defaultdict(int)
             workers_per_queue = defaultdict(int)
 
+            # ORI: collect working workers samples by prefix 
+            active_worker_by_prefix = defaultdict(float)
+            for s in self.worker_tasks_active._samples(): 
+                if m := re.match("^(.*)-\\w+-\\w+$",  str(s.labels.get('hostname'))): 
+                    active_worker_by_prefix[m.group(1)] += s.value
+
             # request workers to response active queues
             # we need to cache queue info in exporter in case all workers are offline
             # so that no worker response to exporter will make active_queues return None
@@ -235,7 +255,13 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                     workers_per_queue[name] += 1
                     processes_per_queue[name] += concurrency_per_worker.get(worker, 0)
 
+                    # ORI: map queues to worker prefix 
+                    if name not in self.queue_mapping: 
+                        if m := re.match("^\\w+@(.*)-\\w+-\\w+$",  worker): 
+                            self.queue_mapping[name] = m.group(1)
+
             for queue in self.queue_cache:
+                
                 if transport in ["amqp", "amqps", "memory"]:
                     consumer_count = rabbitmq_queue_consumer_count(connection, queue)
                     self.celery_active_consumer_count.labels(queue_name=queue).set(
@@ -248,6 +274,17 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 self.celery_active_worker_count.labels(queue_name=queue).set(
                     workers_per_queue[queue]
                 )
+
+                # ORI: actual working workers and idle workers
+                if queue in self.queue_mapping: 
+                    actual_working = active_worker_by_prefix[self.queue_mapping[queue]]
+                    self.celery_working_process_count.labels(queue_name=queue).set(
+                        actual_working
+                    )
+                    self.celery_idle_process_count.labels(queue_name=queue).set(
+                        processes_per_queue[queue]-actual_working
+                    )
+
                 length = queue_length(transport, connection, queue)
                 if length is not None:
                     self.celery_queue_length.labels(queue_name=queue).set(length)
