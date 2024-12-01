@@ -69,6 +69,7 @@ helm install celery-exporter danihodovic/celery-exporter --set env[0].name=CE_BR
 | securityContext | object | `{}` |  |
 | service.port | int | `9808` |  |
 | service.type | string | `"ClusterIP"` |  |
+| service.annotations | object | `{}` |  |
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `true` |  |
 | serviceAccount.name | string | `""` |  |
