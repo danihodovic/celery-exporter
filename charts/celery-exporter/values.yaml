@@ -48,6 +48,9 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 9808
+  annotations: {}
+  #   prometheus.io/scrape: "true"
+  #   prometheus.io/port: "9808"
 
 ingress:
   enabled: false
