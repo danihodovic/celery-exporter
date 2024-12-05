@@ -19,6 +19,7 @@ def _comma_seperated_argument(_ctx, _param, value):
         return value.split(",")
     return []
 
+
 # Accepts value string in format "key=val". Returns dict {key: val}.
 # * If value is None - returns empty dict
 def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
@@ -29,6 +30,7 @@ def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
             dict_of_key_value_pairs[key] = val
         return dict_of_key_value_pairs
     return {}
+
 
 @click.command(help=cmd_help)
 @click.option(
@@ -159,5 +161,5 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
         generic_hostname_task_sent_metric,
         queues,
         metric_prefix,
-        static_label
+        static_label,
     ).run(ctx.params)
