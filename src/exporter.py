@@ -29,6 +29,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         generic_hostname_task_sent_metric=False,
         initial_queues=None,
         metric_prefix="celery_",
+        static_label=[]
     ):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set(initial_queues or [])
@@ -38,98 +39,103 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             purge_offline_worker_metrics_seconds
         )
         self.generic_hostname_task_sent_metric = generic_hostname_task_sent_metric
+        
+        # Static labels
+        self.static_label = static_label
+        self.static_label_keys = static_label.keys()
+
         self.state_counters = {
             "task-sent": Counter(
                 f"{metric_prefix}task_sent",
                 "Sent when a task message is published.",
-                ["name", "hostname", "queue_name"],
+                ["name", "hostname", "queue_name", *self.static_label_keys],
                 registry=self.registry,
             ),
             "task-received": Counter(
                 f"{metric_prefix}task_received",
                 "Sent when the worker receives a task.",
-                ["name", "hostname", "queue_name"],
+                ["name", "hostname", "queue_name", *self.static_label_keys],
                 registry=self.registry,
             ),
             "task-started": Counter(
                 f"{metric_prefix}task_started",
                 "Sent just before the worker executes the task.",
-                ["name", "hostname", "queue_name"],
+                ["name", "hostname", "queue_name", *self.static_label_keys],
                 registry=self.registry,
             ),
             "task-succeeded": Counter(
                 f"{metric_prefix}task_succeeded",
                 "Sent if the task executed successfully.",
-                ["name", "hostname", "queue_name"],
+                ["name", "hostname", "queue_name", *self.static_label_keys],
                 registry=self.registry,
             ),
             "task-failed": Counter(
                 f"{metric_prefix}task_failed",
                 "Sent if the execution of the task failed.",
-                ["name", "hostname", "exception", "queue_name"],
+                ["name", "hostname", "exception", "queue_name", *self.static_label_keys],
                 registry=self.registry,
             ),
             "task-rejected": Counter(
                 f"{metric_prefix}task_rejected",
                 # pylint: disable=line-too-long
                 "The task was rejected by the worker, possibly to be re-queued or moved to a dead letter queue.",
-                ["name", "hostname", "queue_name"],
+                ["name", "hostname", "queue_name", *self.static_label_keys],
                 registry=self.registry,
             ),
             "task-revoked": Counter(
                 f"{metric_prefix}task_revoked",
                 "Sent if the task has been revoked.",
-                ["name", "hostname", "queue_name"],
+                ["name", "hostname", "queue_name", *self.static_label_keys],
                 registry=self.registry,
             ),
             "task-retried": Counter(
                 f"{metric_prefix}task_retried",
                 "Sent if the task failed, but will be retried in the future.",
-                ["name", "hostname", "queue_name"],
+                ["name", "hostname", "queue_name", *self.static_label_keys],
                 registry=self.registry,
             ),
         }
         self.celery_worker_up = Gauge(
             f"{metric_prefix}worker_up",
             "Indicates if a worker has recently sent a heartbeat.",
-            ["hostname"],
+            ["hostname", *self.static_label_keys],
             registry=self.registry,
         )
         self.worker_tasks_active = Gauge(
             f"{metric_prefix}worker_tasks_active",
             "The number of tasks the worker is currently processing",
-            ["hostname"],
+            ["hostname", *self.static_label_keys],
             registry=self.registry,
         )
         self.celery_task_runtime = Histogram(
             f"{metric_prefix}task_runtime",
             "Histogram of task runtime measurements.",
-            ["name", "hostname", "queue_name"],
+            ["name", "hostname", "queue_name", *self.static_label_keys],
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
         self.celery_queue_length = Gauge(
             f"{metric_prefix}queue_length",
             "The number of message in broker queue.",
-            ["queue_name"],
+            ["queue_name", *self.static_label_keys],
             registry=self.registry,
         )
         self.celery_active_consumer_count = Gauge(
             f"{metric_prefix}active_consumer_count",
             "The number of active consumer in broker queue.",
-            ["queue_name"],
+            ["queue_name", *self.static_label_keys],
             registry=self.registry,
         )
         self.celery_active_worker_count = Gauge(
             f"{metric_prefix}active_worker_count",
             "The number of active workers in broker queue.",
-            ["queue_name"],
+            ["queue_name", *self.static_label_keys],
             registry=self.registry,
         )
         self.celery_active_process_count = Gauge(
             f"{metric_prefix}active_process_count",
             "The number of active processes in broker queue.",
-            ["queue_name"],
+            ["queue_name", *self.static_label_keys],
             registry=self.registry,
         )
 
@@ -143,8 +149,8 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
 
     def forget_worker(self, hostname):
         if hostname in self.worker_last_seen:
-            self.celery_worker_up.labels(hostname=hostname).set(0)
-            self.worker_tasks_active.labels(hostname=hostname).set(0)
+            self.celery_worker_up.labels(hostname=hostname, **self.static_label).set(0)
+            self.worker_tasks_active.labels(hostname=hostname, **self.static_label).set(0)
             logger.debug(
                 "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, 0
             )
@@ -238,19 +244,19 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             for queue in self.queue_cache:
                 if transport in ["amqp", "amqps", "memory"]:
                     consumer_count = rabbitmq_queue_consumer_count(connection, queue)
-                    self.celery_active_consumer_count.labels(queue_name=queue).set(
+                    self.celery_active_consumer_count.labels(queue_name=queue, **self.static_label).set(
                         consumer_count
                     )
 
-                self.celery_active_process_count.labels(queue_name=queue).set(
+                self.celery_active_process_count.labels(queue_name=queue, **self.static_label).set(
                     processes_per_queue[queue]
                 )
-                self.celery_active_worker_count.labels(queue_name=queue).set(
+                self.celery_active_worker_count.labels(queue_name=queue, **self.static_label).set(
                     workers_per_queue[queue]
                 )
                 length = queue_length(transport, connection, queue)
                 if length is not None:
-                    self.celery_queue_length.labels(queue_name=queue).set(length)
+                    self.celery_queue_length.labels(queue_name=queue, **self.static_label).set(length)
 
     def track_task_event(self, event):
         self.state.event(event)
@@ -264,6 +270,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             "name": task.name,
             "hostname": get_hostname(task.hostname),
             "queue_name": getattr(task, "queue", "celery"),
+            **self.static_label
         }
         if event["type"] == "task-sent" and self.generic_hostname_task_sent_metric:
             labels["hostname"] = "generic"
@@ -303,7 +310,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         event_name = "worker-online" if is_online else "worker-offline"
         hostname = get_hostname(event["hostname"])
         logger.debug("Received event='{}' for hostname='{}'", event_name, hostname)
-        self.celery_worker_up.labels(hostname=hostname).set(value)
+        self.celery_worker_up.labels(hostname=hostname, **self.static_label).set(value)
 
         if is_online:
             self.worker_last_seen[hostname] = {
@@ -326,8 +333,8 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         worker_state = self.state.event(event)[0][0]
         active = worker_state.active or 0
         up = 1 if worker_state.alive else 0
-        self.celery_worker_up.labels(hostname=hostname).set(up)
-        self.worker_tasks_active.labels(hostname=hostname).set(active)
+        self.celery_worker_up.labels(hostname=hostname, **self.static_label).set(up)
+        self.worker_tasks_active.labels(hostname=hostname, **self.static_label).set(active)
         logger.debug(
             "Updated gauge='{}' value='{}'", self.worker_tasks_active._name, active
         )
