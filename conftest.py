@@ -1,5 +1,6 @@
 import socket
 import threading
+import copy
 
 import pytest
 
@@ -81,8 +82,9 @@ def find_free_port():
     return _find_free_port
 
 
-@pytest.fixture()
-def exporter_instance(find_free_port, celery_config, log_level):
+# Configurations for exporters
+@pytest.fixture(scope="session")
+def exporter_cfg_defaults(find_free_port, celery_config, log_level):
     cfg = {
         "host": "0.0.0.0",
         "port": find_free_port(),
@@ -96,12 +98,21 @@ def exporter_instance(find_free_port, celery_config, log_level):
         "purge_offline_worker_metrics": 10,
         "initial_queues": ["queue_from_command_line"],
     }
+    yield cfg
+
+
+@pytest.fixture()
+def exporter_instance(exporter_cfg_defaults, find_free_port):
+    exporter_cfg = copy.deepcopy(exporter_cfg_defaults)
+    exporter_cfg["port"] = find_free_port()
     exporter = Exporter(
-        worker_timeout_seconds=cfg["worker_timeout"],
-        purge_offline_worker_metrics_seconds=cfg["purge_offline_worker_metrics"],
-        initial_queues=cfg["initial_queues"],
+        worker_timeout_seconds=exporter_cfg["worker_timeout"],
+        purge_offline_worker_metrics_seconds=exporter_cfg[
+            "purge_offline_worker_metrics"
+        ],
+        initial_queues=exporter_cfg["initial_queues"],
     )
-    setattr(exporter, "cfg", cfg)
+    setattr(exporter, "cfg", exporter_cfg)
     yield exporter
 
 
@@ -112,6 +123,38 @@ def threaded_exporter(exporter_instance):
     )
     thread.start()
     yield exporter_instance
+
+
+# Fixtures for same exporter, but with static labels
+@pytest.fixture
+def exporter_instance_static_labels(exporter_cfg_defaults, find_free_port):
+    exporter_cfg = copy.deepcopy(exporter_cfg_defaults)
+    exporter_cfg["port"] = find_free_port()
+    exporter_cfg["static_label"] = {
+        "test_label_1": "test_value",
+        "test_label_2_long_named": "test_value_2_long_named",
+    }
+    exporter = Exporter(
+        worker_timeout_seconds=exporter_cfg["worker_timeout"],
+        purge_offline_worker_metrics_seconds=exporter_cfg[
+            "purge_offline_worker_metrics"
+        ],
+        initial_queues=exporter_cfg["initial_queues"],
+        static_label=exporter_cfg["static_label"],
+    )
+    setattr(exporter, "cfg", exporter_cfg)
+    yield exporter
+
+
+@pytest.fixture()
+def threaded_exporter_static_labels(exporter_instance_static_labels):
+    thread = threading.Thread(
+        target=exporter_instance_static_labels.run,
+        args=(exporter_instance_static_labels.cfg,),
+        daemon=True,
+    )
+    thread.start()
+    yield exporter_instance_static_labels
 
 
 @pytest.fixture()
