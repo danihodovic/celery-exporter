@@ -97,6 +97,12 @@ def exporter_cfg_defaults(find_free_port, celery_config, log_level):
         "worker_timeout": 1,
         "purge_offline_worker_metrics": 10,
         "initial_queues": ["queue_from_command_line"],
+        # New RedBeat parameters with default values
+        "redbeat_redis_url": None,
+        "redbeat_redis_use_ssl": None,
+        "redbeat_key_prefix": None,
+        "redbeat_sentinel": None,
+        "redbeat_redis_option": [],
     }
     yield cfg
 
