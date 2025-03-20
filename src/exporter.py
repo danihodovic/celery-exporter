@@ -352,14 +352,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         )
         logger.debug("Updated gauge='{}' value='{}'", self.celery_worker_up._name, up)
 
-    def run(self, click_params):
-        logger.remove()
-        logger.add(sys.stdout, level=click_params["log_level"])
-        self.app = Celery(broker=click_params["broker_url"])
-        if click_params["accept_content"] is not None:
-            accept_content_list = click_params["accept_content"].split(",")
-            logger.info("Setting celery accept_content {}", accept_content_list)
-            self.app.config_from_object(dict(accept_content=accept_content_list))
+    def _configure_broker_transport(self, click_params):
         transport_options = {}
         for transport_option in click_params["broker_transport_option"]:
             if transport_option is not None:
@@ -370,9 +363,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                     )
                     transport_options[option] = transform_option_value(value)
 
-        if transport_options is not None:
+        if transport_options:
             self.app.conf["broker_transport_options"] = transport_options
 
+    def _configure_ssl_options(self, click_params):
         ssl_options = {}
         for ssl_option in click_params["broker_ssl_option"]:
             if ssl_option is not None:
@@ -384,14 +378,62 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                     else:
                         ssl_options[option] = value
 
-        if ssl_options is not None:
+        if ssl_options:
             self.app.conf["broker_use_ssl"] = ssl_options
 
-        self.state = self.app.events.State()  # type: ignore
-        self.retry_interval = click_params["retry_interval"]
-        if self.retry_interval:
-            logger.debug("Using retry_interval of {} seconds", self.retry_interval)
+    def _configure_redbeat(self, click_params):
+        if not click_params["redbeat_redis_url"]:
+            return
 
+        logger.debug("Setting redbeat_redis_url={}", click_params["redbeat_redis_url"])
+        self.app.conf["redbeat_redis_url"] = click_params["redbeat_redis_url"]
+
+        # Set redbeat configuration options if provided
+        if click_params["redbeat_redis_use_ssl"]:
+            self.app.conf["redbeat_redis_use_ssl"] = click_params[
+                "redbeat_redis_use_ssl"
+            ]
+
+        if click_params["redbeat_key_prefix"]:
+            self.app.conf["redbeat_key_prefix"] = click_params["redbeat_key_prefix"]
+
+        # Process redbeat redis options
+        redbeat_options = self._process_redbeat_options(click_params)
+        if redbeat_options:
+            self.app.conf["redbeat_redis_options"] = redbeat_options
+            logger.debug("RedBeat Redis options: {}", redbeat_options)
+
+    def _process_redbeat_options(self, click_params):
+        redbeat_options = {}
+
+        # Process sentinel addresses if provided (convert to list of tuples)
+        if click_params["redbeat_sentinel"]:
+            sentinels = []
+            for sentinel in click_params["redbeat_sentinel"]:
+                if ":" in sentinel:
+                    host, port_str = sentinel.split(":")
+                    port = int(port_str)
+                    sentinels.append((host, port))
+                else:
+                    logger.warning(
+                        f"Invalid sentinel format: {sentinel}, expected host:port"
+                    )
+            if sentinels:
+                redbeat_options["sentinels"] = sentinels
+
+        # Process other redis options
+        for option in click_params["redbeat_redis_option"]:
+            if option is not None:
+                option_name, value = option.split("=", 1)
+                if option_name is not None:
+                    logger.debug(
+                        "Setting redbeat_redis_option {}={}", option_name, value
+                    )
+                    redbeat_options[option_name] = transform_option_value(value)
+
+        return redbeat_options
+
+    def _setup_event_handlers(self):
         handlers = {
             "worker-heartbeat": self.track_worker_heartbeat,
             "worker-online": lambda event: self.track_worker_status(event, True),
@@ -399,6 +441,26 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         }
         for key in self.state_counters:
             handlers[key] = self.track_task_event
+        return handlers
+
+    def run(self, click_params):
+        logger.remove()
+        logger.add(sys.stdout, level=click_params["log_level"])
+        self.app = Celery(broker=click_params["broker_url"])
+        if click_params["accept_content"] is not None:
+            accept_content_list = click_params["accept_content"].split(",")
+            logger.info("Setting celery accept_content {}", accept_content_list)
+            self.app.config_from_object(dict(accept_content=accept_content_list))
+        self._configure_broker_transport(click_params)
+        self._configure_ssl_options(click_params)
+        self._configure_redbeat(click_params)
+
+        self.state = self.app.events.State()  # type: ignore
+        self.retry_interval = click_params["retry_interval"]
+        if self.retry_interval:
+            logger.debug("Using retry_interval of {} seconds", self.retry_interval)
+
+        handlers = self._setup_event_handlers()
 
         with self.app.connection() as connection:  # type: ignore
             start_http_server(

@@ -144,6 +144,36 @@ docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.s
   --retry-interval=5
 ```
 
+###### Configuring RedBeat scheduler monitoring
+
+When using RedBeat as your Celery scheduler, you can configure the exporter to monitor
+RedBeat schedules. The following parameters are available:
+
+```sh
+docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.service.consul/1 \
+  --redbeat-redis-url=redis://redis.service.consul/0 \
+  --redbeat-key-prefix=redbeat
+```
+
+For Redis Sentinel configurations:
+
+```sh
+docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.service.consul/1 \
+  --redbeat-redis-url=redis-sentinel://redis-sentinel:26379/0 \
+  --redbeat-sentinel=redis-sentinel1:26379 \
+  --redbeat-sentinel=redis-sentinel2:26379 \
+  --redbeat-redis-option=password=secret \
+  --redbeat-redis-option=service_name=master
+```
+
+You can also specify SSL options for RedBeat Redis:
+
+```sh
+docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.service.consul/1 \
+  --redbeat-redis-url=rediss://secure-redis:6379/0 \
+  --redbeat-redis-use-ssl=true
+```
+
 ##### Grafana Dashboards & Prometheus Alerts
 
 Head over to the [Celery-mixin in this subdirectory](https://github.com/danihodovic/celery-exporter/tree/master/celery-mixin) to generate rules and dashboards suited to your Prometheus setup.

@@ -135,6 +135,38 @@ def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
     callback=_eq_sign_separated_argument_to_dict,
     help="Add label with static value to all metrics",
 )
+@click.option(
+    "--redbeat-redis-url",
+    required=False,
+    default=None,
+    help="The Redis URL for RedBeat scheduler, e.g redis-sentinel://redis-sentinel:26379/0",
+)
+@click.option(
+    "--redbeat-redis-use-ssl",
+    required=False,
+    default=None,
+    help="SSL options for RedBeat Redis",
+)
+@click.option(
+    "--redbeat-key-prefix",
+    required=False,
+    default=None,
+    help="A prefix for all keys created by RedBeat, defaults to 'redbeat'",
+)
+@click.option(
+    "--redbeat-sentinel",
+    required=False,
+    default=None,
+    multiple=True,
+    help="RedBeat sentinel address in format 'host:port', can be specified multiple times",
+)
+@click.option(
+    "--redbeat-redis-option",
+    required=False,
+    default=[None],
+    multiple=True,
+    help="RedBeat Redis options, e.g password=secret or service_name=master",
+)
 def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     broker_url,
     broker_transport_option,
@@ -151,6 +183,11 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
     queues,
     metric_prefix,
     static_label,
+    redbeat_redis_url,
+    redbeat_redis_use_ssl,
+    redbeat_key_prefix,
+    redbeat_sentinel,
+    redbeat_redis_option,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()
