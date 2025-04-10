@@ -33,7 +33,7 @@ skip = '.virtualenv,.venv,.poetry,.poetry-cache'
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
-celery = "^5.4.0"
+celery = "^5.5.1"
 prometheus-client = "^0.21.0"
 click = "^8.1.7"
 pretty-errors = "^1.2.25"
