@@ -128,6 +128,13 @@ def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
     "This option replaces the 'celery_*' part with a custom prefix. ",
 )
 @click.option(
+    "--default-queue-name",
+    default="celery",
+    help="task_default_queue option for celery."
+    "This option is to define default queue name for celery, if queue name is not present in 
+    "task parameters. It will be used in prom metrics label value.",
+)
+@click.option(
     "--static-label",
     required=False,
     default=None,
@@ -150,6 +157,7 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
     generic_hostname_task_sent_metric,
     queues,
     metric_prefix,
+    default_queue_name,
     static_label,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
@@ -161,5 +169,6 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
         generic_hostname_task_sent_metric,
         queues,
         metric_prefix,
+        default_queue_name, 
         static_label,
     ).run(ctx.params)

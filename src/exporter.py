@@ -29,6 +29,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         generic_hostname_task_sent_metric=False,
         initial_queues=None,
         metric_prefix="celery_",
+        default_queue_name="celery",
         static_label=None,
     ):
         self.registry = CollectorRegistry(auto_describe=True)
@@ -39,6 +40,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             purge_offline_worker_metrics_seconds
         )
         self.generic_hostname_task_sent_metric = generic_hostname_task_sent_metric
+        self.default_queue_name = default_queue_name
 
         # Static labels
         self.static_label = static_label or {}
@@ -279,7 +281,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         labels = {
             "name": task.name,
             "hostname": get_hostname(task.hostname),
-            "queue_name": getattr(task, "queue", "celery"),
+            "queue_name": getattr(task, "queue", self.default_queue_name),
             **self.static_label,
         }
         if event["type"] == "task-sent" and self.generic_hostname_task_sent_metric:
