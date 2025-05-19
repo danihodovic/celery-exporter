@@ -144,6 +144,11 @@ docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.s
   --retry-interval=5
 ```
 
+##### Test for prometheus scrape target
+```sh
+curl 127.0.0.1:9808/metrics
+```
+
 ##### Grafana Dashboards & Prometheus Alerts
 
 Head over to the [Celery-mixin in this subdirectory](https://github.com/danihodovic/celery-exporter/tree/master/celery-mixin) to generate rules and dashboards suited to your Prometheus setup.
