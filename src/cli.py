@@ -131,7 +131,7 @@ def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
     "--default-queue-name",
     default="celery",
     help="task_default_queue option for celery."
-    "This option is to define default queue name for celery, if queue name is not present in " 
+    "This option is to define default queue name for celery, if queue name is not present in "
     "task parameters. It will be used in prom metrics label value.",
 )
 @click.option(
@@ -169,6 +169,6 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
         generic_hostname_task_sent_metric,
         queues,
         metric_prefix,
-        default_queue_name, 
+        default_queue_name,
         static_label,
     ).run(ctx.params)
