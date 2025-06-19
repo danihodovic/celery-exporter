@@ -39,6 +39,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=raw,value=latest
             type=sha,enable=true,priority=100,prefix=,suffix=,format=short
             type=semver,pattern={{version}},value=${{ github.ref_name }}
 
