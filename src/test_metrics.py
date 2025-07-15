@@ -196,7 +196,7 @@ def test_purge_offline_worker_metrics(
     )
 
 
-def test_worker_generic_task_sent_hostname(threaded_exporter, celery_app):
+def test_worker_generic_task_sent_hostname(threaded_exporter, celery_app, hostname):
     threaded_exporter.generic_hostname_task_sent_metric = True
     time.sleep(5)
 
@@ -218,4 +218,16 @@ def test_worker_generic_task_sent_hostname(threaded_exporter, celery_app):
                 },
             )
             == 1.0
+        )
+
+        assert (
+            threaded_exporter.registry.get_sample_value(
+                "celery_task_sent_total",
+                labels={
+                    "hostname": hostname,
+                    "name": "src.test_metrics.succeed",
+                    "queue_name": "celery",
+                },
+            )
+            is None
         )
