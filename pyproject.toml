@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prometheus-exporter-celery"
-version = "0.12.0"
+version = "0.12.1"
 description = ""
 authors = [
 	"Dani Hodovic <dani.hodovic@gmail.com>",
