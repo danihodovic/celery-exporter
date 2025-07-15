@@ -301,10 +301,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 logger.debug(
                     "Incremented metric='{}' labels='{}'", counter._name, labels
                 )
-            elif (
-                event["type"] != "task-sent"
-            ):  # task-sent is sent by various hosts (webservers, task creators etc.) which cause label cardinality # pylint: disable=line-too-long
-                # increase unaffected counters by zero in order to make them visible
+            elif counter_name != "task-sent":
+                # instantiate unaffected counters by zero in order to make them visible
+                # task-sent is sent by various hosts (webservers, task creators)
+                # this causes label cardinality, therefore we do not want to instantiate the counter
                 counter.labels(**_labels).inc(0)
 
         # observe task runtime
