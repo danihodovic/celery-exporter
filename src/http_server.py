@@ -55,7 +55,7 @@ def health():
     return f"Connected to the broker {conn.as_uri()}"
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-positional-arguments,too-many-arguments
 def start_http_server(
     registry,
     celery_connection,
