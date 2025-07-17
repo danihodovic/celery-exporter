@@ -64,6 +64,7 @@ pytest-celery = "^0.0.0"
 pylint = "^3.3.1"
 certifi = "^2024.8.30"
 idna = "^3.7"
+flask-httpauth-stubs = "^0.1.6"
 
 [build-system]
 requires = ["poetry-core>=1.0.0a5"]

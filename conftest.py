@@ -117,6 +117,34 @@ def exporter_instance(exporter_cfg_defaults, find_free_port):
 
 
 @pytest.fixture()
+def exporter_instance_auth(find_free_port, celery_config, log_level):
+    cfg = {
+        "host": "0.0.0.0",
+        "port": find_free_port(),
+        "broker_url": celery_config["broker_url"],
+        "broker_transport_option": ["visibility_timeout=7200"],
+        "broker_ssl_option": [],
+        "retry_interval": 5,
+        "log_level": log_level,
+        "accept_content": None,
+        "worker_timeout": 1,
+        "purge_offline_worker_metrics": 10,
+        "initial_queues": ["queue_from_command_line"],
+        "http_username": "angus",
+        "http_password": "secret",
+    }
+    exporter = Exporter(
+        worker_timeout_seconds=cfg["worker_timeout"],
+        purge_offline_worker_metrics_seconds=cfg["purge_offline_worker_metrics"],
+        initial_queues=cfg["initial_queues"],
+        http_username=cfg["http_username"],
+        http_password=cfg["http_password"],
+    )
+    setattr(exporter, "cfg", cfg)
+    yield exporter
+
+
+@pytest.fixture()
 def threaded_exporter(exporter_instance):
     thread = threading.Thread(
         target=exporter_instance.run, args=(exporter_instance.cfg,), daemon=True
@@ -155,6 +183,17 @@ def threaded_exporter_static_labels(exporter_instance_static_labels):
     )
     thread.start()
     yield exporter_instance_static_labels
+
+
+@pytest.fixture()
+def threaded_exporter_auth(exporter_instance_auth):
+    thread = threading.Thread(
+        target=exporter_instance_auth.run,
+        args=(exporter_instance_auth.cfg,),
+        daemon=True,
+    )
+    thread.start()
+    yield exporter_instance_auth
 
 
 @pytest.fixture()
