@@ -92,7 +92,7 @@ docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.s
 Using the Python binary (for-non Docker environments):
 ```sh
 curl -L https://github.com/danihodovic/celery-exporter/releases/download/latest/celery-exporter -o ./celery-exporter
-chmod+x ./celery-exporter
+chmod +x ./celery-exporter
 ./celery-exporter --broker-url=redis://redis.service.consul/1
 ```
 
@@ -142,6 +142,11 @@ period of time in seconds via the `--retry-interval` parameter as follows:
 ```sh
 docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.service.consul/1 \
   --retry-interval=5
+```
+
+##### Test for prometheus scrape target
+```sh
+curl 127.0.0.1:9808/metrics
 ```
 
 ##### Grafana Dashboards & Prometheus Alerts

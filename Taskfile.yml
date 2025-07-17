@@ -8,6 +8,11 @@ tasks:
     cmds:
       - docker build . -t danihodovic/celery-exporter
 
+  trivy-scan:
+    desc: Scans the docker image for vulnerabilities
+    cmds:
+      - trivy image --severity CRITICAL,HIGH --ignore-unfixed danihodovic/celery-exporter:latest
+
   build-binary:
     desc: Creates a binary
     cmds:

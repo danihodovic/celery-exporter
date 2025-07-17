@@ -1,6 +1,6 @@
 FROM danihodovic/pyinstaller-builder:latest
 
-ARG PYTHON_VERSION=3.9.2
+ARG PYTHON_VERSION=3.12
 
 RUN pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION
 
@@ -21,4 +21,5 @@ RUN eval "$(pyenv init -)" && pyinstaller cli.py -y --onefile --name celery-expo
         --hidden-import=celery.loaders.app \
         --hidden-import=celery.app.amqp \
         --hidden-import=celery.app.control \
-        --hidden-import=kombu.transport.redis
+        --hidden-import=kombu.transport.redis \
+        --hidden-import=kombu.transport.pyamqp

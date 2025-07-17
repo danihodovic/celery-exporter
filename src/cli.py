@@ -20,6 +20,18 @@ def _comma_seperated_argument(_ctx, _param, value):
     return []
 
 
+# Accepts value string in format "key=val". Returns dict {key: val}.
+# * If value is None - returns empty dict
+def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
+    if value is not None:
+        dict_of_key_value_pairs = {}
+        for key_value_pair in value:
+            key, val = key_value_pair.split("=")
+            dict_of_key_value_pairs[key] = val
+        return dict_of_key_value_pairs
+    return {}
+
+
 @click.command(help=cmd_help)
 @click.option(
     "--broker-url",
@@ -121,7 +133,22 @@ def _comma_seperated_argument(_ctx, _param, value):
 @click.option(
     "--http-password", default=None, help="Basic auth password for /metrics endpoint."
 )
-def cli(  # pylint: disable=too-many-arguments,too-many-locals
+@click.option(
+    "--default-queue-name",
+    default="celery",
+    help="task_default_queue option for celery."
+    "This option is to define default queue name for celery, if queue name is not present in "
+    "task parameters. It will be used in prom metrics label value.",
+)
+@click.option(
+    "--static-label",
+    required=False,
+    default=None,
+    multiple=True,
+    callback=_eq_sign_separated_argument_to_dict,
+    help="Add label with static value to all metrics",
+)
+def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     broker_url,
     broker_transport_option,
     accept_content,
@@ -138,6 +165,8 @@ def cli(  # pylint: disable=too-many-arguments,too-many-locals
     metric_prefix,
     http_username,
     http_password,
+    default_queue_name,
+    static_label,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
     ctx = click.get_current_context()
@@ -150,4 +179,6 @@ def cli(  # pylint: disable=too-many-arguments,too-many-locals
         metric_prefix,
         http_username,
         http_password,
+        default_queue_name,
+        static_label,
     ).run(ctx.params)
