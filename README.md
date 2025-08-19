@@ -96,6 +96,12 @@ chmod +x ./celery-exporter
 ./celery-exporter --broker-url=redis://redis.service.consul/1
 ```
 
+From PyPI:
+
+```shell
+pip install prometheus-exporter-celery
+```
+
 ###### Kubernetes
 
 There's a Helm in the directory `charts/celery-exporter` for deploying the Celery-exporter to Kubernetes using Helm.
