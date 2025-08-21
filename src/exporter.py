@@ -14,6 +14,7 @@ from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
+from .cards_gateway_json import register_minimal_cards_gateway_serializers
 from .http_server import start_http_server
 
 
@@ -361,6 +362,9 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         if click_params["accept_content"] is not None:
             accept_content_list = click_params["accept_content"].split(",")
             logger.info("Setting celery accept_content {}", accept_content_list)
+            if "gatewayjson" in accept_content_list:
+                register_minimal_cards_gateway_serializers()
+                logger.info("Registered minimal Cards Gateway serializers with Kombu")
             self.app.config_from_object(dict(accept_content=accept_content_list))
         transport_options = {}
         for transport_option in click_params["broker_transport_option"]:
