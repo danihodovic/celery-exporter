@@ -128,6 +128,12 @@ def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
     "This option replaces the 'celery_*' part with a custom prefix. ",
 )
 @click.option(
+    "--http-username", default=None, help="Basic auth username for /metrics endpoint."
+)
+@click.option(
+    "--http-password", default=None, help="Basic auth password for /metrics endpoint."
+)
+@click.option(
     "--default-queue-name",
     default="celery",
     help="task_default_queue option for celery."
@@ -157,6 +163,8 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
     generic_hostname_task_sent_metric,
     queues,
     metric_prefix,
+    http_username,
+    http_password,
     default_queue_name,
     static_label,
 ):  # pylint: disable=unused-argument
@@ -169,6 +177,8 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
         generic_hostname_task_sent_metric,
         queues,
         metric_prefix,
+        http_username,
+        http_password,
         default_queue_name,
         static_label,
     ).run(ctx.params)
