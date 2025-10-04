@@ -3,8 +3,17 @@ local annotation = g.dashboard.annotation;
 
 {
   _config+:: {
+    local this = self,
+
     // Selectors are inserted between {} in Prometheus queries.
     celerySelector: 'job=~".*celery.*"',
+
+    // Default datasource name
+    datasourceName: 'default',
+
+    // Opt-in to multiCluster dashboards by overriding this and the clusterLabel.
+    showMultiCluster: false,
+    clusterLabel: 'cluster',
 
     grafanaUrl: 'https://grafana.com',
 
@@ -17,8 +26,6 @@ local annotation = g.dashboard.annotation;
     celeryTasksOverviewUrl: '%s/d/%s/celery-tasks-overview' % [self.grafanaUrl, self.celeryTasksOverviewUid],
     celeryTasksByTaskUrl: '%s/d/%s/celery-tasks-by-task' % [self.grafanaUrl, self.celeryTasksByTaskUid],
 
-    tags: ['celery', 'celery-mixin'],
-
     // If you have autoscaling workers then you maybe do not want to alert on workers that are down.
     celeryWorkerDownAlertEnabled: true,
     celeryCeleryHighQueueLengthAlertEnabled: true,
@@ -28,6 +35,17 @@ local annotation = g.dashboard.annotation;
     celeryHighQueueLengthInterval: '20m',
     celeryHighQueueLengthThreshold: '100',
     celeryWorkerDownInterval: '15m',
+
+    dashboardIds: {
+      'celery-tasks-overview': 'celery-tasks-overview-32s3',
+      'celery-tasks-by-task': 'celery-tasks-by-task-32s3',
+    },
+    dashboardUrls: {
+      'celery-tasks-overview': '%s/d/%s/celery-tasks-overview' % [this.grafanaUrl, this.dashboardIds['celery-tasks-overview']],
+      'celery-tasks-by-task': '%s/d/%s/celery-tasks-by-task' % [this.grafanaUrl, this.dashboardIds['celery-tasks-by-task']],
+    },
+
+    tags: ['celery', 'celery-mixin'],
 
     // Custom annotations to display in graphs
     annotation: {
