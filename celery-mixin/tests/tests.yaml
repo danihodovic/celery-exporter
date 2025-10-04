@@ -1,7 +1,7 @@
 # yamllint disable rule:line-length
 ---
 rule_files:
-  - ../prometheus-alerts.yaml
+  - ../prometheus_alerts.yaml
 
 tests:
   - interval: 5m
