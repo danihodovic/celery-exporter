@@ -1,2 +1,4 @@
 vendor
-jsonnetfile.lock.json
+tmp
+./dashboards_out/lint
+.vale
