@@ -289,7 +289,7 @@ local tbOverride = tbStandardOptions.override;
                   tbPanelOptions.link.withTitle('Go To View') +
                   tbPanelOptions.link.withType('dashboard') +
                   tbPanelOptions.link.withUrl(
-                    '/d/%s/celery-tasks-by-task?var-task=${__data.fields.Task}' % $._config.celeryTasksByTaskUid
+                    '/d/%s/celery-tasks-by-task?var-task=${__data.fields.Task}' % $._config.dashboardIds['celery-tasks-by-task']
                   ) +
                   tbPanelOptions.link.withTargetBlank(true)
                 )
