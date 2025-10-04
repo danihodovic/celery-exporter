@@ -1,0 +1,55 @@
+name: mixin
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "celery-mixin/**"
+      - ".github/workflows/mixin.yml"
+  pull_request:
+    paths:
+      - "celery-mixin/**"
+      - ".github/workflows/mixin.yml"
+
+defaults:
+  run:
+    working-directory: ./celery-mixin
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Lint Alerts
+            run: make --always-make alerts-lint
+          - name: Generate yaml
+            run: make --always-make generate && git diff --exit-code
+          - name: Lint Grafana Dashboards
+            run: make --always-make dashboards-lint
+          - name: Format Jsonnet
+            run: make --always-make jsonnet-fmt && git diff --exit-code
+          - name: Lint Jsonnet
+            run: make --always-make jsonnet-lint
+          - name: Format Markdown
+            run: make --always-make markdownfmt && git diff --exit-code
+          - name: Lint Markdown
+            run: make --always-make vale && git diff --exit-code
+          - name: Lint YAML
+            run: make --always-make pint-lint
+          - name: Run unit tests
+            run: make --always-make test
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: ./celery-mixin/scripts/go.mod
+          cache-dependency-path: ./celery-mixin/scripts/go.sum
+      - run: ${{ matrix.run }}
+        name: Run ${{ matrix.name }}
