@@ -1,4 +1,4 @@
 vendor
 tmp
-./dashboards_out/lint
+dashboards_out/.lint
 .vale
