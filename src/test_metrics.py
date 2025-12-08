@@ -9,7 +9,7 @@ from src.exporter import reverse_adjust_timestamp
 
 
 @pytest.fixture
-def assert_exporter_metric_called(mocker, celery_app, celery_worker, hostname):
+def assert_exporter_metric_called(mocker, celery_app, hostname):
     def fn(metric):
         labels = mocker.patch.object(metric, "labels")
 
@@ -19,12 +19,13 @@ def assert_exporter_metric_called(mocker, celery_app, celery_worker, hostname):
             time.sleep(3)
             logging.info("Finished the slow task")
 
-        # Reload so that the worker detects the task
-        celery_worker.reload()
-        slow_task.delay().get()
-        assert labels.call_count >= 1
-        labels.assert_called_with(hostname=hostname)
-        labels.return_value.set.assert_any_call(1)
+        # Use start_worker context manager to ensure worker is available
+        with start_worker(celery_app, without_heartbeat=False):
+            time.sleep(1)
+            slow_task.delay().get()
+            assert labels.call_count >= 1
+            labels.assert_called_with(hostname=hostname)
+            labels.return_value.set.assert_any_call(1)
 
     return fn
 
