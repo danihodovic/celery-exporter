@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM python:3.13-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 ENV PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
@@ -19,7 +19,7 @@ RUN apt-get update && \
     rm -rf $POETRY_CACHE_DIR
 
 # Stage 2: Runtime environment
-FROM python:3.13-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
     VIRTUAL_ENV=/app/.venv \

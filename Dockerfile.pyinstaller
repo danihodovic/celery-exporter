@@ -1,6 +1,6 @@
 FROM danihodovic/pyinstaller-builder:latest
 
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.14
 
 RUN pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION
 
