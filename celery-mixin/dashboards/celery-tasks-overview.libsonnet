@@ -94,6 +94,7 @@ local tbOverride = tbStandardOptions.override;
     local celeryWorkersQuery = |||
       count(
         celery_worker_up{
+          namespace="$namespace",
           job="$job",
         } == 1
       )
@@ -120,6 +121,7 @@ local tbOverride = tbStandardOptions.override;
     local celeryWorkersActiveQuery = |||
       sum(
         celery_worker_tasks_active{
+          namespace="$namespace",
           job="$job",
         }
       )
@@ -148,6 +150,7 @@ local tbOverride = tbStandardOptions.override;
         round(
           increase(
             celery_task_failed_total{
+              namespace="$namespace",
               job="$job",
               queue_name=~"$queue_name"
             }[1w]
@@ -205,6 +208,7 @@ local tbOverride = tbStandardOptions.override;
       sum(
         rate(
           celery_task_runtime_sum{
+            namespace="$namespace",
             job="$job",
             queue_name=~"$queue_name"
           }[1w]
@@ -214,6 +218,7 @@ local tbOverride = tbStandardOptions.override;
       sum(
         rate(
           celery_task_runtime_count{
+            namespace="$namespace",
             job="$job",
             queue_name=~"$queue_name"
           }[1w]
@@ -244,6 +249,7 @@ local tbOverride = tbStandardOptions.override;
         sum (
           increase(
             celery_task_failed_total{
+              namespace="$namespace",
               job="$job",
               queue_name=~"$queue_name"
             }[1w]
@@ -308,6 +314,7 @@ local tbOverride = tbStandardOptions.override;
         sum (
           increase(
             celery_task_failed_total{
+              namespace="$namespace",
               job="$job",
               queue_name=~"$queue_name"
             }[1w]
@@ -359,6 +366,7 @@ local tbOverride = tbStandardOptions.override;
       sum (
         rate(
           celery_task_runtime_sum{
+            namespace="$namespace",
             job="$job",
             queue_name=~"$queue_name"
           }[1w]
@@ -368,6 +376,7 @@ local tbOverride = tbStandardOptions.override;
       sum (
         rate(
           celery_task_runtime_count{
+            namespace="$namespace",
             job="$job",
             queue_name=~"$queue_name"
           }[1w]
@@ -429,6 +438,7 @@ local tbOverride = tbStandardOptions.override;
     local celeryQueueLengthQuery = |||
       sum (
         celery_queue_length{
+          namespace="$namespace",
           job="$job",
           queue_name=~"$queue_name"
         }
@@ -467,6 +477,7 @@ local tbOverride = tbStandardOptions.override;
         round(
           increase(
             celery_task_failed_total{
+              namespace="$namespace",
               job="$job",
               queue_name=~"$queue_name"
             }[$__range]
@@ -600,6 +611,7 @@ local tbOverride = tbStandardOptions.override;
         round(
           increase(
             celery_task_failed_total{
+              namespace="$namespace",
               job="$job",
               queue_name=~"$queue_name"
             }[$__rate_interval]
@@ -687,6 +699,7 @@ local tbOverride = tbStandardOptions.override;
         sum(
           irate(
             celery_task_runtime_bucket{
+              namespace="$namespace",
               job="$job",
               queue_name=~"$queue_name"
             }[$__rate_interval]
