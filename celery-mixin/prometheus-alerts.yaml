@@ -10,7 +10,7 @@
       sum(
         increase(
           celery_task_failed_total{
-            job=~"celery|celery-exporter",
+            job=~".*celery.*",
             queue_name!~"None",
             name!~"None"
           }[10m]
@@ -21,7 +21,7 @@
         sum(
           increase(
             celery_task_failed_total{
-              job=~"celery|celery-exporter",
+              job=~".*celery.*",
               queue_name!~"None",
               name!~"None"
             }[10m]
@@ -31,7 +31,7 @@
         sum(
           increase(
             celery_task_succeeded_total{
-              job=~"celery|celery-exporter",
+              job=~".*celery.*",
               queue_name!~"None",
               name!~"None"
             }[10m]
@@ -50,7 +50,7 @@
     "expr": |
       sum(
         celery_queue_length{
-          job=~"celery|celery-exporter",
+          job=~".*celery.*",
           queue_name!~"None"
         }
       )  by (job, namespace, queue_name)
@@ -64,7 +64,7 @@
       "description": "The Celery worker {{ $labels.job }}/{{ $labels.hostname }} is offline."
       "summary": "A Celery worker is offline."
     "expr": |
-      celery_worker_up{job=~"celery|celery-exporter"} == 0
+      celery_worker_up{job=~".*celery.*"} == 0
     "for": "15m"
     "labels":
       "severity": "warning"
