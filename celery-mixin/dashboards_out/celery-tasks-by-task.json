@@ -4,12 +4,12 @@
    "annotations": {
       "list": [ ]
    },
-   "description": "A dashboard to monitor Celery tasks grouped by task name. The dashboards were generated using [celery-mixin](https://github.com/danihodovic/celery-exporter). Open issues and create feature requests in the repository.",
+   "description": "A dashboard to monitor Celery tasks grouped by task name. The dashboards were generated using [celery-exporter](https://github.com/danihodovic/celery-exporter). Open issues and create feature requests in the repository.",
    "editable": false,
    "links": [
       {
-         "asDropdown": true,
-         "includeVars": true,
+         "asDropdown": false,
+         "includeVars": false,
          "keepTime": true,
          "tags": [
             "celery",
@@ -41,7 +41,11 @@
          "description": "A table of task statistics including success rate, succeeded, failed, sent, received, rejected, retried and revoked tasks grouped by task name.",
          "fieldConfig": {
             "defaults": {
+               "links": [ ],
                "noValue": 0,
+               "thresholds": {
+                  "steps": [ ]
+               },
                "unit": "short"
             },
             "overrides": [
@@ -198,6 +202,10 @@
          "description": "A table of task exceptions grouped by task name and exception type.",
          "fieldConfig": {
             "defaults": {
+               "links": [ ],
+               "thresholds": {
+                  "steps": [ ]
+               },
                "unit": "short"
             },
             "overrides": [ ]

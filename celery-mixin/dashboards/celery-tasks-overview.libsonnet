@@ -1,3 +1,4 @@
+local mixinUtils = import 'github.com/adinhodovic/mixin-utils/utils.libsonnet';
 local g = import 'github.com/grafana/grafonnet/gen/grafonnet-latest/main.libsonnet';
 local dashboardUtil = import 'util.libsonnet';
 
@@ -205,7 +206,7 @@ local tbOverride = tbStandardOptions.override;
       local panels = {
 
         celeryWorkersStat:
-          dashboardUtil.statPanel(
+          mixinUtils.dashboards.statPanel(
             'Workers',
             'short',
             queries.celeryWorkers,
@@ -213,7 +214,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         celeryWorkersActiveStat:
-          dashboardUtil.statPanel(
+          mixinUtils.dashboards.statPanel(
             'Workers Active Tasks',
             'short',
             queries.celeryWorkersActive,
@@ -221,7 +222,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         tasksReceivedByWorkers24hStat:
-          dashboardUtil.statPanel(
+          mixinUtils.dashboards.statPanel(
             'Tasks received by workers [1w]',
             'short',
             queries.tasksReceived1w,
@@ -229,7 +230,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         taskSuccessRate1wStat:
-          dashboardUtil.statPanel(
+          mixinUtils.dashboards.statPanel(
             'Tasks Success Rate [1w]',
             'percentunit',
             queries.taskSuccessRate1w,
@@ -245,7 +246,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         taskRuntime1wStat:
-          dashboardUtil.statPanel(
+          mixinUtils.dashboards.statPanel(
             'Average Runtime for Tasks [1w]',
             's',
             queries.taskRuntime1w,
@@ -253,7 +254,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         tasksFailed1wTable:
-          dashboardUtil.tablePanel(
+          mixinUtils.dashboards.tablePanel(
             'Top Failed Tasks [1w]',
             'short',
             queries.tasksFailed1w,
@@ -298,7 +299,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         taskExceptions1wTable:
-          dashboardUtil.tablePanel(
+          mixinUtils.dashboards.tablePanel(
             'Top Task Exceptions [1w]',
             'short',
             queries.topTaskExceptions1w,
@@ -330,7 +331,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         tasksRuntime1wTable:
-          dashboardUtil.tablePanel(
+          mixinUtils.dashboards.tablePanel(
             'Top Average Task Runtime [1w]',
             's',
             queries.topTaskRuntime1w,
@@ -375,7 +376,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         celeryQueueLengthTimeSeries:
-          dashboardUtil.timeSeriesPanel(
+          mixinUtils.dashboards.timeSeriesPanel(
             'Queue Length',
             'short',
             queries.celeryQueueLength,
@@ -385,7 +386,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         tasksStatsTable:
-          dashboardUtil.tablePanel(
+          mixinUtils.dashboards.tablePanel(
             'Task Stats',
             'short',
             [
@@ -466,7 +467,7 @@ local tbOverride = tbStandardOptions.override;
           tbStandardOptions.withNoValue(0),
 
         tasksCompletedTimeSeries:
-          dashboardUtil.timeSeriesPanel(
+          mixinUtils.dashboards.timeSeriesPanel(
             'Tasks Completed',
             'short',
             [
@@ -504,7 +505,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         tasksRuntimeTimeSeries:
-          dashboardUtil.timeSeriesPanel(
+          mixinUtils.dashboards.timeSeriesPanel(
             'Tasks Runtime',
             's',
             [
@@ -619,13 +620,11 @@ local tbOverride = tbStandardOptions.override;
           timeSeriesPanel.gridPos.withH(10),
         ];
 
-      dashboardUtil.bypassDashboardValidation +
+      mixinUtils.dashboards.bypassDashboardValidation +
       dashboard.new(
         'Celery / Tasks / Overview',
       ) +
-      dashboard.withDescription(
-        'A dashboard that monitors Celery. %s' % dashboardUtil.dashboardDescriptionLink
-      ) +
+      dashboard.withDescription('A dashboard that gives an overview of Celery. %s' % mixinUtils.dashboards.dashboardDescriptionLink('celery-exporter', 'https://github.com/danihodovic/celery-exporter')) +
       dashboard.withUid($._config.dashboardIds[dashboardName]) +
       dashboard.withTags($._config.tags) +
       dashboard.withTimezone('utc') +
@@ -634,13 +633,13 @@ local tbOverride = tbStandardOptions.override;
       dashboard.time.withTo('now') +
       dashboard.withVariables(variables) +
       dashboard.withLinks(
-        dashboardUtil.dashboardLinks($._config)
+        mixinUtils.dashboards.dashboardLinks('Celery', $._config)
       ) +
       dashboard.withPanels(
         rows
       ) +
       dashboard.withAnnotations(
-        dashboardUtil.annotations($._config, defaultFilters)
+        mixinUtils.dashboards.annotations($._config, defaultFilters)
       ),
   },
 }
