@@ -1,3 +1,4 @@
+local mixinUtils = import 'github.com/adinhodovic/mixin-utils/utils.libsonnet';
 local g = import 'github.com/grafana/grafonnet/gen/grafonnet-latest/main.libsonnet';
 local dashboardUtil = import 'util.libsonnet';
 
@@ -122,7 +123,7 @@ local tbOverride = tbStandardOptions.override;
       local panels = {
 
         taskExceptionsTable:
-          dashboardUtil.tablePanel(
+          mixinUtils.dashboards.tablePanel(
             'Task Exceptions',
             'short',
             queries.taskExceptions,
@@ -156,7 +157,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         tasksStatsTable:
-          dashboardUtil.tablePanel(
+          mixinUtils.dashboards.tablePanel(
             'Task Stats',
             'short',
             [
@@ -237,7 +238,7 @@ local tbOverride = tbStandardOptions.override;
           tbStandardOptions.withNoValue(0),
 
         tasksFailedByExceptionTimeSeries:
-          dashboardUtil.timeSeriesPanel(
+          mixinUtils.dashboards.timeSeriesPanel(
             'Task Exceptions',
             'short',
             queries.taskFailedByExceptionInterval,
@@ -247,7 +248,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         tasksCompletedTimeSeries:
-          dashboardUtil.timeSeriesPanel(
+          mixinUtils.dashboards.timeSeriesPanel(
             'Tasks Completed',
             'short',
             [
@@ -285,7 +286,7 @@ local tbOverride = tbStandardOptions.override;
           ),
 
         tasksRuntimeTimeSeries:
-          dashboardUtil.timeSeriesPanel(
+          mixinUtils.dashboards.timeSeriesPanel(
             'Tasks Runtime',
             's',
             [
@@ -358,11 +359,9 @@ local tbOverride = tbStandardOptions.override;
           startY=18
         );
 
-      dashboardUtil.bypassDashboardValidation +
+      mixinUtils.dashboards.bypassDashboardValidation +
       dashboard.new('Celery / Tasks / By Task') +
-      dashboard.withDescription(
-        'A dashboard to monitor Celery tasks grouped by task name. %s' % dashboardUtil.dashboardDescriptionLink
-      ) +
+      dashboard.withDescription('A dashboard to monitor Celery tasks grouped by task name. %s' % mixinUtils.dashboards.dashboardDescriptionLink('celery-exporter', 'https://github.com/danihodovic/celery-exporter')) +
       dashboard.withUid($._config.dashboardIds[dashboardName]) +
       dashboard.withTags($._config.tags) +
       dashboard.withTimezone('utc') +
@@ -371,13 +370,13 @@ local tbOverride = tbStandardOptions.override;
       dashboard.time.withTo('now') +
       dashboard.withVariables(variables) +
       dashboard.withLinks(
-        dashboardUtil.dashboardLinks($._config)
+        mixinUtils.dashboards.dashboardLinks('Celery', $._config)
       ) +
       dashboard.withPanels(
         rows
       ) +
       dashboard.withAnnotations(
-        dashboardUtil.annotations($._config, defaultFilters)
+        mixinUtils.dashboards.annotations($._config, defaultFilters)
       ),
   },
 }
