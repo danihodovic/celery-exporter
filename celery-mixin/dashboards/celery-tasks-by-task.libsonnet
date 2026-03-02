@@ -37,28 +37,29 @@ local tbOverride = tbStandardOptions.override;
       local defaultFilters = dashboardUtil.filters($._config);
       local queries = {
 
+        // 1w stats table queries — filtered by task
         taskExceptions: |||
           round(
-            sum (
+            sum(
               increase(
                 celery_task_failed_total{
                   %(task)s
-                }[$__range]
+                }[1w]
               )
-            ) by (name, exception) > 0
+            ) by (name, exception)
           )
         ||| % defaultFilters,
 
         taskFailed: |||
-          sum (
+          sum(
             round(
               increase(
                 celery_task_failed_total{
                   %(task)s
-                }[$__range]
+                }[1w]
               )
             )
-          ) by (name) > 0
+          ) by (name)
         ||| % defaultFilters,
         taskSucceeded: std.strReplace(queries.taskFailed, 'failed', 'succeeded'),
         taskSent: std.strReplace(queries.taskFailed, 'failed', 'sent'),
@@ -69,14 +70,14 @@ local tbOverride = tbStandardOptions.override;
         taskSuccessRate: |||
           %s/(%s+%s) > -1
         ||| % [
-          // Strip out > 0 from the end of the success query
-          std.strReplace(queries.taskSucceeded, ' > 0', ''),
-          std.strReplace(queries.taskSucceeded, ' > 0', ''),
-          std.strReplace(queries.taskFailed, ' > 0', ''),
-        ],  // Add > -1 to remove NaN results
+          queries.taskSucceeded,
+          queries.taskSucceeded,
+          queries.taskFailed,
+        ],  // > -1 removes NaN results from division by zero when no tasks ran
 
+        // Interval time series queries — filtered by task
         taskFailedByExceptionInterval: |||
-          sum (
+          sum(
             round(
               increase(
                 celery_task_failed_total{
@@ -84,11 +85,11 @@ local tbOverride = tbStandardOptions.override;
                 }[$__rate_interval]
               )
             )
-          ) by (name, exception) > 0
+          ) by (name, exception)
         ||| % defaultFilters,
 
         taskFailedInterval: |||
-          sum (
+          sum(
             round(
               increase(
                 celery_task_failed_total{
@@ -96,7 +97,7 @@ local tbOverride = tbStandardOptions.override;
                 }[$__rate_interval]
               )
             )
-          ) by (name) > 0
+          ) by (name)
         ||| % defaultFilters,
         taskSucceededInterval: std.strReplace(queries.taskFailedInterval, 'failed', 'succeeded'),
         taskSentInterval: std.strReplace(queries.taskFailedInterval, 'failed', 'sent'),
@@ -105,6 +106,34 @@ local tbOverride = tbStandardOptions.override;
         taskRevokedInterval: std.strReplace(queries.taskFailedInterval, 'failed', 'revoked'),
         taskRejectedInterval: std.strReplace(queries.taskFailedInterval, 'failed', 'rejected'),
 
+        taskSuccessRateInterval: |||
+          sum(
+            rate(
+              celery_task_succeeded_total{
+                %(task)s
+              }[$__rate_interval]
+            )
+          )
+          /
+          (
+            sum(
+              rate(
+                celery_task_succeeded_total{
+                  %(task)s
+                }[$__rate_interval]
+              )
+            )
+            +
+            sum(
+              rate(
+                celery_task_failed_total{
+                  %(task)s
+                }[$__rate_interval]
+              )
+            )
+          )
+        ||| % defaultFilters,
+
         tasksRuntimeP50: |||
           histogram_quantile(0.50,
             sum(
@@ -112,53 +141,182 @@ local tbOverride = tbStandardOptions.override;
                 celery_task_runtime_bucket{
                   %(task)s
                 }[$__rate_interval]
-              ) > 0
+              )
             ) by (name, job, le)
           )
         ||| % defaultFilters,
         tasksRuntimeP95: std.strReplace(queries.tasksRuntimeP50, '0.50', '0.95'),
         tasksRuntimeP99: std.strReplace(queries.tasksRuntimeP50, '0.50', '0.99'),
+
+        // Pie chart queries — 6h fixed window, no task filter (queue-level overview)
+        taskRateByQueue6h: |||
+          topk(10,
+            sum(
+              rate(
+                celery_task_received_total{
+                  %(queue)s
+                }[6h]
+              )
+            ) by (queue_name)
+          )
+        ||| % defaultFilters,
+
+        taskRateByName6h: |||
+          topk(10,
+            sum(
+              rate(
+                celery_task_received_total{
+                  %(queue)s
+                }[6h]
+              )
+            ) by (name)
+          )
+        ||| % defaultFilters,
+
+        taskSucceeded6hPie: |||
+          sum(
+            increase(
+              celery_task_succeeded_total{
+                %(queue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+        taskFailed6hPie: |||
+          sum(
+            increase(
+              celery_task_failed_total{
+                %(queue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+
+        taskSent6h: |||
+          sum(
+            increase(
+              celery_task_sent_total{
+                %(queue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+        taskReceived6h: |||
+          sum(
+            increase(
+              celery_task_received_total{
+                %(queue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+        taskRetried6h: |||
+          sum(
+            increase(
+              celery_task_retried_total{
+                %(queue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+        taskRevoked6h: |||
+          sum(
+            increase(
+              celery_task_revoked_total{
+                %(queue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+        taskRejected6h: |||
+          sum(
+            increase(
+              celery_task_rejected_total{
+                %(queue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
       };
 
       local panels = {
 
-        taskExceptionsTable:
-          mixinUtils.dashboards.tablePanel(
-            'Task Exceptions',
+        // Summary pie charts — queue-level, no task filter
+        taskRateByQueuePieChart:
+          mixinUtils.dashboards.pieChartPanel(
+            'Task Rate by Queue [6h]',
+            'reqps',
+            queries.taskRateByQueue6h,
+            '{{ queue_name }}',
+            description='Distribution of task throughput across queues over the past 6 hours (top 10). Shows which queues are handling the most work. Not filtered by selected task — use as a queue-level context panel.',
+          ),
+
+        taskRateByNamePieChart:
+          mixinUtils.dashboards.pieChartPanel(
+            'Task Rate by Name [6h]',
+            'reqps',
+            queries.taskRateByName6h,
+            '{{ name }}',
+            description='Distribution of task throughput by task name over the past 6 hours (top 10). Shows which tasks run most frequently in this queue. Not filtered by selected task — use as a queue-level context panel.',
+          ),
+
+        taskSuccessVsFailurePieChart:
+          mixinUtils.dashboards.pieChartPanel(
+            'Task Success vs Failure [6h]',
             'short',
-            queries.taskExceptions,
-            sortBy={
-              name: 'Value',
-              desc: true,
-            },
-            description='A table of task exceptions grouped by task name and exception type.',
-            transformations=[
-              tbQueryOptions.transformation.withId(
-                'organize'
-              ) +
-              tbQueryOptions.transformation.withOptions(
-                {
-                  renameByName: {
-                    name: 'Task',
-                    exception: 'Exception',
-                  },
-                  indexByName: {
-                    name: 0,
-                    exception: 1,
-                    Value: 2,
-                  },
-                  excludeByName: {
-                    Time: true,
-                    job: true,
-                  },
-                }
-              ),
-            ]
+            [
+              {
+                expr: queries.taskSucceeded6hPie,
+                legend: 'Succeeded',
+              },
+              {
+                expr: queries.taskFailed6hPie,
+                legend: 'Failed',
+              },
+            ],
+            description='Queue-level health split between succeeded and failed tasks over the past 6 hours. Not filtered by selected task — provides broader context for the queue.',
+          ),
+
+        taskStatesPieChart:
+          mixinUtils.dashboards.pieChartPanel(
+            'Task States [6h]',
+            'short',
+            [
+              {
+                expr: queries.taskSent6h,
+                legend: 'Sent',
+              },
+              {
+                expr: queries.taskReceived6h,
+                legend: 'Received',
+              },
+              {
+                expr: queries.taskSucceeded6hPie,
+                legend: 'Succeeded',
+              },
+              {
+                expr: queries.taskFailed6hPie,
+                legend: 'Failed',
+              },
+              {
+                expr: queries.taskRetried6h,
+                legend: 'Retried',
+              },
+              {
+                expr: queries.taskRevoked6h,
+                legend: 'Revoked',
+              },
+              {
+                expr: queries.taskRejected6h,
+                legend: 'Rejected',
+              },
+            ],
+            description='Queue-level distribution of all task lifecycle states over the past 6 hours. Not filtered by selected task — provides broader context for the queue.',
           ),
 
         tasksStatsTable:
           mixinUtils.dashboards.tablePanel(
-            'Task Stats',
+            'Task Stats [1w]',
             'short',
             [
               {
@@ -190,7 +348,7 @@ local tbOverride = tbStandardOptions.override;
               name: 'Succeeded',
               desc: true,
             },
-            description='A table of task statistics including success rate, succeeded, failed, sent, received, rejected, retried and revoked tasks grouped by task name.',
+            description='A table of task statistics including success rate, succeeded, failed, sent, received, rejected, retried and revoked tasks grouped by task name over the last week.',
             transformations=[
               tbQueryOptions.transformation.withId(
                 'merge'
@@ -201,7 +359,6 @@ local tbOverride = tbStandardOptions.override;
               tbQueryOptions.transformation.withOptions(
                 {
                   renameByName: {
-                    name: 'Name',
                     'Value #A': 'Success Rate',
                     'Value #B': 'Succeeded',
                     'Value #C': 'Failed',
@@ -212,18 +369,18 @@ local tbOverride = tbStandardOptions.override;
                     'Value #H': 'Revoked',
                   },
                   indexByName: {
-                    name: 0,
-                    'Value #A': 1,
-                    'Value #B': 2,
-                    'Value #C': 3,
-                    'Value #D': 4,
-                    'Value #E': 5,
-                    'Value #F': 6,
-                    'Value #G': 7,
-                    'Value #H': 8,
+                    'Value #A': 0,
+                    'Value #B': 1,
+                    'Value #C': 2,
+                    'Value #D': 3,
+                    'Value #E': 4,
+                    'Value #F': 5,
+                    'Value #G': 6,
+                    'Value #H': 7,
                   },
                   excludeByName: {
                     Time: true,
+                    name: true,
                   },
                 }
               ),
@@ -237,52 +394,54 @@ local tbOverride = tbStandardOptions.override;
           ) +
           tbStandardOptions.withNoValue(0),
 
-        tasksFailedByExceptionTimeSeries:
+        taskEventsTimeSeries:
           mixinUtils.dashboards.timeSeriesPanel(
-            'Task Exceptions',
-            'short',
-            queries.taskFailedByExceptionInterval,
-            '{{ name }}/{{ exception }}',
-            description='A time series of task exceptions grouped by task name and exception type.',
-            stack='normal'
-          ),
-
-        tasksCompletedTimeSeries:
-          mixinUtils.dashboards.timeSeriesPanel(
-            'Tasks Completed',
+            'Task Events',
             'short',
             [
               {
                 expr: queries.taskSucceededInterval,
-                legend: 'Succeeded - {{ name }}',
+                legend: 'Succeeded',
               },
               {
                 expr: queries.taskFailedInterval,
-                legend: 'Failed - {{ name }}',
+                legend: 'Failed',
               },
               {
                 expr: queries.taskSentInterval,
-                legend: 'Sent - {{ name }}',
+                legend: 'Sent',
               },
               {
                 expr: queries.taskReceivedInterval,
-                legend: 'Received - {{ name }}',
+                legend: 'Received',
               },
               {
                 expr: queries.taskRetriedInterval,
-                legend: 'Retried - {{ name }}',
+                legend: 'Retried',
               },
               {
                 expr: queries.taskRevokedInterval,
-                legend: 'Revoked - {{ name }}',
+                legend: 'Revoked',
               },
               {
                 expr: queries.taskRejectedInterval,
-                legend: 'Rejected - {{ name }}',
+                legend: 'Rejected',
               },
             ],
-            description='A time series of tasks completed including succeeded, failed, sent, received, rejected, retried and revoked tasks grouped by task name.',
+            description='Task lifecycle event counts over time including succeeded, failed, sent, received, rejected, retried and revoked.',
             stack='normal'
+          ),
+
+        taskSuccessRateTimeSeries:
+          mixinUtils.dashboards.timeSeriesPanel(
+            'Task Success Rate',
+            'percentunit',
+            queries.taskSuccessRateInterval,
+            'Success Rate',
+            description='Task success rate over time computed as succeeded / (succeeded + failed). Drops indicate periods of elevated failures.',
+            min=0,
+            max=1,
+            stack='normal',
           ),
 
         tasksRuntimeTimeSeries:
@@ -292,18 +451,19 @@ local tbOverride = tbStandardOptions.override;
             [
               {
                 expr: queries.tasksRuntimeP50,
-                legend: 'P50 - {{ name }}',
+                legend: 'P50',
               },
               {
                 expr: queries.tasksRuntimeP95,
-                legend: 'P95 - {{ name }}',
+                legend: 'P95',
               },
               {
                 expr: queries.tasksRuntimeP99,
-                legend: 'P99 - {{ name }}',
+                legend: 'P99',
+                exemplar: true,
               },
             ],
-            description='A time series of task runtime percentiles (P50, P95, P99) grouped by task name.',
+            description='Task runtime percentiles (P50, P95, P99). Exemplars on P99 link to distributed traces for root cause analysis.',
             overrides=[
               tsOverride.byName.new('P50') +
               tsOverride.byName.withPropertiesFromOptions(
@@ -322,6 +482,49 @@ local tbOverride = tbStandardOptions.override;
               ),
             ]
           ),
+
+        taskExceptionsByTypeTimeSeries:
+          mixinUtils.dashboards.timeSeriesPanel(
+            'Task Exceptions by Type',
+            'short',
+            queries.taskFailedByExceptionInterval,
+            '{{ exception }}',
+            description='Task failure rate over time broken down by exception type. Helps identify recurring or new exception classes causing task failures.',
+            stack='normal',
+          ),
+
+        taskExceptionsTable:
+          mixinUtils.dashboards.tablePanel(
+            'Task Exceptions [1w]',
+            'short',
+            queries.taskExceptions,
+            sortBy={
+              name: 'Value',
+              desc: true,
+            },
+            description='Task exceptions grouped by task name and exception type over the last week.',
+            transformations=[
+              tbQueryOptions.transformation.withId(
+                'organize'
+              ) +
+              tbQueryOptions.transformation.withOptions(
+                {
+                  renameByName: {
+                    exception: 'Exception',
+                  },
+                  indexByName: {
+                    exception: 0,
+                    Value: 1,
+                  },
+                  excludeByName: {
+                    Time: true,
+                    name: true,
+                    job: true,
+                  },
+                }
+              ),
+            ]
+          ),
       };
 
       local rows =
@@ -334,29 +537,45 @@ local tbOverride = tbStandardOptions.override;
         ] +
         grid.wrapPanels(
           [
-            panels.tasksStatsTable,
-            panels.taskExceptionsTable,
+            panels.taskRateByQueuePieChart,
+            panels.taskRateByNamePieChart,
+            panels.taskSuccessVsFailurePieChart,
+            panels.taskStatesPieChart,
           ],
-          panelWidth=24,
-          panelHeight=8,
+          panelWidth=6,
+          panelHeight=5,
           startY=1
         ) +
         [
-          row.new('Tasks') +
+          row.new('$task') +
           row.gridPos.withX(0) +
-          row.gridPos.withY(17) +
+          row.gridPos.withY(6) +
           row.gridPos.withW(24) +
-          row.gridPos.withH(1),
+          row.gridPos.withH(1) +
+          row.withRepeat('task'),
+        ] +
+        [
+          panels.tasksStatsTable +
+          tablePanel.gridPos.withX(0) +
+          tablePanel.gridPos.withY(7) +
+          tablePanel.gridPos.withW(14) +
+          tablePanel.gridPos.withH(7),
+          panels.taskExceptionsTable +
+          tablePanel.gridPos.withX(14) +
+          tablePanel.gridPos.withY(7) +
+          tablePanel.gridPos.withW(10) +
+          tablePanel.gridPos.withH(7),
         ] +
         grid.wrapPanels(
           [
-            panels.tasksCompletedTimeSeries,
-            panels.tasksFailedByExceptionTimeSeries,
+            panels.taskEventsTimeSeries,
+            panels.taskExceptionsByTypeTimeSeries,
+            panels.taskSuccessRateTimeSeries,
             panels.tasksRuntimeTimeSeries,
           ],
-          panelWidth=24,
+          panelWidth=12,
           panelHeight=6,
-          startY=18
+          startY=14
         );
 
       mixinUtils.dashboards.bypassDashboardValidation +
@@ -366,7 +585,7 @@ local tbOverride = tbStandardOptions.override;
       dashboard.withTags($._config.tags) +
       dashboard.withTimezone('utc') +
       dashboard.withEditable(false) +
-      dashboard.time.withFrom('now-2d') +
+      dashboard.time.withFrom('now-1d') +
       dashboard.time.withTo('now') +
       dashboard.withVariables(variables) +
       dashboard.withLinks(
