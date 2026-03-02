@@ -44,7 +44,7 @@ local tbOverride = tbStandardOptions.override;
         celeryWorkers: |||
           count(
             celery_worker_up{
-              %(default)s
+              %(defaultQueue)s
             } == 1
           )
         ||| % defaultFilters,
@@ -52,8 +52,18 @@ local tbOverride = tbStandardOptions.override;
         celeryWorkersActive: |||
           sum(
             celery_worker_tasks_active{
-              %(default)s
+              %(defaultQueue)s
             }
+          )
+        ||| % defaultFilters,
+
+        queueCount: |||
+          count(
+            group by (queue_name) (
+              celery_queue_length{
+                %(defaultQueue)s
+              }
+            )
           )
         ||| % defaultFilters,
 
@@ -62,7 +72,7 @@ local tbOverride = tbStandardOptions.override;
             round(
               increase(
                 celery_task_failed_total{
-                  %(queue)s
+                  %(defaultQueue)s
                 }[1w]
               )
             )
@@ -79,7 +89,7 @@ local tbOverride = tbStandardOptions.override;
           sum(
             rate(
               celery_task_runtime_sum{
-                %(queue)s
+                %(defaultQueue)s
               }[1w]
             )
           )
@@ -87,7 +97,7 @@ local tbOverride = tbStandardOptions.override;
           sum(
             rate(
               celery_task_runtime_count{
-                %(queue)s
+                %(defaultQueue)s
               }[1w]
             )
           ) > 0
@@ -95,25 +105,25 @@ local tbOverride = tbStandardOptions.override;
 
         tasksFailed1w: |||
           round(
-            sum (
-              increase(
-                celery_task_failed_total{
-                  %(queue)s
-                }[1w]
-              ) > 0
-            )  by (job, name)
-          )
-        ||| % defaultFilters,
-
-        topTaskExceptions1w: |||
-          round(
-            sum (
+            sum(
               increase(
                 celery_task_failed_total{
                   %(queue)s
                 }[1w]
               )
-            ) by (job, exception) > 0
+            ) by (job, name)
+          )
+        ||| % defaultFilters,
+
+        topTaskExceptions1w: |||
+          round(
+            sum(
+              increase(
+                celery_task_failed_total{
+                  %(queue)s
+                }[1w]
+              )
+            ) by (job, exception)
           )
         ||| % defaultFilters,
 
@@ -144,7 +154,7 @@ local tbOverride = tbStandardOptions.override;
         ||| % defaultFilters,
 
         taskFailed: |||
-          sum (
+          sum(
             round(
               increase(
                 celery_task_failed_total{
@@ -152,7 +162,7 @@ local tbOverride = tbStandardOptions.override;
                 }[$__range]
               )
             )
-          ) by (job) > 0
+          ) by (job)
         ||| % defaultFilters,
         taskSucceeded: std.strReplace(queries.taskFailed, 'failed', 'succeeded'),
         taskSent: std.strReplace(queries.taskFailed, 'failed', 'sent'),
@@ -163,15 +173,14 @@ local tbOverride = tbStandardOptions.override;
         taskSuccessRate: |||
           %s/(%s+%s) > -1
         ||| % [
-          // Strip out > 0 from the end of the success query
-          std.strReplace(queries.taskSucceeded, ' > 0', ''),
-          std.strReplace(queries.taskSucceeded, ' > 0', ''),
-          std.strReplace(queries.taskFailed, ' > 0', ''),
-        ],  // Add > -1 to remove NaN results
+          queries.taskSucceeded,
+          queries.taskSucceeded,
+          queries.taskFailed,
+        ],  // > -1 removes NaN results from division by zero when no tasks ran
 
 
         taskFailedInterval: |||
-          sum (
+          sum(
             round(
               increase(
                 celery_task_failed_total{
@@ -195,12 +204,100 @@ local tbOverride = tbStandardOptions.override;
                 celery_task_runtime_bucket{
                   %(queue)s
                 }[$__rate_interval]
-              ) > 0
+              )
             ) by (job, le)
           )
         ||| % defaultFilters,
         tasksRuntimeP95: std.strReplace(queries.tasksRuntimeP50, '0.50', '0.95'),
         tasksRuntimeP99: std.strReplace(queries.tasksRuntimeP50, '0.50', '0.99'),
+
+        // Pie chart queries — instant or 6h fixed window
+        queueLengthByQueue: |||
+          topk(10,
+            sum(
+              celery_queue_length{
+                %(defaultQueue)s
+              }
+            ) by (queue_name)
+          )
+        ||| % defaultFilters,
+
+        taskRateByName6h: |||
+          topk(10,
+            sum(
+              rate(
+                celery_task_received_total{
+                  %(defaultQueue)s
+                }[6h]
+              )
+            ) by (name)
+          )
+        ||| % defaultFilters,
+
+        taskSucceeded6hPie: |||
+          sum(
+            increase(
+              celery_task_succeeded_total{
+                %(defaultQueue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+        taskFailed6hPie: |||
+          sum(
+            increase(
+              celery_task_failed_total{
+                %(defaultQueue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+
+        taskSent6h: |||
+          sum(
+            increase(
+              celery_task_sent_total{
+                %(defaultQueue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+        taskReceived6h: |||
+          sum(
+            increase(
+              celery_task_received_total{
+                %(defaultQueue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+        taskRetried6h: |||
+          sum(
+            increase(
+              celery_task_retried_total{
+                %(defaultQueue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+        taskRevoked6h: |||
+          sum(
+            increase(
+              celery_task_revoked_total{
+                %(defaultQueue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
+        taskRejected6h: |||
+          sum(
+            increase(
+              celery_task_rejected_total{
+                %(defaultQueue)s
+              }[6h]
+            )
+          )
+        ||| % defaultFilters,
       };
 
       local panels = {
@@ -219,6 +316,14 @@ local tbOverride = tbStandardOptions.override;
             'short',
             queries.celeryWorkersActive,
             description='Number of active tasks across all workers',
+          ),
+
+        queueCountStat:
+          mixinUtils.dashboards.statPanel(
+            'Queues',
+            'short',
+            queries.queueCount,
+            description='Number of distinct queues with reported queue length',
           ),
 
         tasksReceivedByWorkers24hStat:
@@ -253,6 +358,79 @@ local tbOverride = tbStandardOptions.override;
             description='Average runtime for tasks in the last week',
           ),
 
+        // Pie charts
+        queueLengthByQueuePieChart:
+          mixinUtils.dashboards.pieChartPanel(
+            'Queue Length by Queue',
+            'short',
+            queries.queueLengthByQueue,
+            '{{ queue_name }}',
+            description='Current queue depth across all queues (top 10 by length). Shows which queues have the most pending tasks. A growing queue indicates workers cannot keep up with the arrival rate.',
+          ),
+
+        taskRateByNamePieChart:
+          mixinUtils.dashboards.pieChartPanel(
+            'Task Rate by Name [6h]',
+            'reqps',
+            queries.taskRateByName6h,
+            '{{ name }}',
+            description='Top 10 task types by throughput over the past 6 hours. Identifies which tasks run most frequently. High-volume tasks are candidates for optimization and dedicated worker queues.',
+          ),
+
+        taskSuccessVsFailurePieChart:
+          mixinUtils.dashboards.pieChartPanel(
+            'Task Success vs Failure [6h]',
+            'short',
+            [
+              {
+                expr: queries.taskSucceeded6hPie,
+                legend: 'Succeeded',
+              },
+              {
+                expr: queries.taskFailed6hPie,
+                legend: 'Failed',
+              },
+            ],
+            description='Overall task health split between succeeded and failed tasks in the past 6 hours. Any visible failure slice warrants investigation. Compare with the Top Failed Tasks table to identify which tasks are contributing to failures.',
+          ),
+
+        taskStatesPieChart:
+          mixinUtils.dashboards.pieChartPanel(
+            'Task States [6h]',
+            'short',
+            [
+              {
+                expr: queries.taskSent6h,
+                legend: 'Sent',
+              },
+              {
+                expr: queries.taskReceived6h,
+                legend: 'Received',
+              },
+              {
+                expr: queries.taskSucceeded6hPie,
+                legend: 'Succeeded',
+              },
+              {
+                expr: queries.taskFailed6hPie,
+                legend: 'Failed',
+              },
+              {
+                expr: queries.taskRetried6h,
+                legend: 'Retried',
+              },
+              {
+                expr: queries.taskRevoked6h,
+                legend: 'Revoked',
+              },
+              {
+                expr: queries.taskRejected6h,
+                legend: 'Rejected',
+              },
+            ],
+            description='Distribution of all task lifecycle states over the past 6 hours. A healthy system shows predominantly Succeeded tasks. Significant Retried or Rejected slices indicate reliability issues. Revoked tasks suggest manual cancellations or timeouts.',
+          ),
+
         tasksFailed1wTable:
           mixinUtils.dashboards.tablePanel(
             'Top Failed Tasks [1w]',
@@ -283,20 +461,15 @@ local tbOverride = tbStandardOptions.override;
                 }
               ),
             ],
-            overrides=[
-              tbOverride.byName.new('Task') +
-              tbOverride.byName.withPropertiesFromOptions(
-                tbStandardOptions.withLinks(
-                  tbPanelOptions.link.withTitle('Go To View') +
-                  tbPanelOptions.link.withType('dashboard') +
-                  tbPanelOptions.link.withUrl(
-                    '/d/%s/celery-tasks-by-task?var-task=${__data.fields.Task}' % $._config.dashboardIds['celery-tasks-by-task']
-                  ) +
-                  tbPanelOptions.link.withTargetBlank(true)
-                )
-              ),
-            ]
-          ),
+          ) +
+          tbStandardOptions.withLinks([
+            tbPanelOptions.link.withTitle('Go To Task') +
+            tbPanelOptions.link.withType('dashboard') +
+            tbPanelOptions.link.withUrl(
+              '/d/%s/celery-tasks-by-task?var-namespace=${namespace}&var-job=${job}&var-task=${__data.fields.Task}' % $._config.dashboardIds['celery-tasks-by-task']
+            ) +
+            tbPanelOptions.link.withTargetBlank(true),
+          ]),
 
         taskExceptions1wTable:
           mixinUtils.dashboards.tablePanel(
@@ -360,20 +533,15 @@ local tbOverride = tbStandardOptions.override;
                 }
               ),
             ],
-            overrides=[
-              tbOverride.byName.new('Task') +
-              tbOverride.byName.withPropertiesFromOptions(
-                tbStandardOptions.withLinks(
-                  tbPanelOptions.link.withTitle('Go To Task') +
-                  tbPanelOptions.link.withType('dashboard') +
-                  tbPanelOptions.link.withUrl(
-                    '/d/%s/celery-tasks-by-task?var-task=${__data.fields.Task}' % $._config.dashboardIds['celery-tasks-by-task']
-                  ) +
-                  tbPanelOptions.link.withTargetBlank(true)
-                )
-              ),
-            ]
-          ),
+          ) +
+          tbStandardOptions.withLinks([
+            tbPanelOptions.link.withTitle('Go To Task') +
+            tbPanelOptions.link.withType('dashboard') +
+            tbPanelOptions.link.withUrl(
+              '/d/%s/celery-tasks-by-task?var-namespace=${namespace}&var-job=${job}&var-task=${__data.fields.Task}' % $._config.dashboardIds['celery-tasks-by-task']
+            ) +
+            tbPanelOptions.link.withTargetBlank(true),
+          ]),
 
         celeryQueueLengthTimeSeries:
           mixinUtils.dashboards.timeSeriesPanel(
@@ -520,6 +688,7 @@ local tbOverride = tbStandardOptions.override;
               {
                 expr: queries.tasksRuntimeP99,
                 legend: 'P99',
+                exemplar: true,
               },
             ],
             description='Task runtime percentiles over time',
@@ -557,19 +726,72 @@ local tbOverride = tbStandardOptions.override;
           [
             panels.celeryWorkersStat,
             panels.celeryWorkersActiveStat,
+            panels.queueCountStat,
             panels.tasksReceivedByWorkers24hStat,
             panels.taskSuccessRate1wStat,
+            panels.taskRuntime1wStat,
           ],
-          panelWidth=5,
-          panelHeight=4,
+          panelWidth=4,
+          panelHeight=3,
           startY=1
         ) +
+        grid.wrapPanels(
+          [
+            panels.queueLengthByQueuePieChart,
+            panels.taskRateByNamePieChart,
+            panels.taskSuccessVsFailurePieChart,
+            panels.taskStatesPieChart,
+          ],
+          panelWidth=6,
+          panelHeight=5,
+          startY=4
+        ) +
         [
-          panels.taskRuntime1wStat +
-          timeSeriesPanel.gridPos.withX(20) +
-          timeSeriesPanel.gridPos.withY(1) +
-          timeSeriesPanel.gridPos.withW(4) +
-          timeSeriesPanel.gridPos.withH(4),
+          row.new(
+            'Queues'
+          ) +
+          row.gridPos.withX(0) +
+          row.gridPos.withY(9) +
+          row.gridPos.withW(24) +
+          row.gridPos.withH(1),
+          panels.celeryQueueLengthTimeSeries +
+          timeSeriesPanel.gridPos.withX(0) +
+          timeSeriesPanel.gridPos.withY(10) +
+          timeSeriesPanel.gridPos.withW(24) +
+          timeSeriesPanel.gridPos.withH(6),
+        ] +
+        [
+          row.new(
+            'Tasks'
+          ) +
+          row.gridPos.withX(0) +
+          row.gridPos.withY(16) +
+          row.gridPos.withW(24) +
+          row.gridPos.withH(1),
+          panels.tasksStatsTable +
+          tablePanel.gridPos.withX(0) +
+          tablePanel.gridPos.withY(17) +
+          tablePanel.gridPos.withW(24) +
+          tablePanel.gridPos.withH(5),
+          panels.tasksCompletedTimeSeries +
+          timeSeriesPanel.gridPos.withX(0) +
+          timeSeriesPanel.gridPos.withY(22) +
+          timeSeriesPanel.gridPos.withW(12) +
+          timeSeriesPanel.gridPos.withH(8),
+          panels.tasksRuntimeTimeSeries +
+          timeSeriesPanel.gridPos.withX(12) +
+          timeSeriesPanel.gridPos.withY(22) +
+          timeSeriesPanel.gridPos.withW(12) +
+          timeSeriesPanel.gridPos.withH(8),
+        ] +
+        [
+          row.new(
+            'Weekly Breakdown'
+          ) +
+          row.gridPos.withX(0) +
+          row.gridPos.withY(30) +
+          row.gridPos.withW(24) +
+          row.gridPos.withH(1),
         ] +
         grid.wrapPanels(
           [
@@ -579,46 +801,8 @@ local tbOverride = tbStandardOptions.override;
           ],
           panelWidth=8,
           panelHeight=8,
-          startY=5
-        ) +
-        [
-          row.new(
-            'Queues'
-          ) +
-          row.gridPos.withX(0) +
-          row.gridPos.withY(13) +
-          row.gridPos.withW(24) +
-          row.gridPos.withH(1),
-          panels.celeryQueueLengthTimeSeries +
-          timeSeriesPanel.gridPos.withX(0) +
-          timeSeriesPanel.gridPos.withY(14) +
-          timeSeriesPanel.gridPos.withW(24) +
-          timeSeriesPanel.gridPos.withH(6),
-        ] +
-        [
-          row.new(
-            'Tasks'
-          ) +
-          row.gridPos.withX(0) +
-          row.gridPos.withY(20) +
-          row.gridPos.withW(24) +
-          row.gridPos.withH(1),
-          panels.tasksStatsTable +
-          tablePanel.gridPos.withX(0) +
-          tablePanel.gridPos.withY(21) +
-          tablePanel.gridPos.withW(24) +
-          tablePanel.gridPos.withH(5),
-          panels.tasksCompletedTimeSeries +
-          timeSeriesPanel.gridPos.withX(0) +
-          timeSeriesPanel.gridPos.withY(26) +
-          timeSeriesPanel.gridPos.withW(24) +
-          timeSeriesPanel.gridPos.withH(10),
-          panels.tasksRuntimeTimeSeries +
-          timeSeriesPanel.gridPos.withX(0) +
-          timeSeriesPanel.gridPos.withY(36) +
-          timeSeriesPanel.gridPos.withW(24) +
-          timeSeriesPanel.gridPos.withH(10),
-        ];
+          startY=31
+        );
 
       mixinUtils.dashboards.bypassDashboardValidation +
       dashboard.new(
@@ -629,7 +813,7 @@ local tbOverride = tbStandardOptions.override;
       dashboard.withTags($._config.tags) +
       dashboard.withTimezone('utc') +
       dashboard.withEditable(false) +
-      dashboard.time.withFrom('now-2d') +
+      dashboard.time.withFrom('now-1d') +
       dashboard.time.withTo('now') +
       dashboard.withVariables(variables) +
       dashboard.withLinks(

@@ -30,9 +30,16 @@ local query = variable.query;
       %(job)s
     ||| % this,
 
+    // default + ignored-queues exclusion, no $queue_name binding — for summary panels
+    defaultQueue: |||
+      %(base)s,
+      %(celeryIgnoredQueues)s
+    ||| % this,
+
     queue: |||
       %(base)s,
-      %(queueName)s
+      %(queueName)s,
+      %(celeryIgnoredQueues)s
     ||| % this,
 
     task: |||
@@ -111,8 +118,8 @@ local query = variable.query;
       query.withDatasourceFromVariable(this.datasource) +
       query.withSort() +
       query.generalOptions.withLabel('Queue Name') +
-      query.selectionOptions.withMulti(false) +
-      query.selectionOptions.withIncludeAll(false) +
+      query.selectionOptions.withMulti(true) +
+      query.selectionOptions.withIncludeAll(true) +
       query.refresh.onLoad() +
       query.refresh.onTime(),
 

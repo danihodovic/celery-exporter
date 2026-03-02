@@ -8,7 +8,8 @@
           "subdir": ""
         }
       },
-      "version": "main"
+      "version": "main",
+      "name": "mm-utils"
     },
     {
       "source": {
