@@ -231,3 +231,40 @@ def test_worker_generic_task_sent_hostname(threaded_exporter, celery_app, hostna
             )
             is None
         )
+
+
+@pytest.mark.celery()
+def test_task_latency(threaded_exporter, celery_app, hostname):
+    time.sleep(5)
+
+    @celery_app.task
+    def latency_task():
+        time.sleep(0.1)
+
+    with start_worker(celery_app, without_heartbeat=False):
+        latency_task.delay().get()
+        time.sleep(2)
+
+        # Check that latency metric was recorded
+        latency_count = threaded_exporter.registry.get_sample_value(
+            "celery_task_latency_count",
+            labels={
+                "hostname": hostname,
+                "name": "src.test_metrics.latency_task",
+                "queue_name": "celery",
+            },
+        )
+        print(latency_count)
+        assert latency_count == 1.0
+
+        # Check that latency value is reasonable (should be very small for in-memory broker)
+        latency_sum = threaded_exporter.registry.get_sample_value(
+            "celery_task_latency_sum",
+            labels={
+                "hostname": hostname,
+                "name": "src.test_metrics.latency_task",
+                "queue_name": "celery",
+            },
+        )
+        assert latency_sum is not None
+        assert latency_sum >= 0  # Latency should be non-negative

@@ -4,8 +4,9 @@ import re
 import sys
 import time
 from collections import defaultdict
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
+from cachetools import LRUCache
 from celery import Celery
 from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
@@ -31,6 +32,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         metric_prefix="celery_",
         default_queue_name="celery",
         static_label=None,
+        max_tasks_in_memory=50000,
     ):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set(initial_queues or [])
@@ -45,6 +47,11 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         # Static labels
         self.static_label = static_label or {}
         self.static_label_keys = self.static_label.keys()
+
+        # Track task received timestamps for latency calculation
+        self.task_received_times: Dict[str, float] = LRUCache(
+            maxsize=max_tasks_in_memory
+        )
 
         self.state_counters = {
             "task-sent": Counter(
@@ -122,6 +129,13 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
+        self.celery_task_latency = Histogram(
+            f"{metric_prefix}task_latency",
+            "Histogram of task latency measurements (time between received and started).",
+            ["name", "hostname", "queue_name", *self.static_label_keys],
+            registry=self.registry,
+            buckets=buckets or Histogram.DEFAULT_BUCKETS,
+        )
         self.celery_queue_length = Gauge(
             f"{metric_prefix}queue_length",
             "The number of message in broker queue.",
@@ -193,6 +207,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         for label_seq in list(self.celery_task_runtime._metrics.keys()):
             if hostname in label_seq:
                 self.celery_task_runtime.remove(*label_seq)
+
+        for label_seq in list(self.celery_task_latency._metrics.keys()):
+            if hostname in label_seq:
+                self.celery_task_latency.remove(*label_seq)
 
         del self.worker_last_seen[hostname]
 
@@ -286,6 +304,29 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         }
         if event["type"] == "task-sent" and self.generic_hostname_task_sent_metric:
             labels["hostname"] = "generic"
+
+        # Store timestamp when task is received for latency calculation
+        if event["type"] == "task-received":
+            self.task_received_times[event["uuid"]] = event.get(
+                "local_received"
+            ) or event.get("timestamp")
+            logger.debug("Stored received timestamp for task uuid='{}'", event["uuid"])
+
+        # Calculate and observe latency when task starts
+        if event["type"] == "task-started":
+            received_time = self.task_received_times.get(event["uuid"])
+            if received_time:
+                started_time = event.get("local_received") or event.get("timestamp")
+                latency = started_time - received_time
+                self.celery_task_latency.labels(**labels).observe(latency)
+                logger.debug(
+                    "Observed metric='{}' labels='{}': {}s",
+                    self.celery_task_latency._name,
+                    labels,
+                    latency,
+                )
+                # Clean up stored timestamp
+                del self.task_received_times[event["uuid"]]
 
         for counter_name, counter in self.state_counters.items():
             _labels = labels.copy()
