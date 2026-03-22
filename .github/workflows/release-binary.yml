@@ -1,0 +1,30 @@
+name: Release Binary
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-binary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build binary with PyInstaller
+        run: |
+          docker build . -t celery-exporter-builder -f Dockerfile.pyinstaller \
+            --build-arg PYTHON_VERSION=$(cat .python-version)
+
+      - name: Extract binary from container
+        run: |
+          container=$(docker run -d celery-exporter-builder sleep 30)
+          docker cp "$container":/app/dist/celery-exporter celery-exporter
+          docker stop "$container"
+
+      - name: Upload binary to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: celery-exporter
