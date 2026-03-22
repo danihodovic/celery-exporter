@@ -14,11 +14,7 @@
         {"type": "chore", "section": "Miscellaneous", "hidden": true}
       ],
       "extra-files": [
-        {
-          "type": "yaml",
-          "path": "charts/celery-exporter/Chart.yaml",
-          "jsonpath": "$.appVersion"
-        }
+        "charts/celery-exporter/Chart.yaml"
       ]
     }
   }

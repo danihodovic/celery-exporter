@@ -3,6 +3,11 @@ name: Release Binary
 on:
   release:
     types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 
 jobs:
   build-binary:
@@ -20,11 +25,12 @@ jobs:
 
       - name: Extract binary from container
         run: |
-          container=$(docker run -d celery-exporter-builder sleep 30)
+          container=$(docker create celery-exporter-builder)
           docker cp "$container":/app/dist/celery-exporter celery-exporter
-          docker stop "$container"
+          docker rm "$container"
 
       - name: Upload binary to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: celery-exporter
