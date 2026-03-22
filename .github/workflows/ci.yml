@@ -51,7 +51,7 @@ jobs:
       - name: Lint
         run: |
           source .venv/bin/activate
-          pylint $(git ls-files -- '*.py' ':!:**/migrations/*.py')
+          pylint "$(git ls-files -- '*.py' ':!:**/migrations/*.py')"
 
   test:
     name: Test

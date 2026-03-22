@@ -21,7 +21,7 @@ jobs:
       - name: Build binary with PyInstaller
         run: |
           docker build . -t celery-exporter-builder -f Dockerfile.pyinstaller \
-            --build-arg PYTHON_VERSION=$(cat .python-version)
+            --build-arg "PYTHON_VERSION=$(cat .python-version)"
 
       - name: Extract binary from container
         run: |
