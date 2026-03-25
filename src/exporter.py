@@ -122,6 +122,13 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
+        self.celery_task_wait_time = Histogram(
+            f"{metric_prefix}task_wait_time",
+            "Histogram of task wait time measurements.",
+            ["name", "hostname", "queue_name", *self.static_label_keys],
+            registry=self.registry,
+            buckets=buckets or Histogram.DEFAULT_BUCKETS,
+        )
         self.celery_queue_length = Gauge(
             f"{metric_prefix}queue_length",
             "The number of message in broker queue.",
@@ -193,6 +200,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         for label_seq in list(self.celery_task_runtime._metrics.keys()):
             if hostname in label_seq:
                 self.celery_task_runtime.remove(*label_seq)
+
+        for label_seq in list(self.celery_task_wait_time._metrics.keys()):
+            if hostname in label_seq:
+                self.celery_task_wait_time.remove(*label_seq)
 
         del self.worker_last_seen[hostname]
 
@@ -316,6 +327,18 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 labels,
                 task.runtime,
             )
+
+        # observe task wait time
+        if event["type"] == "task-started":
+            if task.sent is not None:
+                wait_time = max(0.0, task.started - task.sent)
+                self.celery_task_wait_time.labels(**labels).observe(wait_time)
+                logger.debug(
+                    "Observed metric='{}' labels='{}': {}s",
+                    self.celery_task_wait_time._name,
+                    labels,
+                    wait_time,
+                )
 
     def track_worker_status(self, event, is_online):
         value = 1 if is_online else 0
