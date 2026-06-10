@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "package-name": "celery-exporter",
+      "bump-minor-pre-major": true,
+      "changelog-sections": [
+        {"type": "feat", "section": "Features"},
+        {"type": "fix", "section": "Bug Fixes"},
+        {"type": "perf", "section": "Performance"},
+        {"type": "refactor", "section": "Refactoring"},
+        {"type": "build", "section": "Build"},
+        {"type": "chore", "section": "Miscellaneous", "hidden": true}
+      ],
+      "extra-files": [
+        "charts/celery-exporter/Chart.yaml"
+      ]
+    }
+  }
+}
