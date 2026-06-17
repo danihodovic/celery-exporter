@@ -8,7 +8,6 @@ from typing import Callable, Optional
 
 from celery import Celery
 from celery.events.state import State  # type: ignore
-from celery.utils import nodesplit  # type: ignore
 from celery.utils.time import utcoffset  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
@@ -453,17 +452,16 @@ def get_hostname(name: str) -> str:
     """
     Get hostname from celery's hostname.
 
-    Celery's hostname contains either worker's name or Process ID in it.
-    >>> get_hostname("workername@hostname")
-    'hostname'
-    >>> get_hostname("gen531@hostname")
-    'hostname'
+    Returns the full Celery worker hostname (e.g. "badcase@VM-32-251-ubuntu")
+    so that multiple workers on the same machine are tracked as distinct
+    workers rather than being collapsed into one.
 
-    Prometheus suggests it:
-    > Do not use labels to store dimensions with high cardinality (many different label values)
+    >>> get_hostname("workername@hostname")
+    'workername@hostname'
+    >>> get_hostname("gen531@hostname")
+    'gen531@hostname'
     """
-    _, hostname = nodesplit(name)
-    return hostname
+    return name
 
 
 def transform_option_value(value: str):
