@@ -13,8 +13,30 @@ from celery.utils.time import adjust_timestamp, maybe_iso8601, utcoffset  # type
 from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
+from prometheus_client.utils import INF
 
 from .http_server import start_http_server
+
+# Queue wait time is a saturation signal: healthy queues sit near zero, but a
+# backlog can grow to minutes. Unlike the runtime default buckets there is no
+# sub-50ms resolution, spending the buckets on the 10s-30min range instead.
+DEFAULT_QUEUE_WAIT_BUCKETS = (
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1,
+    2.5,
+    5,
+    10,
+    30,
+    60,
+    120,
+    300,
+    600,
+    1800,
+    INF,
+)
 
 
 class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branches
@@ -31,6 +53,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         metric_prefix="celery_",
         default_queue_name="celery",
         static_label=None,
+        queue_wait_buckets=None,
     ):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set(initial_queues or [])
@@ -128,7 +151,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             "being executed, excluding deliberate ETA/countdown delay.",
             ["name", "hostname", "queue_name", *self.static_label_keys],
             registry=self.registry,
-            buckets=buckets or Histogram.DEFAULT_BUCKETS,
+            buckets=queue_wait_buckets or DEFAULT_QUEUE_WAIT_BUCKETS,
         )
         self.celery_queue_length = Gauge(
             f"{metric_prefix}queue_length",

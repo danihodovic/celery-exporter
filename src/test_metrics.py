@@ -364,6 +364,18 @@ def test_queue_wait_time_not_observed_when_sent_event_missed(event_exporter):
     assert get_queue_wait_sample(event_exporter, "count") is None
 
 
+def test_queue_wait_time_buckets_independent_of_runtime_buckets():
+    exporter = Exporter(buckets=[1.0, 5.0], queue_wait_buckets=[2.0, 4.0])
+
+    # pylint: disable=protected-access
+    assert exporter.celery_task_queue_wait_time._upper_bounds == [
+        2.0,
+        4.0,
+        float("inf"),
+    ]
+    assert exporter.celery_task_runtime._upper_bounds == [1.0, 5.0, float("inf")]
+
+
 def test_queue_wait_time_excludes_eta_when_events_from_other_timezone(event_exporter):
     """The event receiver localises event timestamps based on the sender's
     utcoffset, while the ETA stays an absolute datetime. The ETA must be

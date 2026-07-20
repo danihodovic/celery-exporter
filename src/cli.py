@@ -4,7 +4,7 @@ import click
 import pretty_errors  # type: ignore
 from prometheus_client import Histogram
 
-from .exporter import Exporter
+from .exporter import DEFAULT_QUEUE_WAIT_BUCKETS, Exporter
 from .help import cmd_help
 
 # https://github.com/pallets/click/issues/448#issuecomment-246029304
@@ -12,6 +12,7 @@ from .help import cmd_help
 click.core._verify_python3_env = lambda: None  # type: ignore
 
 default_buckets_str = ",".join(map(str, Histogram.DEFAULT_BUCKETS))
+default_queue_wait_buckets_str = ",".join(map(str, DEFAULT_QUEUE_WAIT_BUCKETS))
 
 
 def _comma_seperated_argument(_ctx, _param, value):
@@ -83,6 +84,12 @@ def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
     show_default=True,
     help="Buckets for runtime histogram",
 )
+@click.option(
+    "--queue-wait-buckets",
+    default=default_queue_wait_buckets_str,
+    show_default=True,
+    help="Buckets for queue wait time histogram",
+)
 @click.option("--log-level", default="INFO", show_default=True)
 @click.option(
     "--worker-timeout",
@@ -150,6 +157,7 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
     host,
     port,
     buckets,
+    queue_wait_buckets,
     log_level,
     broker_ssl_option,
     worker_timeout,
@@ -161,6 +169,7 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
     static_label,
 ):  # pylint: disable=unused-argument
     formatted_buckets = list(map(float, buckets.split(",")))
+    formatted_queue_wait_buckets = list(map(float, queue_wait_buckets.split(",")))
     ctx = click.get_current_context()
     Exporter(
         formatted_buckets,
@@ -171,4 +180,5 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
         metric_prefix,
         default_queue_name,
         static_label,
+        formatted_queue_wait_buckets,
     ).run(ctx.params)
