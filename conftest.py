@@ -3,6 +3,7 @@ import threading
 import copy
 
 import pytest
+from celery.events.state import State  # type: ignore
 
 from src.exporter import Exporter
 
@@ -160,3 +161,11 @@ def threaded_exporter_static_labels(exporter_instance_static_labels):
 @pytest.fixture()
 def hostname():
     return socket.gethostname()
+
+
+@pytest.fixture()
+def event_exporter():
+    """An exporter with task state tracking, fed events directly (no worker)."""
+    exporter = Exporter()
+    exporter.state = State()
+    return exporter

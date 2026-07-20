@@ -9,7 +9,7 @@ from typing import Callable, Optional
 from celery import Celery
 from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
-from celery.utils.time import utcoffset  # type: ignore
+from celery.utils.time import adjust_timestamp, maybe_iso8601, utcoffset  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
@@ -118,6 +118,14 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.celery_task_runtime = Histogram(
             f"{metric_prefix}task_runtime",
             "Histogram of task runtime measurements.",
+            ["name", "hostname", "queue_name", *self.static_label_keys],
+            registry=self.registry,
+            buckets=buckets or Histogram.DEFAULT_BUCKETS,
+        )
+        self.celery_task_queue_wait_time = Histogram(
+            f"{metric_prefix}task_queue_wait_time",
+            "Histogram of the time tasks spend waiting in the queue before "
+            "being executed, excluding deliberate ETA/countdown delay.",
             ["name", "hostname", "queue_name", *self.static_label_keys],
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
@@ -306,6 +314,27 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 # task-sent is sent by various hosts (webservers, task creators)
                 # this causes label cardinality, therefore we do not want to instantiate the counter
                 counter.labels(**_labels).inc(0)
+
+        # observe queue wait time, excluding deliberate delay: countdown and
+        # retry backoff are delivered as an ETA
+        if event["type"] == "task-started" and task.sent is not None:
+            baseline = task.sent
+            eta = maybe_iso8601(task.eta)
+            if eta is not None:
+                # localise like the receiver localised the event timestamps
+                eta_timestamp = eta.timestamp()
+                if (event_utcoffset := event.get("utcoffset")) is not None:
+                    eta_timestamp = adjust_timestamp(eta_timestamp, event_utcoffset)
+                baseline = max(baseline, eta_timestamp)
+            # clock skew between producer and worker can push this negative
+            queue_wait_time = max(0.0, task.started - baseline)
+            self.celery_task_queue_wait_time.labels(**labels).observe(queue_wait_time)
+            logger.debug(
+                "Observed metric='{}' labels='{}': {}s",
+                self.celery_task_queue_wait_time._name,
+                labels,
+                queue_wait_time,
+            )
 
         # observe task runtime
         if event["type"] == "task-succeeded":

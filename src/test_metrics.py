@@ -1,9 +1,10 @@
 import logging
 import time
+from datetime import datetime, timezone
 
 import pytest
 from celery.contrib.testing.worker import start_worker  # type: ignore
-from celery.utils.time import adjust_timestamp  # type: ignore
+from celery.utils.time import adjust_timestamp, utcoffset  # type: ignore
 
 from src.exporter import Exporter, reverse_adjust_timestamp
 
@@ -258,3 +259,136 @@ def test_worker_generic_task_sent_hostname(threaded_exporter, celery_app, hostna
             )
             is None
         )
+
+
+QUEUE_WAIT_TASK_NAME = "src.test_metrics.waiting_task"
+QUEUE_WAIT_BASE_TIME = 1_600_000_000.0
+
+
+def make_task_event(event_type, timestamp, utcoffset=None):
+    return {
+        "type": event_type,
+        "uuid": "7d9b0b6c-6b1e-4c1e-a0f5-000000000001",
+        "timestamp": timestamp,
+        "local_received": timestamp,
+        "hostname": "worker@wait-test-host",
+        "clock": 1,
+        "utcoffset": utcoffset,
+    }
+
+
+def make_task_sent_event(timestamp, eta=None, retries=0, utcoffset=None):
+    event = make_task_event("task-sent", timestamp, utcoffset=utcoffset)
+    event.update(name=QUEUE_WAIT_TASK_NAME, queue="celery", eta=eta, retries=retries)
+    return event
+
+
+def isoformat_eta(timestamp):
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()
+
+
+def get_queue_wait_sample(exporter, suffix):
+    return exporter.registry.get_sample_value(
+        f"celery_task_queue_wait_time_{suffix}",
+        labels={
+            "name": QUEUE_WAIT_TASK_NAME,
+            "hostname": "wait-test-host",
+            "queue_name": "celery",
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "eta,started_offset,expected_wait",
+    [
+        pytest.param(None, 5, 5.0, id="plain-task"),
+        pytest.param(
+            isoformat_eta(QUEUE_WAIT_BASE_TIME + 120),
+            123,
+            3.0,
+            id="future-eta-excluded",
+        ),
+        pytest.param(
+            isoformat_eta(QUEUE_WAIT_BASE_TIME - 60),
+            5,
+            5.0,
+            id="past-eta-ignored",
+        ),
+        pytest.param(None, -2, 0.0, id="clamped-to-zero-on-clock-skew"),
+    ],
+)
+def test_queue_wait_time(event_exporter, eta, started_offset, expected_wait):
+    """A task is sent at the base time (optionally with an ETA) and started
+    `started_offset` seconds later; the wait is measured from max(sent, eta)
+    and clamped at zero."""
+    event_exporter.track_task_event(make_task_sent_event(QUEUE_WAIT_BASE_TIME, eta=eta))
+    event_exporter.track_task_event(
+        make_task_event("task-started", QUEUE_WAIT_BASE_TIME + started_offset)
+    )
+
+    assert get_queue_wait_sample(event_exporter, "count") == 1.0
+    assert get_queue_wait_sample(event_exporter, "sum") == pytest.approx(expected_wait)
+
+
+def test_queue_wait_time_measures_each_retry_delivery_without_backoff(event_exporter):
+    # first delivery: waits 1s
+    event_exporter.track_task_event(make_task_sent_event(QUEUE_WAIT_BASE_TIME))
+    event_exporter.track_task_event(
+        make_task_event("task-started", QUEUE_WAIT_BASE_TIME + 1)
+    )
+    event_exporter.track_task_event(
+        make_task_event("task-retried", QUEUE_WAIT_BASE_TIME + 2)
+    )
+    # retry delivery: republished with a 30s backoff ETA, waits 3s past it
+    event_exporter.track_task_event(
+        make_task_sent_event(
+            QUEUE_WAIT_BASE_TIME + 2,
+            eta=isoformat_eta(QUEUE_WAIT_BASE_TIME + 32),
+            retries=1,
+        )
+    )
+    event_exporter.track_task_event(
+        make_task_event("task-started", QUEUE_WAIT_BASE_TIME + 35)
+    )
+
+    # 1s for the first delivery plus 3s for the retry delivery
+    assert get_queue_wait_sample(event_exporter, "count") == 2.0
+    assert get_queue_wait_sample(event_exporter, "sum") == pytest.approx(4.0)
+
+
+def test_queue_wait_time_not_observed_when_sent_event_missed(event_exporter):
+    event_exporter.track_task_event(
+        make_task_event("task-started", QUEUE_WAIT_BASE_TIME)
+    )
+
+    assert get_queue_wait_sample(event_exporter, "count") is None
+
+
+def test_queue_wait_time_excludes_eta_when_events_from_other_timezone(event_exporter):
+    """The event receiver localises event timestamps based on the sender's
+    utcoffset, while the ETA stays an absolute datetime. The ETA must be
+    localised the same way, or the exclusion silently never applies when the
+    producer/worker timezone differs from the exporter's."""
+    source_utcoffset = utcoffset() + 4
+
+    def localise(timestamp):
+        # what Receiver.event_from_message does to event timestamps
+        return adjust_timestamp(timestamp, source_utcoffset)
+
+    event_exporter.track_task_event(
+        make_task_sent_event(
+            localise(QUEUE_WAIT_BASE_TIME),
+            eta=isoformat_eta(QUEUE_WAIT_BASE_TIME + 120),
+            utcoffset=source_utcoffset,
+        )
+    )
+    event_exporter.track_task_event(
+        make_task_event(
+            "task-started",
+            localise(QUEUE_WAIT_BASE_TIME + 123),
+            utcoffset=source_utcoffset,
+        )
+    )
+
+    assert get_queue_wait_sample(event_exporter, "count") == 1.0
+    assert get_queue_wait_sample(event_exporter, "sum") == pytest.approx(3.0)
