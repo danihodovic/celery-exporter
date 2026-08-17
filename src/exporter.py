@@ -124,6 +124,13 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
+        self.celery_task_queue_latency = Histogram(
+            f"{metric_prefix}task_queue_latency",
+            "Time spent by task waiting in the queue (between task-sent and task-received).",
+            ["name", "queue_name", *self.static_label_keys],
+            registry=self.registry,
+            buckets=buckets or Histogram.DEFAULT_BUCKETS,
+        )
         self.celery_queue_length = Gauge(
             f"{metric_prefix}queue_length",
             "The number of message in broker queue.",
@@ -321,6 +328,27 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 labels,
                 task.runtime,
             )
+
+        # observe queue latency (time between sent and received)
+        if event["type"] == "task-received":
+            if hasattr(task, "sent") and task.sent is not None:
+                received_ts = event.get("timestamp") or task.received
+                wait_time = received_ts - task.sent
+                if wait_time >= 0:
+                    queue_latency_labels = {
+                        "name": task.name,
+                        "queue_name": getattr(task, "queue", self.default_queue_name),
+                        **self.static_label,
+                    }
+                    self.celery_task_queue_latency.labels(
+                        **queue_latency_labels
+                    ).observe(wait_time)
+                    logger.debug(
+                        "Observed metric='{}' labels='{}': {}s",
+                        self.celery_task_queue_latency._name,
+                        queue_latency_labels,
+                        wait_time,
+                    )
 
     def track_worker_status(self, event, is_online):
         value = 1 if is_online else 0
