@@ -49,6 +49,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         worker_timeout_seconds=5 * 60,
         purge_offline_worker_metrics_seconds=10 * 60,
         generic_hostname_task_sent_metric=False,
+        generic_hostname_worker_task_metric=False,
         initial_queues=None,
         metric_prefix="celery_",
         default_queue_name="celery",
@@ -63,6 +64,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             purge_offline_worker_metrics_seconds
         )
         self.generic_hostname_task_sent_metric = generic_hostname_task_sent_metric
+        self.generic_hostname_worker_task_metric = generic_hostname_worker_task_metric
         self.default_queue_name = default_queue_name
 
         # Static labels
@@ -315,7 +317,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             "queue_name": getattr(task, "queue", self.default_queue_name),
             **self.static_label,
         }
-        if event["type"] == "task-sent" and self.generic_hostname_task_sent_metric:
+        if event["type"] == "task-sent":
+            if self.generic_hostname_task_sent_metric:
+                labels["hostname"] = "generic"
+        elif self.generic_hostname_worker_task_metric:
             labels["hostname"] = "generic"
 
         for counter_name, counter in self.state_counters.items():

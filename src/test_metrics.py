@@ -261,6 +261,87 @@ def test_worker_generic_task_sent_hostname(threaded_exporter, celery_app, hostna
         )
 
 
+def test_worker_generic_task_hostname(threaded_exporter, celery_app, hostname):
+    threaded_exporter.generic_hostname_worker_task_metric = True
+    time.sleep(5)
+
+    @celery_app.task
+    def succeed():
+        pass
+
+    succeed.apply_async()
+
+    with start_worker(celery_app, without_heartbeat=False):
+        time.sleep(5)
+
+        # The worker-executed counter and the runtime histogram carry the generic
+        # hostname, not the executing worker's.
+        assert (
+            threaded_exporter.registry.get_sample_value(
+                "celery_task_succeeded_total",
+                labels={
+                    "hostname": "generic",
+                    "name": "src.test_metrics.succeed",
+                    "queue_name": "celery",
+                },
+            )
+            == 1.0
+        )
+        assert (
+            threaded_exporter.registry.get_sample_value(
+                "celery_task_runtime_count",
+                labels={
+                    "hostname": "generic",
+                    "name": "src.test_metrics.succeed",
+                    "queue_name": "celery",
+                },
+            )
+            == 1.0
+        )
+        # The runtime histogram is only ever touched by observe() on the collapsed
+        # worker event, so no series exists under the real worker hostname.
+        assert (
+            threaded_exporter.registry.get_sample_value(
+                "celery_task_runtime_count",
+                labels={
+                    "hostname": hostname,
+                    "name": "src.test_metrics.succeed",
+                    "queue_name": "celery",
+                },
+            )
+            is None
+        )
+
+        # celery_task_sent is client-side and governed by its own flag, so this flag
+        # leaves it labeled with the real hostname.
+        assert (
+            threaded_exporter.registry.get_sample_value(
+                "celery_task_sent_total",
+                labels={
+                    "hostname": hostname,
+                    "name": "src.test_metrics.succeed",
+                    "queue_name": "celery",
+                },
+            )
+            == 1.0
+        )
+
+        # celery_worker_up does not pass through track_task_event, so it keeps the real
+        # per-worker hostname that KEDA's scaler depends on.
+        assert (
+            threaded_exporter.registry.get_sample_value(
+                "celery_worker_up", labels={"hostname": hostname}
+            )
+            == 1.0
+        )
+        assert (
+            threaded_exporter.registry.get_sample_value(
+                "celery_worker_up", labels={"hostname": "generic"}
+            )
+            is None
+        )
+
+        
 QUEUE_WAIT_TASK_NAME = "src.test_metrics.waiting_task"
 QUEUE_WAIT_BASE_TIME = 1_600_000_000.0
 

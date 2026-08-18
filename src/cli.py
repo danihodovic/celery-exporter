@@ -119,6 +119,16 @@ def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
     "Kubernetes environments where the client's hostname is a random string.",
 )
 @click.option(
+    "--generic-hostname-worker-task-metric",
+    default=False,
+    is_flag=True,
+    help="The celery_task_* counters and celery_task_runtime will be labeled with a generic "
+    "hostname instead of the executing worker's hostname. This option helps with label "
+    "cardinality when using a dynamic number of workers, as for example in Kubernetes "
+    "environments where the worker's hostname is a random string. celery_task_sent is not "
+    "affected; use --generic-hostname-task-sent-metric for the client side.",
+)
+@click.option(
     "-Q",
     "--queues",
     default=None,
@@ -163,6 +173,7 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
     worker_timeout,
     purge_offline_worker_metrics,
     generic_hostname_task_sent_metric,
+    generic_hostname_worker_task_metric,
     queues,
     metric_prefix,
     default_queue_name,
@@ -176,6 +187,7 @@ def cli(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too
         worker_timeout,
         purge_offline_worker_metrics,
         generic_hostname_task_sent_metric,
+        generic_hostname_worker_task_metric,
         queues,
         metric_prefix,
         default_queue_name,
