@@ -36,6 +36,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set(initial_queues or [])
         self.worker_last_seen = {}
+        # Series labeled with hostname="generic" are synthetic and cannot be discovered
+        # through the worker heartbeat/online/offline lifecycle, so they need their own
+        # last-seen bookkeeping to be purgeable. Keyed by (metric, label values).
+        self.generic_last_seen = {}
         self.worker_timeout_seconds = worker_timeout_seconds
         self.purge_offline_worker_metrics_after_seconds = (
             purge_offline_worker_metrics_seconds
@@ -205,18 +209,50 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             since = now - worker_status["ts"]
             if since > self.worker_timeout_seconds and not worker_status["forgotten"]:
                 logger.info(
-                    f"Have not seen {hostname} for {since:0.2f} seconds. "
-                    "Removing from metrics"
+                    "Have not seen {} for {:0.2f} seconds. Removing from metrics",
+                    hostname,
+                    since,
                 )
                 self.forget_worker(hostname)
 
             if self.purge_offline_worker_metrics_after_seconds > 0:
                 if since > self.purge_offline_worker_metrics_after_seconds:
                     logger.info(
-                        f"Have not seen {hostname} for {since:0.2f} seconds. "
-                        "Purging worker metrics"
+                        "Have not seen {} for {:0.2f} seconds. Purging worker metrics",
+                        hostname,
+                        since,
                     )
                     self.purge_worker_metrics(hostname)
+
+        if self.purge_offline_worker_metrics_after_seconds > 0:
+            self.purge_stale_generic_metrics(now)
+
+    def purge_stale_generic_metrics(self, now):
+        for key, last_seen in list(self.generic_last_seen.items()):
+            since = now - last_seen
+            if since <= self.purge_offline_worker_metrics_after_seconds:
+                continue
+
+            metric, label_seq = key
+            logger.info(
+                "Have not seen generic metric='{}' labels='{}' for {:0.2f} seconds. "
+                "Purging metric",
+                metric._name,
+                dict(zip(metric._labelnames, label_seq)),
+                since,
+            )
+            metric.remove(*label_seq)
+            del self.generic_last_seen[key]
+
+    def track_generic_metric(self, metric, labels, now):
+        """Record that a hostname="generic" series was just touched.
+
+        The exporter's own clock is used rather than the event timestamp: generic series
+        are aggregated across an arbitrary set of producers/workers whose clocks we do
+        not control, and staleness here only ever means "no event reached us recently".
+        """
+        label_seq = tuple(str(labels[label_name]) for label_name in metric._labelnames)
+        self.generic_last_seen[(metric, label_seq)] = now
 
     def track_queue_metrics(self):
         with self.app.connection() as connection:  # type: ignore
@@ -286,11 +322,21 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             "queue_name": getattr(task, "queue", self.default_queue_name),
             **self.static_label,
         }
+        generic_hostname = False
         if event["type"] == "task-sent":
             if self.generic_hostname_task_sent_metric:
                 labels["hostname"] = "generic"
+                generic_hostname = True
         elif self.generic_hostname_worker_task_metric:
             labels["hostname"] = "generic"
+            generic_hostname = True
+
+        # Only bookkeep when purging is enabled, so the map cannot grow when there is
+        # nothing that would ever drain it.
+        track_generic = (
+            generic_hostname and self.purge_offline_worker_metrics_after_seconds > 0
+        )
+        now = time.time()
 
         for counter_name, counter in self.state_counters.items():
             _labels = labels.copy()
@@ -311,10 +357,19 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 # task-sent is sent by various hosts (webservers, task creators)
                 # this causes label cardinality, therefore we do not want to instantiate the counter
                 counter.labels(**_labels).inc(0)
+            else:
+                continue
+
+            # Every generic series touched above needs tracking, including the ones only
+            # zero-instantiated, otherwise those would never become purgeable.
+            if track_generic:
+                self.track_generic_metric(counter, _labels, now)
 
         # observe task runtime
         if event["type"] == "task-succeeded":
             self.celery_task_runtime.labels(**labels).observe(task.runtime)
+            if track_generic:
+                self.track_generic_metric(self.celery_task_runtime, labels, now)
             logger.debug(
                 "Observed metric='{}' labels='{}': {}s",
                 self.celery_task_runtime._name,
