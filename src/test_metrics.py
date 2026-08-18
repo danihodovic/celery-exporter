@@ -1,11 +1,24 @@
 import logging
 import time
+from types import SimpleNamespace
 
 import pytest
 from celery.contrib.testing.worker import start_worker  # type: ignore
 from celery.utils.time import adjust_timestamp  # type: ignore
 
 from src.exporter import Exporter, reverse_adjust_timestamp
+
+
+def track_event(exporter, event_type, task):
+    exporter.state = SimpleNamespace(
+        event=lambda _event: None,
+        tasks=SimpleNamespace(get=lambda _uuid: task),
+    )
+    exporter.track_task_event({"type": event_type, "uuid": "task-id"})
+
+
+def track_task_sent(exporter, task):
+    track_event(exporter, "task-sent", task)
 
 
 @pytest.fixture
@@ -220,6 +233,263 @@ def test_worker_offline_event_does_not_recreate_purged_metric(hostname):
             "celery_worker_up", labels={"hostname": hostname}
         )
         is None
+    )
+
+
+def test_purge_stale_generic_task_sent_metrics(mocker):
+    exporter = Exporter(
+        purge_offline_worker_metrics_seconds=10,
+        generic_hostname_task_sent_metric=True,
+        static_label={"cluster": "test"},
+    )
+    now = mocker.patch("src.exporter.time.time")
+
+    now.return_value = 100
+    track_task_sent(
+        exporter,
+        SimpleNamespace(name="old-task", hostname="client@one", queue="first"),
+    )
+    now.return_value = 105
+    track_task_sent(
+        exporter,
+        SimpleNamespace(name="active-task", hostname="client@two", queue="second"),
+    )
+
+    now.return_value = 111
+    exporter.track_timed_out_workers()
+
+    assert (
+        exporter.registry.get_sample_value(
+            "celery_task_sent_total",
+            labels={
+                "hostname": "generic",
+                "name": "old-task",
+                "queue_name": "first",
+                "cluster": "test",
+            },
+        )
+        is None
+    )
+    assert (
+        exporter.registry.get_sample_value(
+            "celery_task_sent_total",
+            labels={
+                "hostname": "generic",
+                "name": "active-task",
+                "queue_name": "second",
+                "cluster": "test",
+            },
+        )
+        == 1.0
+    )
+
+
+def test_generic_task_sent_last_seen_is_refreshed(mocker):
+    exporter = Exporter(
+        purge_offline_worker_metrics_seconds=10,
+        generic_hostname_task_sent_metric=True,
+    )
+    task = SimpleNamespace(name="active-task", hostname="client@one", queue="celery")
+    now = mocker.patch("src.exporter.time.time")
+
+    now.return_value = 100
+    track_task_sent(exporter, task)
+    now.return_value = 109
+    track_task_sent(exporter, task)
+    now.return_value = 111
+    exporter.track_timed_out_workers()
+
+    assert (
+        exporter.registry.get_sample_value(
+            "celery_task_sent_total",
+            labels={
+                "hostname": "generic",
+                "name": "active-task",
+                "queue_name": "celery",
+            },
+        )
+        == 2.0
+    )
+
+
+def test_generic_task_sent_is_not_tracked_when_purging_is_disabled(mocker):
+    exporter = Exporter(
+        purge_offline_worker_metrics_seconds=0,
+        generic_hostname_task_sent_metric=True,
+    )
+    mocker.patch("src.exporter.time.time", return_value=100)
+
+    track_task_sent(
+        exporter,
+        SimpleNamespace(name="task", hostname="client@one", queue="celery"),
+    )
+
+    assert not exporter.generic_last_seen
+    assert (
+        exporter.registry.get_sample_value(
+            "celery_task_sent_total",
+            labels={"hostname": "generic", "name": "task", "queue_name": "celery"},
+        )
+        == 1.0
+    )
+
+
+def test_generic_metrics_are_not_tracked_when_flags_are_disabled(mocker):
+    exporter = Exporter(purge_offline_worker_metrics_seconds=10)
+    mocker.patch("src.exporter.time.time", return_value=100)
+
+    track_task_sent(
+        exporter,
+        SimpleNamespace(name="task", hostname="client@one", queue="celery"),
+    )
+
+    # Real-hostname series are the worker lifecycle's responsibility, so they must not
+    # end up on the generic purge timer.
+    assert not exporter.generic_last_seen
+    assert (
+        exporter.registry.get_sample_value(
+            "celery_task_sent_total",
+            labels={"hostname": "one", "name": "task", "queue_name": "celery"},
+        )
+        == 1.0
+    )
+
+
+def test_generic_task_sent_metric_is_recreated_after_purge(mocker):
+    exporter = Exporter(
+        purge_offline_worker_metrics_seconds=10,
+        generic_hostname_task_sent_metric=True,
+    )
+    task = SimpleNamespace(name="task", hostname="client@one", queue="celery")
+    labels = {"hostname": "generic", "name": "task", "queue_name": "celery"}
+    now = mocker.patch("src.exporter.time.time")
+
+    now.return_value = 100
+    track_task_sent(exporter, task)
+    now.return_value = 111
+    exporter.track_timed_out_workers()
+
+    assert exporter.registry.get_sample_value("celery_task_sent_total", labels) is None
+
+    now.return_value = 112
+    track_task_sent(exporter, task)
+
+    # The counter restarts from zero rather than resuming the pre-purge total.
+    assert exporter.registry.get_sample_value("celery_task_sent_total", labels) == 1.0
+
+    now.return_value = 123
+    exporter.track_timed_out_workers()
+
+    assert exporter.registry.get_sample_value("celery_task_sent_total", labels) is None
+
+
+def test_purge_stale_generic_worker_task_metrics(mocker):
+    exporter = Exporter(
+        purge_offline_worker_metrics_seconds=10,
+        generic_hostname_worker_task_metric=True,
+    )
+    labels = {"hostname": "generic", "name": "task", "queue_name": "celery"}
+    now = mocker.patch("src.exporter.time.time")
+
+    now.return_value = 100
+    track_event(
+        exporter,
+        "task-succeeded",
+        SimpleNamespace(
+            name="task", hostname="worker@one", queue="celery", runtime=1.5
+        ),
+    )
+
+    # The event increments task-succeeded and zero-instantiates every sibling counter,
+    # all at hostname="generic". None of them are reachable by worker purging.
+    assert (
+        exporter.registry.get_sample_value("celery_task_succeeded_total", labels) == 1.0
+    )
+    assert (
+        exporter.registry.get_sample_value("celery_task_started_total", labels) == 0.0
+    )
+    assert (
+        exporter.registry.get_sample_value("celery_task_runtime_count", labels) == 1.0
+    )
+
+    now.return_value = 111
+    exporter.track_timed_out_workers()
+
+    assert (
+        exporter.registry.get_sample_value("celery_task_succeeded_total", labels)
+        is None
+    )
+    assert (
+        exporter.registry.get_sample_value("celery_task_started_total", labels) is None
+    )
+    assert (
+        exporter.registry.get_sample_value("celery_task_runtime_count", labels) is None
+    )
+    assert not exporter.generic_last_seen
+
+
+def test_purge_stale_generic_worker_task_metrics_with_exception_label(mocker):
+    exporter = Exporter(
+        purge_offline_worker_metrics_seconds=10,
+        generic_hostname_worker_task_metric=True,
+    )
+    labels = {
+        "hostname": "generic",
+        "name": "task",
+        "queue_name": "celery",
+        "exception": "ValueError",
+    }
+    now = mocker.patch("src.exporter.time.time")
+
+    now.return_value = 100
+    track_event(
+        exporter,
+        "task-failed",
+        SimpleNamespace(
+            name="task",
+            hostname="worker@one",
+            queue="celery",
+            exception="ValueError('boom')",
+        ),
+    )
+
+    # task-failed carries an extra label, so purging must key off each metric's own
+    # label names rather than a shared labelset.
+    assert exporter.registry.get_sample_value("celery_task_failed_total", labels) == 1.0
+
+    now.return_value = 111
+    exporter.track_timed_out_workers()
+
+    assert (
+        exporter.registry.get_sample_value("celery_task_failed_total", labels) is None
+    )
+    assert not exporter.generic_last_seen
+
+
+def test_generic_worker_task_metrics_do_not_purge_real_hostname_series(mocker):
+    exporter = Exporter(purge_offline_worker_metrics_seconds=10)
+    now = mocker.patch("src.exporter.time.time")
+
+    now.return_value = 100
+    track_event(
+        exporter,
+        "task-succeeded",
+        SimpleNamespace(
+            name="task", hostname="worker@one", queue="celery", runtime=1.5
+        ),
+    )
+
+    now.return_value = 111
+    exporter.track_timed_out_workers()
+
+    # Without a heartbeat there is no worker_last_seen entry, so worker purging leaves
+    # these alone; the generic timer must not reach them either.
+    assert (
+        exporter.registry.get_sample_value(
+            "celery_task_succeeded_total",
+            labels={"hostname": "one", "name": "task", "queue_name": "celery"},
+        )
+        == 1.0
     )
 
 

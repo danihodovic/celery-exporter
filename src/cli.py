@@ -98,7 +98,10 @@ def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
     show_default=True,
     help="If no heartbeat has been recieved from a worker in this many seconds, "
     "that a worker will be considered dead. Metrics will be purged for this worker "
-    "after this many seconds. If set to 0, metrics will never be purged. Helps "
+    'after this many seconds. Metrics labeled with the synthetic hostname="generic" by '
+    "--generic-hostname-task-sent-metric or --generic-hostname-worker-task-metric belong "
+    "to no worker lifecycle, so they are instead purged once no matching event has been "
+    "received for this many seconds. If set to 0, metrics will never be purged. Helps "
     "with keeping the cardinality of the metrics low.",
 )
 @click.option(
