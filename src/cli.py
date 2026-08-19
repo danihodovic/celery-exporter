@@ -88,7 +88,9 @@ def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
     "--queue-wait-buckets",
     default=default_queue_wait_buckets_str,
     show_default=True,
-    help="Buckets for queue wait time histogram",
+    help="Buckets for queue wait time histogram. celery_task_queue_wait_time requires "
+    "task_send_sent_event to be enabled on the client, otherwise the task-sent event "
+    "is missing and no wait times are observed.",
 )
 @click.option("--log-level", default="INFO", show_default=True)
 @click.option(
