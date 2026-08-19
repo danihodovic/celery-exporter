@@ -341,7 +341,7 @@ def test_worker_generic_task_hostname(threaded_exporter, celery_app, hostname):
             is None
         )
 
-        
+
 QUEUE_WAIT_TASK_NAME = "src.test_metrics.waiting_task"
 QUEUE_WAIT_BASE_TIME = 1_600_000_000.0
 
