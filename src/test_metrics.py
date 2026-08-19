@@ -132,6 +132,9 @@ def test_purge_offline_worker_metrics(
     threaded_exporter.celery_task_runtime.labels(
         name="boosh", hostname=hostname, queue_name="test"
     ).observe(1.0)
+    threaded_exporter.celery_task_queue_wait_time.labels(
+        name="boosh", hostname=hostname, queue_name="test"
+    ).observe(1.0)
     threaded_exporter.state_counters["task-sent"].labels(
         name="boosh", hostname=hostname, queue_name="test"
     ).inc()
@@ -151,6 +154,13 @@ def test_purge_offline_worker_metrics(
     assert (
         threaded_exporter.registry.get_sample_value(
             "celery_task_runtime_count",
+            labels={"hostname": hostname, "queue_name": "test", "name": "boosh"},
+        )
+        == 1.0
+    )
+    assert (
+        threaded_exporter.registry.get_sample_value(
+            "celery_task_queue_wait_time_count",
             labels={"hostname": hostname, "queue_name": "test", "name": "boosh"},
         )
         == 1.0
@@ -185,6 +195,13 @@ def test_purge_offline_worker_metrics(
     assert (
         threaded_exporter.registry.get_sample_value(
             "celery_task_runtime_count",
+            labels={"hostname": hostname, "queue_name": "test", "name": "boosh"},
+        )
+        == expected_metric_value
+    )
+    assert (
+        threaded_exporter.registry.get_sample_value(
+            "celery_task_queue_wait_time_count",
             labels={"hostname": hostname, "queue_name": "test", "name": "boosh"},
         )
         == expected_metric_value

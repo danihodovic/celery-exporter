@@ -227,6 +227,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             if hostname in label_seq:
                 self.celery_task_runtime.remove(*label_seq)
 
+        for label_seq in list(self.celery_task_queue_wait_time._metrics.keys()):
+            if hostname in label_seq:
+                self.celery_task_queue_wait_time.remove(*label_seq)
+
         del self.worker_last_seen[hostname]
 
     def track_timed_out_workers(self):
