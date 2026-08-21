@@ -156,6 +156,12 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         ):
             self.track_timed_out_workers()
         self.track_queue_metrics()
+        if self.state is not None:
+            # Metrics are accumulated independently from Celery's event State.
+            # Keep in-progress task metadata for later events, but discard ready
+            # tasks and their time heap so long-lived exporters do not retain
+            # completed task payloads between Prometheus scrapes.
+            self.state.clear_tasks(ready=True)
 
     def forget_worker(self, hostname):
         if hostname in self.worker_last_seen:
@@ -273,8 +279,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                     ).set(length)
 
     def track_task_event(self, event):
-        self.state.event(event)
-        task = self.state.tasks.get(event["uuid"])
+        task = self.state.event(event)[0][0]
         logger.debug("Received event='{}' for task='{}'", event["type"], task.name)
 
         if event["type"] not in self.state_counters:
