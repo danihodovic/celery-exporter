@@ -9,12 +9,34 @@ from typing import Callable, Optional
 from celery import Celery
 from celery.events.state import State  # type: ignore
 from celery.utils import nodesplit  # type: ignore
-from celery.utils.time import utcoffset  # type: ignore
+from celery.utils.time import adjust_timestamp, maybe_iso8601, utcoffset  # type: ignore
 from kombu.exceptions import ChannelError  # type: ignore
 from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
+from prometheus_client.utils import INF
 
 from .http_server import start_http_server
+
+# Queue wait time is a saturation signal: healthy queues sit near zero, but a
+# backlog can grow to minutes. Unlike the runtime default buckets there is no
+# sub-50ms resolution, spending the buckets on the 10s-30min range instead.
+DEFAULT_QUEUE_WAIT_BUCKETS = (
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1,
+    2.5,
+    5,
+    10,
+    30,
+    60,
+    120,
+    300,
+    600,
+    1800,
+    INF,
+)
 
 
 class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branches
@@ -32,6 +54,7 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         metric_prefix="celery_",
         default_queue_name="celery",
         static_label=None,
+        queue_wait_buckets=None,
     ):
         self.registry = CollectorRegistry(auto_describe=True)
         self.queue_cache = set(initial_queues or [])
@@ -124,6 +147,14 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             registry=self.registry,
             buckets=buckets or Histogram.DEFAULT_BUCKETS,
         )
+        self.celery_task_queue_wait_time = Histogram(
+            f"{metric_prefix}task_queue_wait_time",
+            "Histogram of the time tasks spend waiting in the queue before "
+            "being executed, excluding deliberate ETA/countdown delay.",
+            ["name", "hostname", "queue_name", *self.static_label_keys],
+            registry=self.registry,
+            buckets=queue_wait_buckets or DEFAULT_QUEUE_WAIT_BUCKETS,
+        )
         self.celery_queue_length = Gauge(
             f"{metric_prefix}queue_length",
             "The number of message in broker queue.",
@@ -195,6 +226,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         for label_seq in list(self.celery_task_runtime._metrics.keys()):
             if hostname in label_seq:
                 self.celery_task_runtime.remove(*label_seq)
+
+        for label_seq in list(self.celery_task_queue_wait_time._metrics.keys()):
+            if hostname in label_seq:
+                self.celery_task_queue_wait_time.remove(*label_seq)
 
         del self.worker_last_seen[hostname]
 
@@ -311,6 +346,27 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 # task-sent is sent by various hosts (webservers, task creators)
                 # this causes label cardinality, therefore we do not want to instantiate the counter
                 counter.labels(**_labels).inc(0)
+
+        # observe queue wait time, excluding deliberate delay: countdown and
+        # retry backoff are delivered as an ETA
+        if event["type"] == "task-started" and task.sent is not None:
+            baseline = task.sent
+            eta = maybe_iso8601(task.eta)
+            if eta is not None:
+                # localise like the receiver localised the event timestamps
+                eta_timestamp = eta.timestamp()
+                if (event_utcoffset := event.get("utcoffset")) is not None:
+                    eta_timestamp = adjust_timestamp(eta_timestamp, event_utcoffset)
+                baseline = max(baseline, eta_timestamp)
+            # clock skew between producer and worker can push this negative
+            queue_wait_time = max(0.0, task.started - baseline)
+            self.celery_task_queue_wait_time.labels(**labels).observe(queue_wait_time)
+            logger.debug(
+                "Observed metric='{}' labels='{}': {}s",
+                self.celery_task_queue_wait_time._name,
+                labels,
+                queue_wait_time,
+            )
 
         # observe task runtime
         if event["type"] == "task-succeeded":

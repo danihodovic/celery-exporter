@@ -50,6 +50,7 @@ for metric in [
     temp_exporter.celery_worker_up,
     temp_exporter.worker_tasks_active,
     temp_exporter.celery_task_runtime,
+    temp_exporter.celery_task_queue_wait_time,
 ]:
     cmd_help += f"""
 \b

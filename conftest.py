@@ -1,8 +1,10 @@
 import socket
 import threading
+import time
 import copy
 
 import pytest
+from celery.events.state import State  # type: ignore
 
 from src.exporter import Exporter
 
@@ -122,6 +124,13 @@ def threaded_exporter(exporter_instance):
         target=exporter_instance.run, args=(exporter_instance.cfg,), daemon=True
     )
     thread.start()
+    # Exporter.run() assigns self.app in the thread, so a test that scrape()s
+    # immediately would race it
+    deadline = time.monotonic() + 10
+    while not hasattr(exporter_instance, "app"):
+        if time.monotonic() > deadline:
+            raise RuntimeError("exporter thread failed to start")
+        time.sleep(0.01)
     yield exporter_instance
 
 
@@ -154,9 +163,24 @@ def threaded_exporter_static_labels(exporter_instance_static_labels):
         daemon=True,
     )
     thread.start()
+    # Exporter.run() assigns self.app in the thread, so a test that scrape()s
+    # immediately would race it
+    deadline = time.monotonic() + 10
+    while not hasattr(exporter_instance_static_labels, "app"):
+        if time.monotonic() > deadline:
+            raise RuntimeError("exporter thread failed to start")
+        time.sleep(0.01)
     yield exporter_instance_static_labels
 
 
 @pytest.fixture()
 def hostname():
     return socket.gethostname()
+
+
+@pytest.fixture()
+def event_exporter():
+    """An exporter with task state tracking, fed events directly (no worker)."""
+    exporter = Exporter()
+    exporter.state = State()
+    return exporter

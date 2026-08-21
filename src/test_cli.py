@@ -6,6 +6,7 @@ from celery.contrib.testing.worker import start_worker  # type: ignore
 from requests.exceptions import HTTPError
 
 
+# pylint: disable=too-many-statements
 @pytest.mark.celery()
 def test_integration(broker, celery_app, threaded_exporter, hostname):
     exporter_url = f"http://localhost:{threaded_exporter.cfg['port']}/metrics"
@@ -106,6 +107,10 @@ def test_integration(broker, celery_app, threaded_exporter, hostname):
     )
     assert (
         f'celery_task_runtime_count{{hostname="{hostname}",name="src.test_cli.succeed",queue_name="celery"}} 2.0'
+        in res.text
+    )
+    assert (
+        f'celery_task_queue_wait_time_count{{hostname="{hostname}",name="src.test_cli.succeed",queue_name="celery"}} 2.0'
         in res.text
     )
     assert 'celery_queue_length{queue_name="celery"} 0.0' in res.text
@@ -267,6 +272,10 @@ def test_integration_static_labels(
     )
     assert (
         f'celery_task_runtime_count{{hostname="{hostname}",name="src.test_cli.succeed",queue_name="celery",{static_labels_str}}} 2.0'
+        in res.text
+    )
+    assert (
+        f'celery_task_queue_wait_time_count{{hostname="{hostname}",name="src.test_cli.succeed",queue_name="celery",{static_labels_str}}} 2.0'
         in res.text
     )
     assert (
