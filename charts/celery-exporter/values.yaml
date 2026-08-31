@@ -80,6 +80,9 @@ serviceMonitor:
   ## namespaceSelector:
   ##   any: true
   scrapeInterval: 30s
+  ## Defaults to the Prometheus global scrape timeout (10s by default).
+  ## Must be <= scrapeInterval.
+  scrapeTimeout: ""
   # honorLabels: true
   targetLabels: []
   relabelings: []

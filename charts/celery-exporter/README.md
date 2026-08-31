@@ -80,5 +80,6 @@ helm install celery-exporter danihodovic/celery-exporter --set env[0].name=CE_BR
 | serviceMonitor.namespaceSelector | object | `{}` |  |
 | serviceMonitor.relabelings | list | `[]` |  |
 | serviceMonitor.scrapeInterval | string | `"30s"` |  |
+| serviceMonitor.scrapeTimeout | string | `""` |  |
 | serviceMonitor.targetLabels | list | `[]` |  |
 | tolerations | list | `[]` |  |

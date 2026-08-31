@@ -15,6 +15,9 @@ spec:
   endpoints:
     - port: http
       interval: {{ .Values.serviceMonitor.scrapeInterval }}
+    {{- with .Values.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+    {{- end }}
     {{- if .Values.serviceMonitor.honorLabels }}
       honorLabels: true
     {{- end }}
