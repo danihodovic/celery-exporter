@@ -62,7 +62,7 @@ local tbOverride = tbStandardOptions.override;
           count(
             group by (queue_name) (
               celery_queue_length{
-                %(defaultQueue)s
+                %(queue)s
               }
             )
           )
@@ -71,7 +71,7 @@ local tbOverride = tbStandardOptions.override;
         queueLengthTotal: |||
           sum(
             celery_queue_length{
-              %(defaultQueue)s
+              %(queue)s
             }
           )
         ||| % defaultFilters,
@@ -80,7 +80,7 @@ local tbOverride = tbStandardOptions.override;
           sum(
             rate(
               celery_task_received_total{
-                %(defaultQueue)s
+                %(queue)s
               }[1h]
             )
           )
@@ -90,7 +90,7 @@ local tbOverride = tbStandardOptions.override;
           sum(
             rate(
               celery_task_succeeded_total{
-                %(defaultQueue)s
+                %(queue)s
               }[1h]
             )
           )
@@ -99,7 +99,7 @@ local tbOverride = tbStandardOptions.override;
             sum(
               rate(
                 celery_task_succeeded_total{
-                  %(defaultQueue)s
+                  %(queue)s
                 }[1h]
               )
             )
@@ -107,7 +107,7 @@ local tbOverride = tbStandardOptions.override;
             sum(
               rate(
                 celery_task_failed_total{
-                  %(defaultQueue)s
+                  %(queue)s
                 }[1h]
               )
             )
@@ -130,7 +130,7 @@ local tbOverride = tbStandardOptions.override;
             sum(
               rate(
                 celery_task_received_total{
-                  %(defaultQueue)s
+                  %(queue)s
                 }[1h]
               )
             ) by (name)
@@ -153,7 +153,7 @@ local tbOverride = tbStandardOptions.override;
           sum(
             increase(
               celery_task_failed_total{
-                %(defaultQueue)s
+                %(queue)s
               }[1h]
             )
           )
