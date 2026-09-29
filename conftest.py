@@ -46,6 +46,11 @@ def celery_config(broker):
         config["broker_url"] = "redis://localhost:6379/"  # type: ignore
     elif broker == "rabbitmq":
         config["broker_url"] = "amqp://guest:guest@localhost:5672"  # type: ignore
+        # RabbitMQ >= 4.3 denies transient non-exclusive queues by default (see
+        # rabbitmq_requires_exclusive_queues() in src/exporter.py); the test worker's own
+        # event/pidbox queues are exactly that.
+        config["event_queue_exclusive"] = True  # type: ignore
+        config["control_queue_exclusive"] = True  # type: ignore
     elif broker == "memory":
         config["broker_url"] = "memory://localhost/"  # type: ignore
 
@@ -64,6 +69,23 @@ def celery_worker_parameters(log_level):
 @pytest.fixture(scope="session")
 def celery_enable_logging(log_level):
     return log_level == "DEBUG"
+
+
+def _wait_for_port(port, deadline):
+    """
+    Waits until 127.0.0.1:port accepts connections.
+
+    Exporter.run() starts the HTTP server only after its RabbitMQ >= 4.3 exclusive-queue check
+    completes, so this also guarantees a test can't scrape() ahead of that check.
+    """
+    while True:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.1):
+                return
+        except OSError as ex:
+            if time.monotonic() > deadline:
+                raise RuntimeError("exporter http server failed to start") from ex
+            time.sleep(0.01)
 
 
 @pytest.fixture(scope="session")
@@ -131,6 +153,7 @@ def threaded_exporter(exporter_instance):
         if time.monotonic() > deadline:
             raise RuntimeError("exporter thread failed to start")
         time.sleep(0.01)
+    _wait_for_port(exporter_instance.cfg["port"], deadline)
     yield exporter_instance
 
 
@@ -170,6 +193,7 @@ def threaded_exporter_static_labels(exporter_instance_static_labels):
         if time.monotonic() > deadline:
             raise RuntimeError("exporter thread failed to start")
         time.sleep(0.01)
+    _wait_for_port(exporter_instance_static_labels.cfg["port"], deadline)
     yield exporter_instance_static_labels
 
 
