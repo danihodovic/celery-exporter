@@ -633,4 +633,11 @@ def rabbitmq_queue_info(connection, queue: str):
         if "NOT_FOUND" in ex.message:
             logger.debug(f"Queue '{queue}' not found")
             return None
+        if "ACCESS_REFUSED" in ex.message:
+            logger.warning(
+                f"Passive declare on queue '{queue}' was refused by the broker "
+                "(RabbitMQ >= 3.13.15/4.0.20/4.1.11/4.2.6 authorizes passive "
+                "declares); skipping queue metrics for it"
+            )
+            return None
         raise ex
