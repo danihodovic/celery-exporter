@@ -13,6 +13,10 @@ on:
       - "celery-mixin/**"
       - ".github/workflows/mixin.yml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 defaults:
   run:
     working-directory: ./celery-mixin
@@ -51,5 +55,7 @@ jobs:
         with:
           go-version-file: ./celery-mixin/scripts/go.mod
           cache-dependency-path: ./celery-mixin/scripts/go.sum
-      - run: ${{ matrix.run }}
+      - run: eval "$MATRIX_RUN"
         name: Run ${{ matrix.name }}
+        env:
+          MATRIX_RUN: ${{ matrix.run }}
