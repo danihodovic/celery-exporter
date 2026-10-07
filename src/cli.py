@@ -127,11 +127,12 @@ def _eq_sign_separated_argument_to_dict(_ctx, _param, value):
     "--generic-hostname-worker-task-metric",
     default=False,
     is_flag=True,
-    help="The celery_task_* counters and celery_task_runtime will be labeled with a generic "
-    "hostname instead of the executing worker's hostname. This option helps with label "
-    "cardinality when using a dynamic number of workers, as for example in Kubernetes "
-    "environments where the worker's hostname is a random string. celery_task_sent is not "
-    "affected; use --generic-hostname-task-sent-metric for the client side.",
+    help="The celery_task_* counters, celery_task_runtime and celery_task_queue_wait_time "
+    "will be labeled with a generic hostname instead of the executing worker's hostname. "
+    "This option helps with label cardinality when using a dynamic number of workers, as "
+    "for example in Kubernetes environments where the worker's hostname is a random "
+    "string. celery_task_sent is not affected; use --generic-hostname-task-sent-metric "
+    "for the client side.",
 )
 @click.option(
     "-Q",
