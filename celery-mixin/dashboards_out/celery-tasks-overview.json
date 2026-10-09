@@ -4,7 +4,7 @@
    "annotations": {
       "list": [ ]
    },
-   "description": "A dashboard that gives an overview of Celery. The dashboards were generated using [celery-exporter](https://github.com/danihodovic/celery-exporter). Open issues and create feature requests in the repository.",
+   "description": "An overview of Celery workers, queues and task runs. Shows task throughput, success rate, runtime and queue wait time, with a per-task table that links to the Celery / Tasks / By Task dashboard. The dashboards were generated using [celery-exporter](https://github.com/danihodovic/celery-exporter). Open issues and create feature requests in the repository.",
    "editable": false,
    "links": [
       {
@@ -38,7 +38,7 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Number of active Celery Workers",
+         "description": "Number of Celery workers currently reporting as up. A sudden drop means workers crashed or were scaled down.",
          "fieldConfig": {
             "defaults": {
                "mappings": [ ],
@@ -85,7 +85,7 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Number of active tasks across all workers",
+         "description": "Number of tasks currently executing across all workers.",
          "fieldConfig": {
             "defaults": {
                "mappings": [ ],
@@ -124,7 +124,7 @@
                "instant": false
             }
          ],
-         "title": "Workers Active Tasks",
+         "title": "Active Tasks",
          "type": "stat"
       },
       {
@@ -132,7 +132,7 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Number of distinct queues with reported queue length",
+         "description": "Number of distinct queues with reported queue length.",
          "fieldConfig": {
             "defaults": {
                "mappings": [ ],
@@ -167,7 +167,7 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "count(\n  group by (queue_name) (\n    celery_queue_length{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }\n  )\n)\n",
+               "expr": "count(\n  group by (queue_name) (\n    celery_queue_length{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }\n  )\n)\n",
                "instant": false
             }
          ],
@@ -179,7 +179,7 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Number of tasks received by workers in the last week",
+         "description": "Total number of tasks waiting in all queues. A growing value means workers cannot keep up with the arrival rate.",
          "fieldConfig": {
             "defaults": {
                "mappings": [ ],
@@ -214,11 +214,11 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n      }[1w]\n    )\n  )\n)\n",
+               "expr": "sum(\n  celery_queue_length{\n    cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n  }\n)\n",
                "instant": false
             }
          ],
-         "title": "Tasks received by workers [1w]",
+         "title": "Queued Tasks",
          "type": "stat"
       },
       {
@@ -226,7 +226,54 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Rate of successful tasks in the last week",
+         "description": "Average rate of tasks received by workers over the last hour.",
+         "fieldConfig": {
+            "defaults": {
+               "mappings": [ ],
+               "thresholds": {
+                  "steps": [
+                     {
+                        "color": "green",
+                        "value": 0
+                     }
+                  ]
+               },
+               "unit": "ops"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 3,
+            "w": 4,
+            "x": 16,
+            "y": 1
+         },
+         "id": 6,
+         "options": {
+            "graphMode": "area",
+            "percentChangeColorMode": "standard",
+            "showPercentChange": false
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "expr": "sum(\n  rate(\n    celery_task_received_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[1h]\n  )\n)\n",
+               "instant": false
+            }
+         ],
+         "title": "Task Rate [1h]",
+         "type": "stat"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+         },
+         "description": "Share of finished tasks that succeeded over the last hour.",
          "fieldConfig": {
             "defaults": {
                "mappings": [ ],
@@ -253,53 +300,6 @@
          "gridPos": {
             "h": 3,
             "w": 4,
-            "x": 16,
-            "y": 1
-         },
-         "id": 6,
-         "options": {
-            "graphMode": "area",
-            "percentChangeColorMode": "standard",
-            "showPercentChange": false
-         },
-         "pluginVersion": "v11.4.0",
-         "targets": [
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_succeeded_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n      }[1w]\n    )\n  )\n)\n/(sum(\n  round(\n    increase(\n      celery_task_succeeded_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n      }[1w]\n    )\n  )\n)\n+sum(\n  round(\n    increase(\n      celery_task_failed_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n      }[1w]\n    )\n  )\n)\n)\n",
-               "instant": false
-            }
-         ],
-         "title": "Tasks Success Rate [1w]",
-         "type": "stat"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-         },
-         "description": "Average runtime for tasks in the last week",
-         "fieldConfig": {
-            "defaults": {
-               "mappings": [ ],
-               "thresholds": {
-                  "steps": [
-                     {
-                        "color": "green",
-                        "value": 0
-                     }
-                  ]
-               },
-               "unit": "s"
-            },
-            "overrides": [ ]
-         },
-         "gridPos": {
-            "h": 3,
-            "w": 4,
             "x": 20,
             "y": 1
          },
@@ -316,11 +316,11 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "sum(\n  rate(\n    celery_task_runtime_sum{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[1w]\n  )\n)\n/\nsum(\n  rate(\n    celery_task_runtime_count{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[1w]\n  )\n) > 0\n",
+               "expr": "sum(\n  rate(\n    celery_task_succeeded_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[1h]\n  )\n)\n/\n(\n  sum(\n    rate(\n      celery_task_succeeded_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[1h]\n    )\n  )\n  +\n  sum(\n    rate(\n      celery_task_failed_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[1h]\n    )\n  )\n)\n",
                "instant": false
             }
          ],
-         "title": "Average Runtime for Tasks [1w]",
+         "title": "Task Success Rate [1h]",
          "type": "stat"
       },
       {
@@ -328,7 +328,7 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Current queue depth across all queues (top 10 by length). Shows which queues have the most pending tasks. A growing queue indicates workers cannot keep up with the arrival rate.",
+         "description": "Current queue depth across queues (top 10 by length). Shows which queues have the most pending tasks.",
          "fieldConfig": {
             "defaults": {
                "unit": "short"
@@ -336,7 +336,7 @@
             "overrides": [ ]
          },
          "gridPos": {
-            "h": 5,
+            "h": 6,
             "w": 6,
             "x": 0,
             "y": 4
@@ -379,15 +379,15 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Top 10 task types by throughput over the past 6 hours. Identifies which tasks run most frequently. High-volume tasks are candidates for optimization and dedicated worker queues.",
+         "description": "Top 10 queues by task throughput over the last hour.",
          "fieldConfig": {
             "defaults": {
-               "unit": "reqps"
+               "unit": "ops"
             },
             "overrides": [ ]
          },
          "gridPos": {
-            "h": 5,
+            "h": 6,
             "w": 6,
             "x": 6,
             "y": 4
@@ -417,12 +417,12 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "topk(10,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n      }[6h]\n    )\n  ) by (name)\n)\n",
+               "expr": "topk(10,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n      }[1h]\n    )\n  ) by (queue_name)\n)\n",
                "instant": true,
-               "legendFormat": "{{ name }}"
+               "legendFormat": "{{ queue_name }}"
             }
          ],
-         "title": "Task Rate by Name [6h]",
+         "title": "Task Rate by Queue [1h]",
          "type": "piechart"
       },
       {
@@ -430,15 +430,15 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Overall task health split between succeeded and failed tasks in the past 6 hours. Any visible failure slice warrants investigation. Compare with the Top Failed Tasks table to identify which tasks are contributing to failures.",
+         "description": "Top 10 tasks by throughput over the last hour. High-volume tasks are candidates for optimization and dedicated worker queues.",
          "fieldConfig": {
             "defaults": {
-               "unit": "short"
+               "unit": "ops"
             },
             "overrides": [ ]
          },
          "gridPos": {
-            "h": 5,
+            "h": 6,
             "w": 6,
             "x": 12,
             "y": 4
@@ -468,21 +468,12 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "sum(\n  increase(\n    celery_task_succeeded_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[6h]\n  )\n)\n",
+               "expr": "topk(10,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[1h]\n    )\n  ) by (name)\n)\n",
                "instant": true,
-               "legendFormat": "Succeeded"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  increase(\n    celery_task_failed_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[6h]\n  )\n)\n",
-               "instant": true,
-               "legendFormat": "Failed"
+               "legendFormat": "{{ name }}"
             }
          ],
-         "title": "Task Success vs Failure [6h]",
+         "title": "Task Rate by Name [1h]",
          "type": "piechart"
       },
       {
@@ -490,7 +481,7 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Distribution of all task lifecycle states over the past 6 hours. A healthy system shows predominantly Succeeded tasks. Significant Retried or Rejected slices indicate reliability issues. Revoked tasks suggest manual cancellations or timeouts.",
+         "description": "Distribution of task outcomes over the last hour. A healthy system is predominantly Succeeded. Significant Retried or Rejected slices indicate reliability issues.",
          "fieldConfig": {
             "defaults": {
                "unit": "short"
@@ -498,7 +489,7 @@
             "overrides": [ ]
          },
          "gridPos": {
-            "h": 5,
+            "h": 6,
             "w": 6,
             "x": 18,
             "y": 4
@@ -528,25 +519,7 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "sum(\n  increase(\n    celery_task_sent_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[6h]\n  )\n)\n",
-               "instant": true,
-               "legendFormat": "Sent"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  increase(\n    celery_task_received_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[6h]\n  )\n)\n",
-               "instant": true,
-               "legendFormat": "Received"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  increase(\n    celery_task_succeeded_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[6h]\n  )\n)\n",
+               "expr": "sum(\n  increase(\n    celery_task_succeeded_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[1h]\n  )\n)\n",
                "instant": true,
                "legendFormat": "Succeeded"
             },
@@ -555,7 +528,7 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "sum(\n  increase(\n    celery_task_failed_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[6h]\n  )\n)\n",
+               "expr": "sum(\n  increase(\n    celery_task_failed_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[1h]\n  )\n)\n",
                "instant": true,
                "legendFormat": "Failed"
             },
@@ -564,7 +537,7 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "sum(\n  increase(\n    celery_task_retried_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[6h]\n  )\n)\n",
+               "expr": "sum(\n  increase(\n    celery_task_retried_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[1h]\n  )\n)\n",
                "instant": true,
                "legendFormat": "Retried"
             },
@@ -573,7 +546,7 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "sum(\n  increase(\n    celery_task_revoked_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[6h]\n  )\n)\n",
+               "expr": "sum(\n  increase(\n    celery_task_revoked_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[1h]\n  )\n)\n",
                "instant": true,
                "legendFormat": "Revoked"
             },
@@ -582,12 +555,12 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "sum(\n  increase(\n    celery_task_rejected_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name!~\"None\"\n\n    }[6h]\n  )\n)\n",
+               "expr": "sum(\n  increase(\n    celery_task_rejected_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[1h]\n  )\n)\n",
                "instant": true,
                "legendFormat": "Rejected"
             }
          ],
-         "title": "Task States [6h]",
+         "title": "Task Outcomes [1h]",
          "type": "piechart"
       },
       {
@@ -596,10 +569,10 @@
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 9
+            "y": 10
          },
          "id": 12,
-         "title": "Queues",
+         "title": "Tasks",
          "type": "row"
       },
       {
@@ -607,26 +580,21 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Length of Celery queues",
+         "description": "Rate of task lifecycle events over time.",
          "fieldConfig": {
             "defaults": {
                "custom": {
-                  "axisSoftMin": 0,
-                  "fillOpacity": 100,
-                  "lineWidth": 1,
-                  "stacking": {
-                     "mode": "normal"
-                  }
+                  "fillOpacity": 10
                },
-               "unit": "short"
+               "unit": "ops"
             },
             "overrides": [ ]
          },
          "gridPos": {
-            "h": 6,
-            "w": 24,
+            "h": 8,
+            "w": 12,
             "x": 0,
-            "y": 10
+            "y": 11
          },
          "id": 13,
          "options": {
@@ -654,213 +622,91 @@
                   "uid": "$datasource"
                },
                "exemplar": false,
-               "expr": "sum (\n  celery_queue_length{\n    cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n  }\n) by (job, queue_name)\n",
-               "legendFormat": "{{ job }}/{{ queue_name }}"
+               "expr": "sum(\n  rate(\n    celery_task_succeeded_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n)\n",
+               "legendFormat": "Succeeded"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "exemplar": false,
+               "expr": "sum(\n  rate(\n    celery_task_failed_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n)\n",
+               "legendFormat": "Failed"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "exemplar": false,
+               "expr": "sum(\n  rate(\n    celery_task_sent_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n)\n",
+               "legendFormat": "Sent"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "exemplar": false,
+               "expr": "sum(\n  rate(\n    celery_task_received_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n)\n",
+               "legendFormat": "Received"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "exemplar": false,
+               "expr": "sum(\n  rate(\n    celery_task_retried_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n)\n",
+               "legendFormat": "Retried"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "exemplar": false,
+               "expr": "sum(\n  rate(\n    celery_task_revoked_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n)\n",
+               "legendFormat": "Revoked"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "exemplar": false,
+               "expr": "sum(\n  rate(\n    celery_task_rejected_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n)\n",
+               "legendFormat": "Rejected"
             }
          ],
-         "title": "Queue Length",
+         "title": "Task States",
          "type": "timeseries"
       },
       {
-         "collapsed": false,
-         "gridPos": {
-            "h": 1,
-            "w": 24,
-            "x": 0,
-            "y": 16
-         },
-         "id": 14,
-         "title": "Tasks",
-         "type": "row"
-      },
-      {
          "datasource": {
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Table with an overview of task statistics",
-         "fieldConfig": {
-            "defaults": {
-               "links": [ ],
-               "noValue": 0,
-               "thresholds": {
-                  "steps": [ ]
-               },
-               "unit": "short"
-            },
-            "overrides": [
-               {
-                  "matcher": {
-                     "id": "byName",
-                     "options": "Success Rate"
-                  },
-                  "properties": [
-                     {
-                        "id": "unit",
-                        "value": "percentunit"
-                     }
-                  ]
-               }
-            ]
-         },
-         "gridPos": {
-            "h": 5,
-            "w": 24,
-            "x": 0,
-            "y": 17
-         },
-         "id": 15,
-         "options": {
-            "footer": {
-               "enablePagination": true
-            },
-            "sortBy": [
-               {
-                  "desc": true,
-                  "displayName": "Succeeded"
-               }
-            ]
-         },
-         "pluginVersion": "v11.4.0",
-         "targets": [
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_succeeded_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__range]\n    )\n  )\n) by (job)\n/(sum(\n  round(\n    increase(\n      celery_task_succeeded_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__range]\n    )\n  )\n) by (job)\n+sum(\n  round(\n    increase(\n      celery_task_failed_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__range]\n    )\n  )\n) by (job)\n) > -1\n",
-               "format": "table",
-               "instant": true
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_succeeded_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__range]\n    )\n  )\n) by (job)\n",
-               "format": "table",
-               "instant": true
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_failed_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__range]\n    )\n  )\n) by (job)\n",
-               "format": "table",
-               "instant": true
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_sent_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__range]\n    )\n  )\n) by (job)\n",
-               "format": "table",
-               "instant": true
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__range]\n    )\n  )\n) by (job)\n",
-               "format": "table",
-               "instant": true
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_rejected_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__range]\n    )\n  )\n) by (job)\n",
-               "format": "table",
-               "instant": true
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_retried_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__range]\n    )\n  )\n) by (job)\n",
-               "format": "table",
-               "instant": true
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_revoked_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__range]\n    )\n  )\n) by (job)\n",
-               "format": "table",
-               "instant": true
-            }
-         ],
-         "title": "Task Stats",
-         "transformations": [
-            {
-               "id": "merge"
-            },
-            {
-               "id": "organize",
-               "options": {
-                  "excludeByName": {
-                     "Time": true
-                  },
-                  "indexByName": {
-                     "Value #A": 1,
-                     "Value #B": 2,
-                     "Value #C": 3,
-                     "Value #D": 4,
-                     "Value #E": 5,
-                     "Value #F": 6,
-                     "Value #G": 7,
-                     "Value #H": 8,
-                     "job": 0
-                  },
-                  "renameByName": {
-                     "Value #A": "Success Rate",
-                     "Value #B": "Succeeded",
-                     "Value #C": "Failed",
-                     "Value #D": "Sent",
-                     "Value #E": "Received",
-                     "Value #F": "Rejected",
-                     "Value #G": "Retried",
-                     "Value #H": "Revoked",
-                     "job": "Job"
-                  }
-               }
-            }
-         ],
-         "type": "table"
-      },
-      {
-         "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-         },
-         "description": "Number of tasks completed over time",
+         "description": "Share of finished tasks that succeeded.",
          "fieldConfig": {
             "defaults": {
                "custom": {
+                  "axisSoftMax": 1,
                   "axisSoftMin": 0,
-                  "fillOpacity": 100,
-                  "lineWidth": 1,
-                  "stacking": {
-                     "mode": "normal"
-                  }
+                  "fillOpacity": 10
                },
-               "unit": "short"
+               "unit": "percentunit"
             },
             "overrides": [ ]
          },
          "gridPos": {
             "h": 8,
             "w": 12,
-            "x": 0,
-            "y": 22
+            "x": 12,
+            "y": 11
          },
-         "id": 16,
+         "id": 14,
          "options": {
             "legend": {
                "calcs": [
@@ -886,65 +732,11 @@
                   "uid": "$datasource"
                },
                "exemplar": false,
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_succeeded_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  )\n)\n",
-               "legendFormat": "Succeeded"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "exemplar": false,
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_failed_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  )\n)\n",
-               "legendFormat": "Failed"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "exemplar": false,
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_sent_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  )\n)\n",
-               "legendFormat": "Sent"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "exemplar": false,
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  )\n)\n",
-               "legendFormat": "Received"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "exemplar": false,
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_retried_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  )\n)\n",
-               "legendFormat": "Retried"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "exemplar": false,
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_revoked_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  )\n)\n",
-               "legendFormat": "Revoked"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "$datasource"
-               },
-               "exemplar": false,
-               "expr": "sum(\n  round(\n    increase(\n      celery_task_rejected_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  )\n)\n",
-               "legendFormat": "Rejected"
+               "expr": "sum(\n  rate(\n    celery_task_succeeded_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n)\n\n/\n(\n  sum(\n  rate(\n    celery_task_succeeded_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n)\n\n  +\n  sum(\n  rate(\n    celery_task_failed_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n)\n\n)\n",
+               "legendFormat": "Success Rate"
             }
          ],
-         "title": "Tasks Completed",
+         "title": "Task Success Rate",
          "type": "timeseries"
       },
       {
@@ -952,7 +744,7 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Task runtime percentiles over time",
+         "description": "Task runtime percentiles across all tasks.",
          "fieldConfig": {
             "defaults": {
                "custom": {
@@ -1010,11 +802,11 @@
          },
          "gridPos": {
             "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 22
+            "w": 24,
+            "x": 0,
+            "y": 19
          },
-         "id": 17,
+         "id": 15,
          "options": {
             "legend": {
                "calcs": [
@@ -1040,7 +832,7 @@
                   "uid": "$datasource"
                },
                "exemplar": false,
-               "expr": "histogram_quantile(0.50,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  ) by (job, le)\n)\n",
+               "expr": "histogram_quantile(0.50,\n  sum(\n    rate(\n      celery_task_runtime_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  ) by (le)\n)\n",
                "legendFormat": "P50"
             },
             {
@@ -1049,7 +841,7 @@
                   "uid": "$datasource"
                },
                "exemplar": false,
-               "expr": "histogram_quantile(0.95,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  ) by (job, le)\n)\n",
+               "expr": "histogram_quantile(0.95,\n  sum(\n    rate(\n      celery_task_runtime_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  ) by (le)\n)\n",
                "legendFormat": "P95"
             },
             {
@@ -1058,12 +850,308 @@
                   "uid": "$datasource"
                },
                "exemplar": true,
-               "expr": "histogram_quantile(0.99,\n  sum(\n    irate(\n      celery_task_runtime_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  ) by (job, le)\n)\n",
+               "expr": "histogram_quantile(0.99,\n  sum(\n    rate(\n      celery_task_runtime_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  ) by (le)\n)\n",
                "legendFormat": "P99"
             }
          ],
-         "title": "Tasks Runtime",
+         "title": "Task Runtime",
          "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+         },
+         "description": "Per-task statistics over the last 24 hours for the 40 busiest tasks. Click a task to open it in the Celery / Tasks / By Task dashboard.",
+         "fieldConfig": {
+            "defaults": {
+               "links": [
+                  {
+                     "targetBlank": true,
+                     "title": "Go To Task",
+                     "type": "dashboard",
+                     "url": "/d/celery-tasks-by-task-32s3/celery-tasks-by-task?var-namespace=${namespace}&var-job=${job}&var-task=${__data.fields.Task}"
+                  }
+               ],
+               "noValue": 0,
+               "thresholds": {
+                  "steps": [ ]
+               },
+               "unit": "short"
+            },
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Rate"
+                  },
+                  "properties": [
+                     {
+                        "id": "unit",
+                        "value": "ops"
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "Success Rate"
+                  },
+                  "properties": [
+                     {
+                        "id": "unit",
+                        "value": "percentunit"
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "P50 Runtime"
+                  },
+                  "properties": [
+                     {
+                        "id": "unit",
+                        "value": "s"
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "P95 Runtime"
+                  },
+                  "properties": [
+                     {
+                        "id": "unit",
+                        "value": "s"
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "P95 Queue Wait"
+                  },
+                  "properties": [
+                     {
+                        "id": "unit",
+                        "value": "s"
+                     }
+                  ]
+               }
+            ]
+         },
+         "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 27
+         },
+         "id": 16,
+         "options": {
+            "footer": {
+               "enablePagination": true
+            },
+            "sortBy": [
+               {
+                  "desc": true,
+                  "displayName": "Rate"
+               }
+            ]
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "expr": "topk(40,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\n",
+               "format": "table",
+               "instant": true
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "expr": "round(\n  sum(\n    increase(\n      celery_task_succeeded_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\nand on (job, name) (\n  topk(40,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\n\n)\n\n",
+               "format": "table",
+               "instant": true
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "expr": "round(\n  sum(\n    increase(\n      celery_task_failed_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\nand on (job, name) (\n  topk(40,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\n\n)\n\n",
+               "format": "table",
+               "instant": true
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "expr": "round(\n  sum(\n    increase(\n      celery_task_retried_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\nand on (job, name) (\n  topk(40,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\n\n)\n\n",
+               "format": "table",
+               "instant": true
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "expr": "sum(\n  rate(\n    celery_task_succeeded_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[24h]\n  )\n) by (job, name)\n/\n(\n  sum(\n    rate(\n      celery_task_succeeded_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n  +\n  sum(\n    rate(\n      celery_task_failed_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\nand on (job, name) (\n  topk(40,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\n\n)\n\n",
+               "format": "table",
+               "instant": true
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "expr": "histogram_quantile(0.50,\n  sum(\n    rate(\n      celery_task_runtime_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (le, job, name)\n)\nand on (job, name) (\n  topk(40,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\n\n)\n\n",
+               "format": "table",
+               "instant": true
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "expr": "histogram_quantile(0.95,\n  sum(\n    rate(\n      celery_task_runtime_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (le, job, name)\n)\nand on (job, name) (\n  topk(40,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\n\n)\n\n",
+               "format": "table",
+               "instant": true
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "expr": "histogram_quantile(0.95,\n  sum(\n    rate(\n      celery_task_queue_wait_time_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (le, job, name)\n)\nand on (job, name) (\n  topk(40,\n  sum(\n    rate(\n      celery_task_received_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name)\n)\n\n)\n\n",
+               "format": "table",
+               "instant": true
+            }
+         ],
+         "title": "Tasks Overview [24h]",
+         "transformations": [
+            {
+               "id": "merge"
+            },
+            {
+               "id": "organize",
+               "options": {
+                  "excludeByName": {
+                     "Time": true,
+                     "job": true
+                  },
+                  "indexByName": {
+                     "Value #A": 2,
+                     "Value #B": 3,
+                     "Value #C": 4,
+                     "Value #D": 5,
+                     "Value #E": 6,
+                     "Value #F": 7,
+                     "Value #G": 8,
+                     "Value #H": 9,
+                     "job": 1,
+                     "name": 0
+                  },
+                  "renameByName": {
+                     "Value #A": "Rate",
+                     "Value #B": "Succeeded",
+                     "Value #C": "Failed",
+                     "Value #D": "Retried",
+                     "Value #E": "Success Rate",
+                     "Value #F": "P50 Runtime",
+                     "Value #G": "P95 Runtime",
+                     "Value #H": "P95 Queue Wait",
+                     "job": "Job",
+                     "name": "Task"
+                  }
+               }
+            }
+         ],
+         "type": "table"
+      },
+      {
+         "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+         },
+         "description": "Failed task runs over the last 24 hours, grouped by task and exception.",
+         "fieldConfig": {
+            "defaults": {
+               "links": [
+                  {
+                     "targetBlank": true,
+                     "title": "Go To Task",
+                     "type": "dashboard",
+                     "url": "/d/celery-tasks-by-task-32s3/celery-tasks-by-task?var-namespace=${namespace}&var-job=${job}&var-task=${__data.fields.Task}"
+                  }
+               ],
+               "thresholds": {
+                  "steps": [ ]
+               },
+               "unit": "short"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 39
+         },
+         "id": 17,
+         "options": {
+            "footer": {
+               "enablePagination": true
+            },
+            "sortBy": [
+               {
+                  "desc": true,
+                  "displayName": "Failures"
+               }
+            ]
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "expr": "round(\n  sum(\n    increase(\n      celery_task_failed_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[24h]\n    )\n  ) by (job, name, exception)\n) > 0\n",
+               "format": "table",
+               "instant": true
+            }
+         ],
+         "title": "Task Exceptions [24h]",
+         "transformations": [
+            {
+               "id": "organize",
+               "options": {
+                  "excludeByName": {
+                     "Time": true,
+                     "job": true
+                  },
+                  "indexByName": {
+                     "Value": 2,
+                     "exception": 1,
+                     "name": 0
+                  },
+                  "renameByName": {
+                     "Value": "Failures",
+                     "exception": "Exception",
+                     "name": "Task"
+                  }
+               }
+            }
+         ],
+         "type": "table"
       },
       {
          "collapsed": false,
@@ -1071,10 +1159,10 @@
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 30
+            "y": 47
          },
          "id": 18,
-         "title": "Weekly Breakdown",
+         "title": "Queues",
          "type": "row"
       },
       {
@@ -1082,19 +1170,16 @@
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Table of tasks with the most failures in the last week",
+         "description": "Number of tasks waiting in each queue.",
          "fieldConfig": {
             "defaults": {
-               "links": [
-                  {
-                     "targetBlank": true,
-                     "title": "Go To Task",
-                     "type": "dashboard",
-                     "url": "/d/celery-tasks-by-task-32s3/celery-tasks-by-task?var-namespace=${namespace}&var-job=${job}&var-task=${__data.fields.Task}"
+               "custom": {
+                  "axisSoftMin": 0,
+                  "fillOpacity": 100,
+                  "lineWidth": 1,
+                  "stacking": {
+                     "mode": "normal"
                   }
-               ],
-               "thresholds": {
-                  "steps": [ ]
                },
                "unit": "short"
             },
@@ -1102,21 +1187,27 @@
          },
          "gridPos": {
             "h": 8,
-            "w": 8,
+            "w": 12,
             "x": 0,
-            "y": 31
+            "y": 48
          },
          "id": 19,
          "options": {
-            "footer": {
-               "enablePagination": true
+            "legend": {
+               "calcs": [
+                  "mean",
+                  "max"
+               ],
+               "displayMode": "table",
+               "placement": "right",
+               "showLegend": true,
+               "sortBy": "Mean",
+               "sortDesc": true
             },
-            "sortBy": [
-               {
-                  "desc": true,
-                  "displayName": "Value"
-               }
-            ]
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
          },
          "pluginVersion": "v11.4.0",
          "targets": [
@@ -1125,65 +1216,57 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "round(\n  sum(\n    increase(\n      celery_task_failed_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[1w]\n    )\n  ) by (job, name)\n)\n",
-               "format": "table",
-               "instant": true
+               "exemplar": false,
+               "expr": "sum(\n  celery_queue_length{\n    cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n  }\n) by (queue_name)\n",
+               "legendFormat": "{{ queue_name }}"
             }
          ],
-         "title": "Top Failed Tasks [1w]",
-         "transformations": [
-            {
-               "id": "organize",
-               "options": {
-                  "excludeByName": {
-                     "Time": true,
-                     "job": true
-                  },
-                  "indexByName": {
-                     "Value": 1,
-                     "name": 0
-                  },
-                  "renameByName": {
-                     "name": "Task"
-                  }
-               }
-            }
-         ],
-         "type": "table"
+         "title": "Queue Length",
+         "type": "timeseries"
       },
       {
          "datasource": {
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Table of the most common exceptions in the last week",
+         "description": "Rate of tasks received by workers per queue.",
          "fieldConfig": {
             "defaults": {
-               "links": [ ],
-               "thresholds": {
-                  "steps": [ ]
+               "custom": {
+                  "axisSoftMin": 0,
+                  "fillOpacity": 100,
+                  "lineWidth": 1,
+                  "stacking": {
+                     "mode": "normal"
+                  }
                },
-               "unit": "short"
+               "unit": "ops"
             },
             "overrides": [ ]
          },
          "gridPos": {
             "h": 8,
-            "w": 8,
-            "x": 8,
-            "y": 31
+            "w": 12,
+            "x": 12,
+            "y": 48
          },
          "id": 20,
          "options": {
-            "footer": {
-               "enablePagination": true
+            "legend": {
+               "calcs": [
+                  "mean",
+                  "max"
+               ],
+               "displayMode": "table",
+               "placement": "right",
+               "showLegend": true,
+               "sortBy": "Mean",
+               "sortDesc": true
             },
-            "sortBy": [
-               {
-                  "desc": true,
-                  "displayName": "Value"
-               }
-            ]
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
          },
          "pluginVersion": "v11.4.0",
          "targets": [
@@ -1192,72 +1275,98 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "round(\n  sum(\n    increase(\n      celery_task_failed_total{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[1w]\n    )\n  ) by (job, exception)\n)\n",
-               "format": "table",
-               "instant": true
+               "exemplar": false,
+               "expr": "sum(\n  rate(\n    celery_task_received_total{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[$__rate_interval]\n  )\n) by (queue_name)\n",
+               "legendFormat": "{{ queue_name }}"
             }
          ],
-         "title": "Top Task Exceptions [1w]",
-         "transformations": [
-            {
-               "id": "organize",
-               "options": {
-                  "excludeByName": {
-                     "Time": true,
-                     "job": true
-                  },
-                  "indexByName": {
-                     "Value": 1,
-                     "exception": 0
-                  },
-                  "renameByName": {
-                     "exception": "Exception"
-                  }
-               }
-            }
-         ],
-         "type": "table"
+         "title": "Task Rate by Queue",
+         "type": "timeseries"
       },
       {
          "datasource": {
             "type": "prometheus",
             "uid": "$datasource"
          },
-         "description": "Table of tasks with the highest average runtime in the last week",
+         "description": "Time tasks spend in the queue between being sent and starting on a worker. Requires task_send_sent_event to be enabled on the client. Rising values mean workers are saturated.",
          "fieldConfig": {
             "defaults": {
-               "links": [
-                  {
-                     "targetBlank": true,
-                     "title": "Go To Task",
-                     "type": "dashboard",
-                     "url": "/d/celery-tasks-by-task-32s3/celery-tasks-by-task?var-namespace=${namespace}&var-job=${job}&var-task=${__data.fields.Task}"
-                  }
-               ],
-               "thresholds": {
-                  "steps": [ ]
+               "custom": {
+                  "fillOpacity": 10
                },
                "unit": "s"
             },
-            "overrides": [ ]
+            "overrides": [
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "P50"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "green",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "P95"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "yellow",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               },
+               {
+                  "matcher": {
+                     "id": "byName",
+                     "options": "P99"
+                  },
+                  "properties": [
+                     {
+                        "id": "color",
+                        "value": {
+                           "fixedColor": "red",
+                           "mode": "fixed"
+                        }
+                     }
+                  ]
+               }
+            ]
          },
          "gridPos": {
             "h": 8,
-            "w": 8,
-            "x": 16,
-            "y": 31
+            "w": 24,
+            "x": 0,
+            "y": 56
          },
          "id": 21,
          "options": {
-            "footer": {
-               "enablePagination": true
+            "legend": {
+               "calcs": [
+                  "mean",
+                  "max"
+               ],
+               "displayMode": "table",
+               "placement": "right",
+               "showLegend": true,
+               "sortBy": "Mean",
+               "sortDesc": true
             },
-            "sortBy": [
-               {
-                  "desc": true,
-                  "displayName": "Runtime"
-               }
-            ]
+            "tooltip": {
+               "mode": "multi",
+               "sort": "desc"
+            }
          },
          "pluginVersion": "v11.4.0",
          "targets": [
@@ -1266,31 +1375,31 @@
                   "type": "prometheus",
                   "uid": "$datasource"
                },
-               "expr": "sum (\n  rate(\n    celery_task_runtime_sum{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[1w]\n  )\n) by(name)\n/\nsum (\n  rate(\n    celery_task_runtime_count{\n      cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n    }[1w]\n  )\n) by (name) > 0\n",
-               "format": "table",
-               "instant": true
-            }
-         ],
-         "title": "Top Average Task Runtime [1w]",
-         "transformations": [
+               "exemplar": false,
+               "expr": "histogram_quantile(0.50,\n  sum(\n    rate(\n      celery_task_queue_wait_time_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  ) by (le)\n)\n",
+               "legendFormat": "P50"
+            },
             {
-               "id": "organize",
-               "options": {
-                  "excludeByName": {
-                     "Time": true
-                  },
-                  "indexByName": {
-                     "Value": 1,
-                     "name": 0
-                  },
-                  "renameByName": {
-                     "Value": "Runtime",
-                     "name": "Task"
-                  }
-               }
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "exemplar": false,
+               "expr": "histogram_quantile(0.95,\n  sum(\n    rate(\n      celery_task_queue_wait_time_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  ) by (le)\n)\n",
+               "legendFormat": "P95"
+            },
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "$datasource"
+               },
+               "exemplar": false,
+               "expr": "histogram_quantile(0.99,\n  sum(\n    rate(\n      celery_task_queue_wait_time_bucket{\n        cluster=\"$cluster\",\nnamespace=\"$namespace\",\njob=~\"$job\"\n,\nqueue_name=~\"$queue_name\",\nqueue_name!~\"None\"\n\n      }[$__rate_interval]\n    )\n  ) by (le)\n)\n",
+               "legendFormat": "P99"
             }
          ],
-         "type": "table"
+         "title": "Queue Wait Time",
+         "type": "timeseries"
       }
    ],
    "schemaVersion": 39,
