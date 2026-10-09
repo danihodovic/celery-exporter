@@ -446,6 +446,73 @@ def test_purge_stale_generic_worker_task_metrics(mocker):
     assert not exporter.generic_last_seen
 
 
+def test_purge_stale_generic_queue_wait_time_metric(mocker):
+    exporter = Exporter(
+        purge_offline_worker_metrics_seconds=10,
+        generic_hostname_worker_task_metric=True,
+    )
+    labels = {"hostname": "generic", "name": "task", "queue_name": "celery"}
+    now = mocker.patch("src.exporter.time.time")
+
+    now.return_value = 100
+    track_event(
+        exporter,
+        "task-started",
+        SimpleNamespace(
+            name="task",
+            hostname="worker@one",
+            queue="celery",
+            sent=90.0,
+            started=95.0,
+            eta=None,
+        ),
+    )
+
+    assert (
+        exporter.registry.get_sample_value("celery_task_queue_wait_time_count", labels)
+        == 1.0
+    )
+
+    now.return_value = 111
+    exporter.track_timed_out_workers()
+
+    assert (
+        exporter.registry.get_sample_value("celery_task_queue_wait_time_count", labels)
+        is None
+    )
+    assert not exporter.generic_last_seen
+
+
+def test_generic_queue_wait_time_is_not_tracked_when_purging_is_disabled(mocker):
+    exporter = Exporter(
+        purge_offline_worker_metrics_seconds=0,
+        generic_hostname_worker_task_metric=True,
+    )
+    mocker.patch("src.exporter.time.time", return_value=100)
+
+    track_event(
+        exporter,
+        "task-started",
+        SimpleNamespace(
+            name="task",
+            hostname="worker@one",
+            queue="celery",
+            sent=90.0,
+            started=95.0,
+            eta=None,
+        ),
+    )
+
+    assert not exporter.generic_last_seen
+    assert (
+        exporter.registry.get_sample_value(
+            "celery_task_queue_wait_time_count",
+            labels={"hostname": "generic", "name": "task", "queue_name": "celery"},
+        )
+        == 1.0
+    )
+
+
 def test_purge_stale_generic_worker_task_metrics_with_exception_label(mocker):
     exporter = Exporter(
         purge_offline_worker_metrics_seconds=10,

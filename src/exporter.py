@@ -414,6 +414,8 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             # clock skew between producer and worker can push this negative
             queue_wait_time = max(0.0, task.started - baseline)
             self.celery_task_queue_wait_time.labels(**labels).observe(queue_wait_time)
+            if track_generic:
+                self.track_generic_metric(self.celery_task_queue_wait_time, labels, now)
             logger.debug(
                 "Observed metric='{}' labels='{}': {}s",
                 self.celery_task_queue_wait_time._name,
