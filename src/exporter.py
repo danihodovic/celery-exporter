@@ -242,7 +242,10 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
         # Make a copy of the last seen dict so we can delete from the dict with no issues
         for hostname, worker_status in list(self.worker_last_seen.items()):
             since = now - worker_status["ts"]
-            if since > self.worker_timeout_seconds and not worker_status["forgotten"]:
+            if (
+                0 < self.worker_timeout_seconds < since
+                and not worker_status["forgotten"]
+            ):
                 logger.info(
                     "Have not seen {} for {:0.2f} seconds. Removing from metrics",
                     hostname,

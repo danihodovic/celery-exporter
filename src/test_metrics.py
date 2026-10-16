@@ -228,6 +228,30 @@ def test_purge_offline_worker_metrics(
     )
 
 
+@pytest.mark.parametrize("worker_timeout, expected_up", [(0, 1.0), (300, 0.0)])
+def test_worker_timeout_and_purge_are_independent(mocker, worker_timeout, expected_up):
+    exporter = Exporter(worker_timeout_seconds=worker_timeout)
+    now = mocker.patch("src.exporter.time.time", return_value=100.0)
+    exporter.track_worker_status(
+        {"hostname": "worker@fixture", "timestamp": 100.0, "utcoffset": utcoffset()},
+        True,
+    )
+
+    now.return_value = 401.0
+    exporter.track_timed_out_workers()
+    assert (
+        exporter.registry.get_sample_value("celery_worker_up", {"hostname": "fixture"})
+        == expected_up
+    )
+
+    now.return_value = 701.0
+    exporter.track_timed_out_workers()
+    assert (
+        exporter.registry.get_sample_value("celery_worker_up", {"hostname": "fixture"})
+        is None
+    )
+
+
 def test_worker_offline_event_does_not_recreate_purged_metric(hostname):
     exporter = Exporter()
     exporter.track_worker_status(
