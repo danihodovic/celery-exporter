@@ -35,11 +35,12 @@ Prometheus in real-time.
 
 ## Dashboards and alerts
 
-Alerting rules can be found [here](./celery-mixin/prometheus-alerts.yaml). By
+Alerting rules can be found [here](./celery-mixin/prometheus_alerts.yaml). By
 default we alert if:
 
-- A task failed in the last 10 minutes.
-- No Celery workers are online.
+- More than 5% of a task's executions failed over the last 10 minutes, for 1 minute.
+- A queue has more than 100 tasks for 20 minutes.
+- A Celery worker is offline for 15 minutes.
 
 Tweak these to suit your use-case.
 
