@@ -1,0 +1,9 @@
+env:
+  - name: CE_BROKER_URL
+    value: memory://localhost/
+startupProbe:
+  enabled: true
+  periodSeconds: 5
+  failureThreshold: 24
+readinessProbe:
+  periodSeconds: 5
