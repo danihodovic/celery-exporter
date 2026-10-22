@@ -35,18 +35,36 @@ spec:
             - name: http
               containerPort: 9808
               protocol: TCP
+          {{- if (.Values.startupProbe).enabled }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            {{- with .Values.startupProbe.initialDelaySeconds }}
+            initialDelaySeconds: {{ . }}
+            {{- end }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds | default "5" }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold | default "30" }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds | default "5" }}
+          {{- end }}
           readinessProbe:
             httpGet:
               path: /health
               port: http
-            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default "5" }}
-            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default "5" }}
-            periodSeconds: {{ .Values.livenessProbe.periodSeconds | default "10" }}
-            successThreshold: {{ .Values.livenessProbe.successThreshold | default "1" }}
+            {{- with .Values.readinessProbe.initialDelaySeconds | default .Values.livenessProbe.initialDelaySeconds }}
+            initialDelaySeconds: {{ . }}
+            {{- end }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default .Values.livenessProbe.timeoutSeconds | default "5" }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold | default .Values.livenessProbe.failureThreshold | default "5" }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds | default .Values.livenessProbe.periodSeconds | default "10" }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold | default .Values.livenessProbe.successThreshold | default "1" }}
           livenessProbe:
             httpGet:
               path: /health
               port: http
+            {{- with .Values.livenessProbe.initialDelaySeconds }}
+            initialDelaySeconds: {{ . }}
+            {{- end }}
             timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default "5" }}
             failureThreshold: {{ .Values.livenessProbe.failureThreshold | default "5" }}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds | default "10" }}

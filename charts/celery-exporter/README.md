@@ -82,4 +82,8 @@ helm install celery-exporter danihodovic/celery-exporter --set env[0].name=CE_BR
 | serviceMonitor.scrapeInterval | string | `"30s"` |  |
 | serviceMonitor.scrapeTimeout | string | `""` |  |
 | serviceMonitor.targetLabels | list | `[]` |  |
+| startupProbe.enabled | bool | `false` |  |
+| startupProbe.failureThreshold | int | `30` |  |
+| startupProbe.periodSeconds | int | `5` |  |
+| startupProbe.timeoutSeconds | int | `5` |  |
 | tolerations | list | `[]` |  |

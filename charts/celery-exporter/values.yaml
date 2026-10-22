@@ -101,16 +101,29 @@ resources: {}
   #   memory: 128Mi
 
 livenessProbe: {}
-  # Liveness and readiness probe timeout values.
+  # Liveness probe values. Also used as defaults for the readiness probe.
+  # initialDelaySeconds: 0
   # timeoutSeconds: 5
   # failureThreshold: 5
   # periodSeconds: 10
   # successThreshold: 1
 readinessProbe: {}
+  # Readiness probe values. Unset keys fall back to livenessProbe values.
+  # initialDelaySeconds: 0
   # timeoutSeconds: 15
   # failureThreshold: 5
   # periodSeconds: 10
   # successThreshold: 1
+
+startupProbe:
+  # Enable for slow-starting pods (e.g. on freshly provisioned nodes). Liveness and
+  # readiness probes only start once the startup probe has succeeded, so the pod gets
+  # up to failureThreshold * periodSeconds to start before it is restarted.
+  enabled: false
+  # initialDelaySeconds: 0
+  timeoutSeconds: 5
+  failureThreshold: 30
+  periodSeconds: 5
 
 nodeSelector: {}
 
