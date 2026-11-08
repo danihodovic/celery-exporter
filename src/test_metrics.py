@@ -839,3 +839,29 @@ def test_queue_wait_time_excludes_eta_when_events_from_other_timezone(event_expo
 
     assert get_queue_wait_sample(event_exporter, "count") == 1.0
     assert get_queue_wait_sample(event_exporter, "sum") == pytest.approx(3.0)
+
+
+def test_task_succeeded_without_runtime_is_not_observed(event_exporter):
+    # A task-succeeded event that carries no runtime (e.g. sent by a client that
+    # doesn't report it) must not crash the exporter.
+    event_exporter.track_task_event(make_task_sent_event(QUEUE_WAIT_BASE_TIME))
+    event_exporter.track_task_event(
+        make_task_event("task-started", QUEUE_WAIT_BASE_TIME + 1)
+    )
+    event_exporter.track_task_event(
+        make_task_event("task-succeeded", QUEUE_WAIT_BASE_TIME + 2)
+    )
+
+    labels = {
+        "name": QUEUE_WAIT_TASK_NAME,
+        "hostname": "wait-test-host",
+        "queue_name": "celery",
+    }
+    assert (
+        event_exporter.registry.get_sample_value("celery_task_succeeded_total", labels)
+        == 1.0
+    )
+    assert (
+        event_exporter.registry.get_sample_value("celery_task_runtime_count", labels)
+        is None
+    )
