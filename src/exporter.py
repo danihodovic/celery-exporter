@@ -423,8 +423,8 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
                 queue_wait_time,
             )
 
-        # observe task runtime
-        if event["type"] == "task-succeeded":
+        # observe task runtime; the event may not carry one
+        if event["type"] == "task-succeeded" and task.runtime is not None:
             self.celery_task_runtime.labels(**labels).observe(task.runtime)
             if track_generic:
                 self.track_generic_metric(self.celery_task_runtime, labels, now)
