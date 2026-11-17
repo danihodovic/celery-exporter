@@ -190,7 +190,18 @@ class Exporter:  # pylint: disable=too-many-instance-attributes,too-many-branche
             or self.purge_offline_worker_metrics_after_seconds > 0
         ):
             self.track_timed_out_workers()
+        self.prune_tasks_by_worker()
         self.track_queue_metrics()
+
+    def prune_tasks_by_worker(self):
+        # Celery's State indexes each task under the node that first reported it
+        # (the producer's gen<pid>@host for task-sent) and never deletes the key.
+        # The exporter never reads this index, so drop the sets left empty by
+        # producers and workers that are gone, or memory grows with process churn.
+        index = self.state.tasks_by_worker
+        for hostname, tasks in list(index.items()):
+            if not tasks:
+                index.pop(hostname, None)
 
     def forget_worker(self, hostname):
         if hostname in self.worker_last_seen:

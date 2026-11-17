@@ -1,3 +1,4 @@
+import gc
 import logging
 import time
 from datetime import datetime, timezone
@@ -5,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from celery.contrib.testing.worker import start_worker  # type: ignore
+from celery.events.state import State  # type: ignore
 from celery.utils.time import adjust_timestamp, utcoffset  # type: ignore
 
 from src.exporter import Exporter, reverse_adjust_timestamp
@@ -839,3 +841,27 @@ def test_queue_wait_time_excludes_eta_when_events_from_other_timezone(event_expo
 
     assert get_queue_wait_sample(event_exporter, "count") == 1.0
     assert get_queue_wait_sample(event_exporter, "sum") == pytest.approx(3.0)
+
+
+def test_prune_tasks_by_worker_drops_gone_producers():
+    exporter = Exporter()
+    exporter.state = State(max_tasks_in_memory=2)
+    for i, sender in enumerate(["gen1@web-a", "gen2@web-b", "gen3@web-c"]):
+        exporter.track_task_event(
+            {
+                "type": "task-sent",
+                "uuid": f"task-{i}",
+                "hostname": sender,
+                "name": "add",
+                "queue": "celery",
+                "timestamp": QUEUE_WAIT_BASE_TIME + i,
+                "local_received": QUEUE_WAIT_BASE_TIME + i,
+                "clock": i,
+            }
+        )
+
+    gc.collect()  # celery Task objects hold bound-method cycles
+    exporter.prune_tasks_by_worker()
+
+    # task-0 was evicted from the LRU, so its producer's index entry is gone
+    assert set(exporter.state.tasks_by_worker) == {"gen2@web-b", "gen3@web-c"}
